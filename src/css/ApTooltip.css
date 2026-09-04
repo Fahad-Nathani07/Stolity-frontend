@@ -1,0 +1,73 @@
+.ap-tip-wrap {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  max-width: 100%;
+}
+
+.ap-tip {
+  position: absolute;
+  z-index: 30;
+  padding: 5px 9px;
+  border-radius: 6px;
+  background: #0f172a;
+  color: #ffffff;
+  font-size: 11px;
+  font-weight: 500;
+  line-height: 1.25;
+  white-space: nowrap;
+  pointer-events: none;
+  opacity: 0;
+  visibility: hidden;
+  transition: opacity 0.15s ease, transform 0.15s ease, visibility 0.15s ease;
+  box-shadow: 0 4px 14px rgba(15, 23, 42, 0.2);
+}
+
+.ap-tip::after {
+  content: "";
+  position: absolute;
+  border: 5px solid transparent;
+}
+
+/* Top (default — above control) */
+.ap-tip-wrap--top .ap-tip {
+  bottom: calc(100% + 8px);
+  left: 50%;
+  transform: translateX(-50%) translateY(4px);
+}
+
+.ap-tip-wrap--top .ap-tip.is-visible,
+.ap-tip-wrap--top:has(:focus-visible) .ap-tip {
+  opacity: 1;
+  visibility: visible;
+  transform: translateX(-50%) translateY(0);
+}
+
+.ap-tip-wrap--top .ap-tip::after {
+  top: 100%;
+  left: 50%;
+  transform: translateX(-50%);
+  border-top-color: #0f172a;
+}
+
+/* Bottom — below control (mini widget) */
+.ap-tip-wrap--bottom .ap-tip {
+  top: calc(100% + 8px);
+  left: 50%;
+  transform: translateX(-50%) translateY(-4px);
+}
+
+.ap-tip-wrap--bottom .ap-tip.is-visible,
+.ap-tip-wrap--bottom:has(:focus-visible) .ap-tip {
+  opacity: 1;
+  visibility: visible;
+  transform: translateX(-50%) translateY(0);
+}
+
+.ap-tip-wrap--bottom .ap-tip::after {
+  bottom: 100%;
+  left: 50%;
+  transform: translateX(-50%);
+  border-bottom-color: #0f172a;
+}

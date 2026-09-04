@@ -1,0 +1,86 @@
+@keyframes fps-shimmer {
+  0% {
+    background-position: -200% 0;
+  }
+  100% {
+    background-position: 200% 0;
+  }
+}
+
+.fps-skeleton-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.fps-skeleton-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 12px 14px;
+  border-radius: 6px;
+  background: #fff;
+  border: 1px solid #ececec;
+}
+
+.fps-skeleton-icon,
+.fps-skeleton-text {
+  border-radius: 6px;
+  background: linear-gradient(90deg, #f0f0f2 0%, #fafafa 45%, #f0f0f2 90%);
+  background-size: 200% 100%;
+  animation: fps-shimmer 1.2s ease-in-out infinite;
+}
+
+.fps-skeleton-icon {
+  width: 22px;
+  height: 22px;
+  flex-shrink: 0;
+  border-radius: 4px;
+}
+
+.fps-skeleton-text {
+  height: 14px;
+  max-width: 72%;
+}
+
+.fps-empty-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  height: 100%;
+  min-height: 200px;
+  padding: 24px 16px;
+  text-align: center;
+  color: #9ca3af;
+}
+
+.fps-empty-state img {
+  width: 48px;
+  height: 48px;
+  opacity: 0.55;
+}
+
+.fps-empty-state p {
+  margin: 0;
+  font-size: 13px;
+  font-weight: 500;
+  color: #9ca3af;
+}
+
+.fps-loading-hint {
+  margin: 0 0 8px;
+  font-size: 12px;
+  font-weight: 600;
+  color: #a1a1aa;
+  text-align: center;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .fps-skeleton-icon,
+  .fps-skeleton-text {
+    animation: none;
+    background: #f0f0f2;
+  }
+}

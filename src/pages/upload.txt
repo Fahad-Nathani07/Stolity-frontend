@@ -1,0 +1,344 @@
+ <Modal
+        open={openFileUploadModal}
+        onClose={handleCloseFileUploadModal}
+        className="pdf_modal_style file_upload_modal_style"
+        style={{
+          display: "flex",
+          alignItems: "center",
+          flexDirection: "column",
+          justifyContent: "center",
+        }}
+      >
+        <Modal.Body style={{ width: "100%" }}>
+          <div className="">
+            <Tabs>
+              <TabList className="my-tab-list">
+                <Tab>
+                  <div className="my-tab-item">
+                    <i className="mdi mdi-file-document-box-multiple-outline"></i>
+                    <span>Files</span>
+                  </div>
+                </Tab>
+                <Tab>
+                  <div className="my-tab-item">
+                    <i className="mdi mdi-folder-multiple-outline"></i>
+                    <span>Upload Folder</span>
+                  </div>
+                </Tab>
+                <Tab>
+                  <div className="my-tab-item">
+                    <i className="mdi mdi-folder-multiple-outline"></i>
+                    <span>Folder</span>
+                  </div>
+                </Tab>
+              </TabList>
+
+              <TabPanel>
+                <Dropzone onDrop={onDrop}>
+                  {({ getRootProps, getInputProps }) => (
+                    <section className="" style={{ paddingBottom: "0px" }}>
+                      <div {...getRootProps({ className: "fileupload" })}>
+                        <input {...getInputProps()} />
+
+                        {/* Background Image with all icons */}
+                        <img
+                          src={BackgroundImageFileUpload}
+                          alt="background-icons"
+                          className="background-img"
+                        />
+
+                        {/* Center Upload Icon */}
+                        <div className="upload-icon-container">
+                          <img
+                            src={UploadIcon}
+                            alt="upload-icon"
+                            className="upload-icon"
+                          />
+                        </div>
+                      </div>
+
+                      {/* <ul className="upload_thumbnails_list">{fileList2}</ul> */}
+                      {/* This shows the Preview */}
+                      <ul className="upload_thumbnails_list">{fileListPreview}</ul>
+                      {itemsToShow < files.length && (
+                        <button
+                          style={{ zIndex: "4000" }}
+                          className="show-more-btn"
+                          onClick={() => setItemsToShow(itemsToShow + 6)}
+                          aria-label="Show more files"
+                          type="button"
+                        >
+                          Show More
+                        </button>
+
+                      )}
+
+
+                      <div className="total-files-info" style={{
+                        backgroundColor: "#ffffff",
+                        padding: "12px 16px",
+                        border: "1px solid #FFD5A9",
+                        borderRadius: "8px",
+                        boxShadow: "0 2px 6px rgba(255, 171, 73, 0.15)",
+                        color: "#333",
+                        fontSize: "14px",
+                        fontWeight: "600",
+                        textAlign: "center",
+                        width: "283px",
+                        margin: "16px auto 10px auto"
+                      }}>
+                        <p style={{ margin: "0" }}>
+                          Total Files Selected: <strong style={{ color: "#FF8C00" }}>{files.length}</strong>
+                        </p>
+                      </div>
+
+                    </section>
+                  )}
+                </Dropzone>
+                
+
+                <div className="filesize-warning-div">
+                  <span className="filesize-warning-span">
+                    <div className="warning-icon">!</div>
+                   
+
+                    {/* {`Storage left: ${(remainingBytes / 1024 ** 3).toFixed(2)} GB`} */}
+                    {`Storage left: ${(remainingBytes / 1_000_000_000).toFixed(2)} GB`}
+
+                  </span>
+                  <p className="visibility-label">Set Visibility:</p>
+                </div>
+
+
+
+                <ul className="radio_checkbox_list mt-0">
+                  <li>
+                    <input
+                      type="radio"
+                      name="FileUpload"
+                      id="FilePublic"
+                      value="public"
+                      // defaultChecked
+                      checked={pubpri === "public"}
+                      onChange={handlePubChange}
+                      />
+                    <label htmlFor="FilePublic">Public</label>
+                  </li>
+                  <li>
+                    <input
+                      type="radio"
+                      name="FileUpload"
+                      id="FilePrivate"
+                      value="private"
+                      checked={pubpri === "private"}
+                      onChange={handlePubChange}
+                      
+                    />
+                    <label htmlFor="FilePrivate">Private</label>
+                  </li>
+                </ul>
+
+             
+                <div className="btn_group mt-4">
+                  <button
+                    onClick={handleCloseFileUploadModal}
+                    className=" btn_width_same btn_grey_ripple ripple_effect btn-cancel"
+                  >
+                    Close
+                  </button>
+
+                  {files.length > 0 && (
+                    <button
+                      // onClick={() => setShowConversionModal(true)}
+                      onClick={() => {
+                         if (!isPremium) {
+                          setShowUpgradeModal(true);
+                          return;
+                        }
+                        console.log('Files array:', files);  // Debug
+                        setShowConversionModal(true);
+                      }}
+                      style={{
+                        padding: '14px 28px',
+                        // background: '#FFE3CA',
+                        background: '#ffffffff',
+                        color: '#333',
+                        border: '2px solid #FFD5A9',
+                        borderRadius: '58px',
+                        cursor: 'pointer',
+                        fontWeight: '600',
+                        // fontSize: '0.95em',
+                        fontSize: '14px',
+                        transition: 'all 0.2s',
+                        boxShadow: '0 2px 6px rgba(255, 171, 73, 0.15)',
+                        letterSpacing: '0.3px',
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '8px',
+                      }}
+                      onMouseEnter={(e) => {
+                        e.target.style.background = '#FFE3CA';
+                        e.target.style.color = 'black';
+                        e.target.style.borderColor = '#FFAB49';
+                        e.target.style.transform = 'translateY(-2px)';
+                        e.target.style.boxShadow = '0 4px 12px rgba(255, 171, 73, 0.3)';
+                      }}
+                      onMouseLeave={(e) => {
+                        e.target.style.background = '#ffffffff';
+                        e.target.style.color = '#333';
+                        e.target.style.borderColor = '#FFD5A9';
+                        e.target.style.transform = 'translateY(0)';
+                        e.target.style.boxShadow = '0 2px 6px rgba(255, 171, 73, 0.15)';
+                      }}
+                      onMouseDown={(e) => {
+                        e.target.style.transform = 'translateY(-1px) scale(0.98)';
+                      }}
+                      onMouseUp={(e) => {
+                        e.target.style.transform = 'translateY(-2px) scale(1)';
+                      }}
+                    >
+                      Convert Files
+                       {!isPremium && <span className="context-menu-icon">
+            <img src={svgCrown} alt="" style={{ height: "20px" }}  />
+            </span>}
+                    </button>
+
+                  )}
+                  <button
+                    onClick={handleFileUpload}
+                    className="btn_width_same ripple_effect btn-upload"
+                  >
+                    Submit
+                  </button>
+                </div>
+
+              </TabPanel>
+
+              <TabPanel>
+                <h5 className="upload-title">Upload Folder</h5>
+
+                <div {...getRootProps({ className: "dropzone-box" })}>
+                  <input {...getInputProps()} />
+                  <p className="dropzone-text">
+                    {isDragActive
+                      ? "Drop the folder here ..."
+                      : "Choose a file or drag & drop it here"}
+                  </p>
+                  <p className="dropzone-subtext">
+                    JPEG, PNG, PDG, and MP4 formats, up to 50MB
+                  </p>
+                  <button
+                    type="button"
+                    onClick={handleSelectFolder}
+                    className="browse-button"
+                  >
+                    Browse File
+                  </button>
+                </div>
+
+                {files.length > 0 && (
+                  <ul className="upload-folder-name">{nameOfFolder}</ul>
+                )}
+
+                <div className="visibility-group">
+                  <p className="visibility-label">Set Visibility:</p>
+                  <ul className="radio_checkbox_list justify-center">
+                    <li>
+                      <input
+                        type="radio"
+                        name="FileUpload3"
+                        onChange={handleRadioChange2}
+                        value="public-read"
+                        id="FilePublic3"
+                      />
+                      <label htmlFor="FilePublic3">Public</label>
+                    </li>
+                    <li>
+                      <input
+                        type="radio"
+                        name="FileUpload3"
+                        onChange={handleRadioChange2}
+                        value="private"
+                        id="FilePrivate3"
+                        defaultChecked
+                      />
+                      <label htmlFor="FilePrivate3">Private</label>
+                    </li>
+                  </ul>
+                </div>
+
+                <div className="btn_group mt-4">
+                  <button
+                    onClick={handleCloseFileUploadModal}
+                    className=" btn_width_same btn_grey_ripple ripple_effect btn-cancel"
+                  >
+                    Close
+                  </button>
+                  <button
+                    onClick={uploadFolder}
+                    className="btn_width_same ripple_effect btn-upload"
+                  >
+                    Upload
+                  </button>
+                </div>
+              </TabPanel>
+
+              <TabPanel style={{ display: "flex", justifyContent: "center" }}>
+                <div
+                  className="create-folder-card"
+                  style={{ boxShadow: "none" }}
+                >
+                  <div
+                    className="folder-icon"
+                    style={{ display: "flex", justifyContent: "center" }}
+                  >
+                    <img
+                      src={createFolderPopup}
+                      alt="Create Folder"
+                      height={48}
+                    />
+                  </div>
+                  <h5 className="folder-title">Create Folder</h5>
+
+                  <form
+                    className="folder-form"
+                    onSubmit={createJustFolder}
+                    action="javascript:void(0);"
+                    method="POST"
+                  >
+                    <input
+                      className="folder-input"
+                      type="text"
+                      name="fname"
+                      id="folname"
+                      pattern="[a-zA-Z0-9_\- ]{1,}"
+                      required
+                      placeholder="Enter Folder Name"
+                    />
+                    {folderFieldError && (
+                      <p className="error-message">{folderFieldError}</p>
+                    )}
+
+                    <div className="rename_buttons mt-4">
+                      <button
+                        type="button"
+                        className="btn_width_same btn_grey_ripple ripple_effect rename_btn cancel"
+                        onClick={handleCloseFileUploadModal}
+                      >
+                        Close
+                      </button>
+
+                      <button
+                        type="submit"
+                        className=" btn_width_same ripple_effect rename_btn ok"
+                      >
+                        Create
+                      </button>
+                    </div>
+                  </form>
+                </div>
+              </TabPanel>
+            </Tabs>
+          </div>
+        </Modal.Body>
+      </Modal>

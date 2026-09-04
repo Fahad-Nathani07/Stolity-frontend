@@ -1,0 +1,24 @@
+.fps-list-panel {
+  /* ~5–6 folder rows */
+  max-height: min(320px, 38vh);
+  height: min(320px, 38vh);
+  overflow-y: auto;
+  border: 1px solid #e0e0e0;
+  border-radius: 8px;
+  padding: 8px;
+  background-color: #fafafa;
+}
+
+@media (max-height: 760px) {
+  .fps-list-panel {
+    max-height: min(280px, 34vh);
+    height: min(280px, 34vh);
+  }
+}
+
+@media (max-height: 620px) {
+  .fps-list-panel {
+    max-height: min(240px, 32vh);
+    height: min(240px, 32vh);
+  }
+}

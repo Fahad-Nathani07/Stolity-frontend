@@ -1,0 +1,222 @@
+.files-pagination-footer {
+  flex-shrink: 0;
+  display: flex;
+  flex-direction: column;
+  padding: 12px 20px;
+  min-height: var(--stolity-footer-bar-height, 72px);
+  box-sizing: border-box;
+  background: #ffffff;
+  border-top: 1px solid rgba(15, 23, 42, 0.08);
+  box-shadow: 0 -6px 18px rgba(15, 23, 42, 0.04);
+  z-index: 20;
+}
+
+.fp-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  width: 100%;
+  flex-wrap: wrap;
+}
+
+.fp-left,
+.fp-right {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+}
+
+.fp-size {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  margin: 0;
+}
+
+.fp-size-label {
+  font-size: 13px;
+  font-weight: 500;
+  color: #64748b;
+  white-space: nowrap;
+}
+
+.fp-size-control {
+  display: inline-flex;
+  align-items: stretch;
+  height: 36px;
+  min-width: 76px;
+  border: 1px solid rgba(15, 23, 42, 0.12);
+  border-radius: 10px;
+  background: #f8fafc;
+  overflow: hidden;
+  transition: border-color 0.15s ease, box-shadow 0.15s ease, background-color 0.15s ease;
+}
+
+.fp-size-control:hover {
+  background: #fff;
+  border-color: rgba(255, 171, 73, 0.55);
+}
+
+.fp-size-control:focus-within,
+.fp-size-control.is-editing {
+  background: #fff;
+  border-color: #ffab49;
+  box-shadow: 0 0 0 3px rgba(255, 171, 73, 0.2);
+}
+
+.fp-size-select {
+  appearance: none;
+  -webkit-appearance: none;
+  width: 100%;
+  min-width: 76px;
+  height: 100%;
+  padding: 0 30px 0 12px;
+  border: none;
+  border-radius: 0;
+  background-color: transparent;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%2364748b' stroke-width='2.5' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 10px center;
+  color: #0f172a;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  outline: none;
+}
+
+.fp-custom-input {
+  width: 64px;
+  height: 100%;
+  padding: 0 0 0 12px;
+  border: none;
+  border-radius: 0;
+  background: transparent;
+  color: #0f172a;
+  font-size: 13px;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+  outline: none;
+}
+
+.fp-custom-input::placeholder {
+  color: #94a3b8;
+  font-weight: 500;
+}
+
+.fp-custom-apply {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 34px;
+  height: 100%;
+  margin: 0;
+  padding: 0;
+  border: none;
+  border-left: 1px solid rgba(255, 171, 73, 0.35);
+  background: rgba(255, 171, 73, 0.14);
+  color: #c46a12;
+  cursor: pointer;
+  transition: background-color 0.15s ease, color 0.15s ease;
+}
+
+.fp-custom-apply:hover {
+  background: #ffab49;
+  color: #fff;
+}
+
+.fp-custom-apply-icon {
+  width: 15px;
+  height: 15px;
+}
+
+.fp-range {
+  font-size: 13px;
+  font-weight: 500;
+  color: #475569;
+  white-space: nowrap;
+  font-variant-numeric: tabular-nums;
+}
+
+.fp-nav {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 4px;
+  border-radius: 35px;
+  background: #f1f5f9;
+}
+
+.fp-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  padding: 0;
+  border: none;
+  border-radius: 8px;
+  background: transparent;
+  color: #334155;
+  cursor: pointer;
+  transition: background-color 0.15s ease, color 0.15s ease, opacity 0.15s ease;
+}
+
+.fp-btn:hover:not(:disabled) {
+  background: #ffffff;
+  color: #0f172a;
+  box-shadow: 0 1px 2px rgba(15, 23, 42, 0.08);
+}
+
+.fp-btn:disabled {
+  opacity: 0.35;
+  cursor: not-allowed;
+}
+
+.fp-icon {
+  width: 16px;
+  height: 16px;
+}
+
+.fp-page-pill {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 4px;
+  min-width: 52px;
+  justify-content: center;
+  padding: 0 8px;
+  font-variant-numeric: tabular-nums;
+}
+
+.fp-page-num {
+  font-size: 13px;
+  font-weight: 700;
+  color: #0f172a;
+}
+
+.fp-page-of {
+  font-size: 12px;
+  font-weight: 500;
+  color: #94a3b8;
+}
+
+@media (max-width: 640px) {
+  .files-pagination-footer {
+    padding: 12px 14px;
+  }
+
+  .fp-bar {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .fp-left,
+  .fp-right {
+    justify-content: space-between;
+    width: 100%;
+  }
+
+  .fp-nav {
+    margin-left: auto;
+  }
+}

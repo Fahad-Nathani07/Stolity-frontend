@@ -1,0 +1,279 @@
+/* =========================
+   Files toolbar — all controls right-aligned
+   List/Card · Sort · File Type · Create · URL · Upload
+   ========================= */
+
+.files-toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 8px 10px;
+  width: 100%;
+  min-width: 0;
+  flex-wrap: wrap;
+}
+
+.files-toolbar__main {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 8px;
+  min-width: 0;
+  flex: 0 1 auto;
+}
+
+.files-toolbar__view {
+  flex: 0 0 auto;
+}
+
+.files-toolbar__filters {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+  flex: 0 1 auto;
+}
+
+.files-toolbar__sort,
+.files-toolbar__filetype {
+  position: relative;
+  flex: 0 1 auto;
+  width: 168px;
+  min-width: 140px;
+  max-width: 200px;
+}
+
+.files-toolbar__sort {
+  width: 176px;
+}
+
+.files-toolbar__filetype {
+  width: 152px;
+}
+
+/* Keep File Type popup inside the viewport (toolbar is right-aligned) */
+.files-toolbar__filetype .ft-filter-popup {
+  left: auto;
+  right: 0;
+}
+
+.files-toolbar__actions {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 8px;
+  flex: 0 0 auto;
+}
+
+.files-toolbar__actions .rs-whisper,
+.files-toolbar__actions > * {
+  flex-shrink: 0;
+}
+
+/* Normalize action icon buttons */
+.files-toolbar__actions .download-btn,
+.files-toolbar__actions .download-btn2,
+.files-toolbar__actions .btn__upload__file_modal {
+  width: 38px;
+  height: 38px;
+  min-width: 38px;
+  padding: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 999px;
+  box-sizing: border-box;
+}
+
+.files-toolbar__actions .download-btn img,
+.files-toolbar__actions .download-btn2 img,
+.files-toolbar__actions .btn__upload__file_modal img {
+  width: 18px;
+  height: 18px;
+  object-fit: contain;
+}
+
+/* Filter dropdowns fill their fixed slots */
+.files-toolbar__filters .filter_dropdown,
+.files-toolbar__filters .rs-dropdown,
+.files-toolbar__filters .sort-by-dropdown {
+  width: 100%;
+}
+
+.files-toolbar__filters .filter_dropdown .rs-dropdown-toggle,
+.files-toolbar__filters .filter_dropdown .rs-dropdown-toggle.rs-btn {
+  width: 100%;
+  height: 38px;
+  min-height: 38px;
+  border-radius: 999px !important;
+  background: #ffffff !important;
+  border: 1px solid #e8e0d8 !important;
+  color: #44403c !important;
+  font-size: 13.5px;
+  font-weight: 500;
+  display: flex;
+  align-items: center;
+  justify-content: flex-start;
+  padding: 0 32px 0 12px !important;
+  box-shadow: 0 1px 2px rgba(28, 25, 23, 0.04);
+}
+
+.files-toolbar__filters .sort-filter-span {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  min-width: 0;
+}
+
+.files-toolbar__filters .sort-filter-label {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  flex: 1 1 auto;
+  min-width: 0;
+  font-size: 13.5px;
+  font-weight: 600;
+  color: #292524;
+}
+
+.files-toolbar__filters .sort-filter-crown {
+  height: 16px;
+  width: auto;
+  margin-left: auto;
+  flex-shrink: 0;
+}
+
+.files-toolbar__filters .sort-filter-span > img:first-child {
+  width: 15px;
+  height: 15px;
+  flex-shrink: 0;
+  opacity: 0.8;
+}
+
+.files-toolbar .switcher-container {
+  flex-shrink: 0;
+  border-radius: 999px !important;
+  overflow: hidden;
+}
+
+.files-toolbar .switcher-container::before {
+  border-radius: 999px;
+}
+
+.files-toolbar .filterbar {
+  display: contents;
+}
+
+.files-toolbar .filterbar-dropdown,
+.files-toolbar .filterbar-dropdown--sort,
+.files-toolbar .filterbar-dropdown--filetype {
+  flex: unset;
+  min-width: 0;
+  width: 100%;
+}
+
+@media screen and (max-width: 1100px) {
+  .files-toolbar__sort {
+    width: 160px;
+  }
+
+  .files-toolbar__filetype {
+    width: 140px;
+  }
+}
+
+@media screen and (max-width: 900px) {
+  .files-toolbar {
+    justify-content: flex-end;
+  }
+
+  .files-toolbar__main {
+    flex-wrap: wrap;
+    justify-content: flex-end;
+  }
+}
+
+@media screen and (max-width: 640px) {
+  .files-toolbar {
+    justify-content: flex-start;
+  }
+
+  .files-toolbar__main,
+  .files-toolbar__filters,
+  .files-toolbar__actions {
+    width: 100%;
+    justify-content: flex-start;
+  }
+
+  .files-toolbar__filters {
+    flex-wrap: wrap;
+  }
+
+  .files-toolbar__sort,
+  .files-toolbar__filetype {
+    width: calc(50% - 4px);
+    max-width: none;
+  }
+}
+
+/* Sticky filter bar + table header — Files, NestedPage, Favourites, RecycleBin */
+.stolity-list-sticky {
+  --files-sticky-top-inset: 8px;
+  --files-filter-bar-height: 56px;
+  --files-selection-height: 0px;
+}
+
+.stolity-list-sticky.has-bulk-selection {
+  --files-selection-height: 44px;
+}
+
+@media (max-width: 767px) {
+  .stolity-list-sticky {
+    --files-sticky-top-inset: -5px;
+  }
+}
+
+.stolity-list-sticky .filerbar_row {
+  position: sticky;
+  top: var(--files-sticky-top-inset);
+  z-index: 42;
+  background: #fff;
+  margin-bottom: 0;
+  padding-top: 4px;
+  padding-bottom: 10px;
+  box-shadow: 0 1px 0 rgba(231, 231, 231, 0.95);
+}
+
+.stolity-list-sticky #filestable thead th {
+  position: sticky;
+  top: calc(
+    var(--files-sticky-top-inset) + var(--files-filter-bar-height) +
+      var(--files-selection-height)
+  );
+  z-index: 41;
+  background-color: #fff;
+  box-shadow: 0 1px 0 #e7e7e7;
+}
+
+.stolity-list-sticky #filestable thead {
+  border-top: none;
+}
+
+.stolity-list-sticky .selected_table_row {
+  position: sticky;
+  top: calc(var(--files-sticky-top-inset) + var(--files-filter-bar-height));
+  z-index: 43;
+}
+
+.row-action-bulk-disabled {
+  opacity: 0.4;
+  cursor: not-allowed !important;
+}
+
+/* File list / grid row checkboxes */
+#filestable input[type="checkbox"],
+.checkbox-input {
+  accent-color: #ffab49;
+  cursor: pointer;
+}

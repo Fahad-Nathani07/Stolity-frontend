@@ -1,0 +1,173 @@
+/* File search — pill input, orange focus ring (#ffab49 theme) */
+
+.file-search-bar {
+  --fsb-accent: #ffab49;
+  --fsb-accent-soft: rgba(255, 171, 73, 0.16);
+  --fsb-border: #e8e0d8;
+  --fsb-text: #44403c;
+  --fsb-muted: #a8a29e;
+  --fsb-height: 42px;
+  --fsb-trailing: 10px;
+
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 0;
+  width: 100%;
+  max-width: 400px;
+  min-width: 200px;
+  height: var(--fsb-height);
+  padding: 0 var(--fsb-trailing) 0 14px;
+  border-radius: 999px;
+  border: 1px solid var(--fsb-border);
+  background: #ffffff;
+  box-shadow: 0 1px 2px rgba(28, 25, 23, 0.04);
+  box-sizing: border-box;
+  transition:
+    border-color 0.22s ease,
+    box-shadow 0.28s ease,
+    padding 0.22s ease;
+}
+
+.file-search-bar--focused {
+  border-color: var(--fsb-accent);
+  box-shadow:
+    0 0 0 3px var(--fsb-accent-soft),
+    0 2px 8px rgba(255, 171, 73, 0.12);
+}
+
+.file-search-bar--locked {
+  cursor: pointer;
+  padding-right: 12px;
+}
+
+.file-search-bar__icon {
+  flex: 0 0 auto;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 20px;
+  height: 20px;
+  margin-right: 10px;
+  opacity: 0.55;
+  transition:
+    opacity 0.22s ease,
+    transform 0.22s ease,
+    filter 0.22s ease;
+}
+
+.file-search-bar__icon img {
+  width: 18px;
+  height: 18px;
+  display: block;
+  object-fit: contain;
+}
+
+.file-search-bar--focused .file-search-bar__icon {
+  opacity: 1;
+  transform: scale(1.06);
+  filter: brightness(0) saturate(100%) invert(72%) sepia(48%) saturate(1200%)
+    hue-rotate(346deg) brightness(102%) contrast(101%);
+}
+
+.file-search-bar__input {
+  flex: 1 1 auto;
+  min-width: 0;
+  width: 0;
+  height: 100%;
+  border: none;
+  outline: none;
+  background: transparent;
+  font-size: 15px;
+  font-weight: 500;
+  color: var(--fsb-text);
+  padding: 0;
+  margin: 0;
+}
+
+.file-search-bar__input::placeholder {
+  color: var(--fsb-muted);
+  font-weight: 400;
+  transition: color 0.2s ease;
+}
+
+.file-search-bar--focused .file-search-bar__input::placeholder {
+  color: #c4bdb6;
+}
+
+.file-search-bar__crown {
+  flex: 0 0 auto;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-left: 6px;
+  animation: fsb-crown-in 0.35s ease;
+}
+
+.file-search-bar__crown img {
+  height: 18px;
+  width: auto;
+  display: block;
+}
+
+.file-search-bar__clear {
+  position: absolute;
+  right: 6px;
+  top: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 30px;
+  height: 30px;
+  padding: 0;
+  border: none;
+  border-radius: 50%;
+  background: transparent;
+  color: var(--fsb-muted);
+  cursor: pointer;
+  opacity: 0;
+  transform: translateY(-50%) scale(0.65) rotate(-90deg);
+  pointer-events: none;
+  transition:
+    opacity 0.2s ease,
+    transform 0.22s cubic-bezier(0.34, 1.4, 0.64, 1),
+    background-color 0.15s ease,
+    color 0.15s ease;
+}
+
+.file-search-bar--has-value:not(.file-search-bar--locked) {
+  --fsb-trailing: 40px;
+}
+
+.file-search-bar--has-value .file-search-bar__clear {
+  opacity: 1;
+  transform: translateY(-50%) scale(1) rotate(0deg);
+  pointer-events: auto;
+}
+
+.file-search-bar__clear:hover {
+  background: var(--fsb-accent-soft);
+  color: var(--fsb-accent);
+}
+
+.file-search-bar__clear:active {
+  transform: translateY(-50%) scale(0.92);
+}
+
+@keyframes fsb-crown-in {
+  from {
+    opacity: 0;
+    transform: translateY(2px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@media (max-width: 640px) {
+  .file-search-bar {
+    max-width: 100%;
+    min-width: 0;
+  }
+}

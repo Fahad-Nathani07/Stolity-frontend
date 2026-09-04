@@ -1,0 +1,32 @@
+// src/components/Loader.jsx
+import React from 'react';
+import Lottie from 'lottie-react';
+// import loaderAnimation from '../loader/Loader1.json';
+import loaderAnimation from '../loader/Loader.json';
+
+const Loader2 = () => {
+  return (
+    <div style={{
+      position: 'fixed',
+      top: 0,
+      left: 0,
+      width: '100vw',
+      height: '100vh',
+      backgroundColor: 'rgba(0, 0, 0, 0.4)',
+      display: 'flex',
+      justifyContent: 'center',
+      alignItems: 'center',
+      zIndex: 9999,
+      cursor:"wait"
+    }}>
+      <Lottie
+        animationData={loaderAnimation}
+        loop={true}
+        autoplay={true}
+        style={{ width: 60, height: 60 }}
+      />
+    </div>
+  );
+};
+
+export default Loader2;

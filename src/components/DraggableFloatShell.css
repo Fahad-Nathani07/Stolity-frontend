@@ -1,0 +1,96 @@
+/* Do NOT set position here — panel classes (.upload-modal-container /
+   .audio-modal-container) own position:fixed so the shell never enters
+   normal document flow and breaks the page layout. */
+.float-shell {
+  box-sizing: border-box;
+  /* Needed as containing block for absolute edge handles when panel is fixed */
+  /* position is provided by the panel className */
+}
+
+.float-shell-body {
+  position: relative;
+  z-index: 1;
+  min-width: 0;
+  /* Don't force height:100% — that can stretch parent oddly */
+}
+
+/* Thin edge hit-targets only — must not cover controls */
+.float-drag-edge {
+  position: absolute;
+  z-index: 6;
+  margin: 0;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  cursor: grab;
+  touch-action: none;
+  user-select: none;
+  -webkit-user-select: none;
+  pointer-events: auto;
+}
+
+.float-drag-edge:active,
+.float-shell.react-draggable-dragging .float-drag-edge {
+  cursor: grabbing;
+}
+
+.float-drag-edge--top {
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 10px;
+}
+
+.float-drag-edge--bottom {
+  bottom: 0;
+  left: 0;
+  right: 0;
+  height: 10px;
+}
+
+.float-drag-edge--left {
+  top: 10px;
+  bottom: 10px;
+  left: 0;
+  width: 10px;
+}
+
+.float-drag-edge--right {
+  top: 10px;
+  bottom: 10px;
+  right: 0;
+  width: 10px;
+}
+
+.float-drag-edge--top:hover,
+.float-drag-edge--bottom:hover {
+  background: linear-gradient(
+    180deg,
+    rgba(255, 171, 73, 0.18),
+    rgba(255, 171, 73, 0)
+  );
+}
+
+.float-drag-edge--bottom:hover {
+  background: linear-gradient(
+    0deg,
+    rgba(255, 171, 73, 0.18),
+    rgba(255, 171, 73, 0)
+  );
+}
+
+.float-drag-edge--left:hover {
+  background: linear-gradient(
+    90deg,
+    rgba(255, 171, 73, 0.18),
+    rgba(255, 171, 73, 0)
+  );
+}
+
+.float-drag-edge--right:hover {
+  background: linear-gradient(
+    270deg,
+    rgba(255, 171, 73, 0.18),
+    rgba(255, 171, 73, 0)
+  );
+}

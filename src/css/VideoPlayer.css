@@ -1,0 +1,347 @@
+/* Custom video player — Stolity theme */
+
+.vp-root {
+  --vp-accent: #ffab49;
+  --vp-accent-hover: #ff9a28;
+  position: relative;
+  width: 100%;
+  max-width: 100%;
+  height: 100%;
+  max-height: 100%;
+  border-radius: 24px;
+  overflow: hidden;
+  background: #000;
+  font-family: "SF Pro", "SFProText", -apple-system, BlinkMacSystemFont, "Segoe UI", Arial, sans-serif;
+}
+
+.vp-root.vp-fit-frame {
+  width: auto;
+  height: auto;
+  max-width: none;
+  max-height: none;
+}
+
+.vp-root.vp-fullscreen {
+  max-width: 100vw;
+  max-height: 100vh;
+  width: 100vw;
+  height: 100vh;
+  border-radius: 0;
+}
+
+.vp-stage {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  background: #000;
+  overflow: hidden;
+}
+
+.vp-video {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  object-position: center;
+  background: #000;
+}
+
+.vp-react-player,
+.vp-react-player > div,
+.vp-react-player video {
+  width: 100% !important;
+  height: 100% !important;
+  object-fit: contain;
+}
+
+.vp-stage-hit {
+  position: absolute;
+  inset: 0;
+  border: none;
+  background: transparent;
+  cursor: pointer;
+  z-index: 1;
+}
+
+.vp-buffering {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  background: rgba(0, 0, 0, 0.25);
+  z-index: 2;
+  pointer-events: none;
+}
+
+.vp-spinner {
+  width: 42px;
+  height: 42px;
+  border: 3px solid rgba(255, 255, 255, 0.2);
+  border-top-color: var(--vp-accent);
+  border-radius: 50%;
+  animation: vp-spin 0.75s linear infinite;
+}
+
+@keyframes vp-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.vp-center-play {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  pointer-events: none;
+  z-index: 2;
+  color: #fff;
+  font-size: 42px;
+  background: rgba(0, 0, 0, 0.28);
+}
+
+.vp-center-play svg {
+  filter: drop-shadow(0 2px 8px rgba(0, 0, 0, 0.4));
+}
+
+.vp-error {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  padding: 24px;
+  text-align: center;
+  color: #fff;
+  font-size: 15px;
+  font-weight: 500;
+  background: rgba(0, 0, 0, 0.72);
+  z-index: 3;
+}
+
+.vp-top-bar {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  padding: 14px 18px;
+  background: linear-gradient(180deg, rgba(0, 0, 0, 0.62) 0%, transparent 100%);
+  z-index: 4;
+  opacity: 0;
+  transform: translateY(-6px);
+  transition: opacity 0.22s ease, transform 0.22s ease;
+  pointer-events: none;
+}
+
+.vp-show-controls .vp-top-bar {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+.vp-title {
+  color: #fff;
+  font-size: 14px;
+  font-weight: 600;
+  letter-spacing: 0.01em;
+  text-shadow: 0 1px 4px rgba(0, 0, 0, 0.5);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  display: block;
+  max-width: 70%;
+}
+
+.vp-controls {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  padding: 10px 14px 14px;
+  background: linear-gradient(0deg, rgba(0, 0, 0, 0.78) 0%, transparent 100%);
+  z-index: 5;
+  opacity: 0;
+  transform: translateY(8px);
+  transition: opacity 0.22s ease, transform 0.22s ease;
+  pointer-events: none;
+}
+
+.vp-show-controls .vp-controls {
+  opacity: 1;
+  transform: translateY(0);
+  pointer-events: auto;
+}
+
+.vp-progress {
+  height: 18px;
+  display: flex;
+  align-items: center;
+  cursor: pointer;
+  margin-bottom: 4px;
+}
+
+.vp-progress-track {
+  width: 100%;
+  height: 4px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.22);
+  overflow: hidden;
+  transition: height 0.15s ease;
+}
+
+.vp-progress:hover .vp-progress-track {
+  height: 6px;
+}
+
+.vp-progress-fill {
+  height: 100%;
+  background: var(--vp-accent);
+  border-radius: 999px;
+  transition: width 0.1s linear;
+}
+
+.vp-controls-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.vp-controls-left,
+.vp-controls-right {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  min-width: 0;
+}
+
+.vp-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 34px;
+  height: 34px;
+  border: none;
+  border-radius: 8px;
+  background: transparent;
+  color: #fff;
+  font-size: 16px;
+  cursor: pointer;
+  transition: background 0.15s ease, color 0.15s ease;
+  flex-shrink: 0;
+}
+
+.vp-btn:hover {
+  background: rgba(255, 255, 255, 0.12);
+  color: var(--vp-accent);
+}
+
+.vp-btn svg {
+  display: block;
+}
+
+.vp-time {
+  color: rgba(255, 255, 255, 0.92);
+  font-size: 12px;
+  font-weight: 500;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+  margin-left: 4px;
+  user-select: none;
+}
+
+.vp-volume {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.vp-volume-track {
+  position: relative;
+  width: 72px;
+  height: 16px;
+  display: flex;
+  align-items: center;
+}
+
+.vp-volume-rail {
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: 50%;
+  transform: translateY(-50%);
+  height: 4px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.22);
+  overflow: hidden;
+  pointer-events: none;
+}
+
+.vp-volume-fill {
+  position: absolute;
+  top: 0;
+  left: 0;
+  height: 100%;
+  border-radius: 999px;
+  background: var(--vp-accent);
+  transition: width 0.08s ease;
+}
+
+.vp-volume-slider {
+  position: relative;
+  z-index: 1;
+  -webkit-appearance: none;
+  appearance: none;
+  width: 100%;
+  height: 16px;
+  margin: 0;
+  background: transparent;
+  outline: none;
+  cursor: pointer;
+}
+
+.vp-volume-slider::-webkit-slider-runnable-track {
+  height: 4px;
+  background: transparent;
+  border: none;
+}
+
+.vp-volume-slider::-moz-range-track {
+  height: 4px;
+  border-radius: 999px;
+  background: transparent;
+}
+
+.vp-volume-slider::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  background: var(--vp-accent);
+  border: 2px solid #fff;
+  margin-top: -4px;
+  cursor: pointer;
+}
+
+.vp-volume-slider::-moz-range-thumb {
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  background: var(--vp-accent);
+  border: 2px solid #fff;
+  cursor: pointer;
+}
+
+@media (max-width: 768px) {
+  .vp-root {
+    max-width: 100%;
+    max-height: 100%;
+    border-radius: 8px;
+  }
+
+  .vp-volume-track {
+    width: 52px;
+  }
+
+  .vp-time {
+    font-size: 11px;
+  }
+}

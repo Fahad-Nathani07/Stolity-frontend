@@ -1,0 +1,1004 @@
+/* FAQ Page Wrapper */
+.faq-main-wrapper2 {
+    width: 95%;
+    position: absolute;
+    right: 0;
+    font-family: "SF Pro", "SFProText", -apple-system, BlinkMacSystemFont, sans-serif !important;
+}
+
+
+.faq-main-wrapper {
+  background: #FAFAFA;
+      min-height: 90vh;
+    padding: 24px 34px 0 34px;
+    font-family: "SF Pro", "SFProText", -apple-system, BlinkMacSystemFont, sans-serif !important;
+  /* font-family: "SF Pro", "SFProText", sans-serif; */
+    
+}
+
+.faq-title {
+  text-align: center;
+  font-size: 2.3rem;
+  font-weight: 700;
+  margin-bottom: 38px;
+  color: #1A253C;
+  letter-spacing: -1px;
+}
+
+.faq-paragraph {
+  text-align: center;
+  /* font-size: 2.3rem; */
+  /* font-weight: 700; */
+  margin-bottom: 20px;
+  color: #1A253C;
+  /* letter-spacing: -1px; */
+}
+
+/* FAQ grid layout */
+.faq-content-wrapper {
+  display: flex;
+  justify-content: center;
+  gap: 40px;
+  max-width: 5120px;
+  margin: 0 auto;
+}
+
+/* FAQ Left Column: Accordion */
+/* Left column now hosts the payment card, no scroll */
+.faq-left-col {
+  flex: 1.1;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  margin-right: 18px;
+  background: #FAFAFA;
+  padding: 24px;
+  border-radius: 16px;
+  max-height: none;
+  overflow: visible;
+}
+
+
+.faq-accordion-item {
+  background: #fff;
+  border-radius: 13px;
+  box-shadow: 0 2px 12px rgba(24, 51, 109, 0.04);
+  margin-bottom: 0;
+  transition: box-shadow 0.2s;
+  width: 100%;
+}
+
+.faq-accordion-item.open {
+  box-shadow: 0 4px 24px rgba(255,171,73,0.09);
+  border: 1.5px solid #FFE3CA;
+}
+
+/* FAQ question header row */
+.faq-accordion-header {
+  cursor: pointer;
+  padding: 22px 22px 16px 22px;
+  font-weight: 600;
+  color: #1A253C;
+  font-size: 18px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.faqBody{
+        background: white;
+    margin: 0px;
+    padding: 0px;
+    border-radius: 16px;
+}
+
+.faq-accordion-toggle {
+  background: #FFF4E6;
+  border-radius: 8px;
+  padding: 5px 11px;
+  font-size: 24px;
+  font-weight: 700;
+  color: #FFAB49;
+  box-shadow: 0 1px 6px rgba(255,171,73,0.05);
+  transition: background 0.2s;
+}
+
+.faq-accordion-toggle.open {
+  background: #FFE3CA;
+  color: #F68D2B;
+}
+
+.faq-toggle-icon.plus {
+  font-size: 22px;
+}
+
+.faq-toggle-icon.minus {
+  font-size: 30px;
+  line-height: 15px;
+}
+
+/* FAQ accordion answer body */
+.faq-accordion-body {
+  padding: 8px 24px 18px 32px;
+  color: #222;
+  font-size: 15px;
+  font-weight: 400;
+}
+
+.faq-list-ul {
+  margin: 10px 0 10px 18px;
+  padding: 0;
+  color: #1A253C;
+  font-size: 15px;
+}
+
+.faq-list-ul li {
+  margin-bottom: 6px;
+  list-style: disc;
+}
+
+/* FAQ Right Column */
+.faq-right-col {
+  flex: 0.9;
+  background: #fff;
+  border-radius: 16px;
+  /* box-shadow: 0 2px 14px rgba(24, 51, 109, 0.09); */
+  padding: 30px 25px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.faq-illustration-img {
+  display: block;
+  margin: 0 auto 18px auto;
+}
+
+/* Ask Question Card */
+.faq-question-card {
+  width: 100%;
+  background: #ffffff;
+  border-radius: 12px;
+  box-shadow: 0 1.5px 8px rgba(255,171,73,0.07);
+  padding: 34px 26px 32px 26px;
+  text-align: center;
+  margin-top: 10px;
+}
+
+.faq-question-title {
+  font-size: 22px;
+  font-weight: 700;
+  color: #222;
+  margin-bottom: 6px;
+}
+
+.faq-question-desc {
+  color: #636578;
+  font-size: 15px;
+  margin-bottom: 16px;
+  font-weight: 400;
+}
+
+.faq-question-form {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.faq-input-label {
+  font-size: 15px;
+  color: #444;
+  font-weight: 500;
+  margin-bottom: 3px;
+  display: block;
+  text-align: left;
+  width: 100%;
+}
+
+.faq-question-input {
+  width: 105%;
+  padding: 12px 18px;
+  border: 1.5px solid #FFE3CA;
+  border-radius: 32px;
+  font-size: 16px;
+  margin-bottom: 18px;
+  background: #fff;
+  outline: none;
+  transition: border 0.2s;
+  color: #222;
+  font-family: "SF Pro", "SFProText", sans-serif;
+}
+
+.faq-question-input:focus {
+  border: 1.5px solid #FFAB49;
+}
+
+.faq-send-btn {
+  /* background: linear-gradient(90deg,#FFAB49 65%,#FFE3CA 120%); */
+  background: #FFAB49 ;
+  color: #fff;
+  font-weight: 600;
+  font-size: 16px;
+  padding: 11px 38px;
+  border-radius: 999px;
+  border: none;
+  cursor: pointer;
+  box-shadow: 0 2px 6px rgba(255,171,73,0.12);
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 6px;
+  transition: background 0.15s;
+}
+
+.faq-send-btn:hover {
+  background: linear-gradient(90deg,#FFC86A 65%,#FFE3CA 120%);
+}
+
+/* Responsive */
+@media (max-width: 900px) {
+  .faq-content-wrapper {
+    flex-direction: column;
+    gap: 22px;
+  }
+  .faq-right-col {
+    margin-top: 18px;
+    width: 100%;
+  }
+  .faq-left-col {
+    width: 100%;
+    margin-right: 0;
+  }
+}
+
+
+.faq-accordion-body {
+  max-height: 0;
+  opacity: 0;
+  overflow: hidden;
+  padding: 0 24px 0 32px;
+  transition: max-height 0.5s cubic-bezier(0.5, 1, 0.89, 1), opacity 0.3s;
+}
+
+/* When open, allow enough height for large answers */
+.faq-accordion-body.open {
+  max-height: 750px; /* pick a value larger than your max answer height */
+  opacity: 1;
+  padding: 8px 24px 18px 32px;
+  transition: max-height 0.8s cubic-bezier(0.42,0,0.58,1), opacity 0.5s;
+}
+
+
+.payment-scan-wrapper {
+  padding: 0; /* outer wrapper div around payment-card */
+}
+
+.payment-card {
+  width: 100%;
+  /* max-width: 420px; */
+  height: 100%;
+  background: #ffffff;
+  border-radius: 20px;
+  /* box-shadow: 0 4px 20px rgba(24, 51, 109, 0.08); */
+  padding: 28px 24px 26px 24px;
+  text-align: center;
+}
+
+/* QR area */
+.payment-qr-box {
+  width: 280px;
+  height: 280px;
+  margin: 0 auto 20px auto;
+  border-radius: 18px;
+  /* background: linear-gradient(180deg, #FFF4E6 0%, #FFFFFF 60%); */
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.payment-qr-img {
+  width: 270px;
+  height: 270px;
+  object-fit: contain;
+}
+
+/* Heading + helper text */
+.payment-title {
+  font-size: 20px;
+  font-weight: 700;
+  color: #1A253C;
+  margin-bottom: 6px;
+}
+
+.payment-helper-text {
+  font-size: 14px;
+  color: #636578;
+  margin-bottom: 20px;
+}
+
+/* UPI section */
+.payment-upi-section {
+  text-align: left;
+}
+
+.payment-upi-label {
+  font-size: 13px;
+  font-weight: 600;
+  color: #636578;
+  margin-bottom: 6px;
+  display: block;
+}
+
+.payment-upi-input-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 8px;
+}
+
+.payment-upi-input {
+  flex: 1;
+  padding: 11px 14px;
+  border-radius: 999px;
+  border: 1.5px solid #E5E7EB;
+  background: #F9FAFB;
+  font-size: 14px;
+  color: #989898;
+  outline: none;
+}
+
+.payment-upi-input:focus {
+  border-color: #FFAB49;
+  background: #FFFFFF;
+}
+
+.payment-copy-btn {
+  white-space: nowrap;
+  border: none;
+  border-radius: 999px;
+  padding: 10px 18px;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  background: #FFAB49;
+  color: #ffffff;
+  box-shadow: 0 2px 6px rgba(255, 171, 73, 0.25);
+  transition: background 0.15s ease, transform 0.1s ease;
+}
+
+.payment-copy-btn:hover {
+  background: #FFA033;
+  transform: translateY(-1px);
+}
+
+.payment-copy-btn:active {
+  transform: translateY(0);
+}
+
+.payment-upi-hint {
+  font-size: 12px;
+  color: #9CA3AF;
+}
+
+
+@media (max-width: 900px) {
+  .faq-left-col {
+    width: 100%;
+    margin-right: 0;
+    justify-content: stretch;
+  }
+
+  .payment-card {
+    max-width: 100%;
+  }
+}
+
+
+.payment-info-wrapper {
+  width: 100%;
+}
+
+/* main card */
+.payment-info-card {
+  width: 100%;
+  background: #ffffff;
+  border-radius: 18px;
+  box-shadow: 0 2px 14px rgba(24, 51, 109, 0.06);
+  padding: 20px 22px 18px 22px;
+}
+
+/* rows */
+.payment-info-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 14px;
+  margin-bottom: 6px;
+  /* padding: 5px; */
+  padding: 3px 5px;
+}
+
+.payment-info-label {
+  color: #9CA3AF;
+}
+
+.payment-info-value {
+  color: #111827;
+  font-weight: 500;
+}
+
+/* dashed separator */
+.payment-info-separator {
+  margin: 14px 0 10px 0;
+  border-top: 1px dashed #E5E7EB;
+}
+
+/* amount section */
+.payment-amount-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.payment-amount-text {
+  display: flex;
+  flex-direction: column;
+}
+
+.payment-amount-label {
+  font-size: 13px;
+  color: #6B7280;
+  margin-bottom: 4px;
+}
+
+.payment-amount-value {
+  display: flex;
+  align-items: baseline;
+  gap: 2px;
+}
+
+.payment-amount-number {
+  font-size: 28px;
+  font-weight: 700;
+  color: #111827;
+}
+
+.payment-amount-decimal {
+  font-size: 18px;
+  font-weight: 600;
+  color: #111827;
+}
+
+.payment-amount-currency {
+  font-size: 12px;
+  color: #6B7280;
+  margin-left: 4px;
+}
+
+/* small copy icon button on right */
+.payment-copy-summary-btn {
+  border: none;
+  background: #ffffff;
+  border-radius: 999px;
+  padding: 9px 11px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  /* box-shadow: 0 1px 4px rgba(255, 171, 73, 0.25); */
+}
+
+.payment-copy-summary-icon {
+  font-size: 16px;
+}
+
+/* note text under card */
+.payment-note {
+  margin-top: 35px;
+  font-size: 12px;
+  color: #6B7280;
+}
+
+
+
+/* ---------- Screen 1: Plans ---------- */
+
+.plans-wrapper {
+  display: flex;
+  gap: 24px;
+  width: 100%;
+}
+
+.plans-screen {
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+  width: 90%;
+}
+
+/* comparison grid */
+.plans-compare-wrapper {
+  margin-top: 8px;
+  background: #fff;
+  border-radius: 18px;
+  padding: 18px 20px 20px 20px;
+  box-shadow: 0 4px 18px rgba(24, 51, 109, 0.06);
+      margin-bottom: 60px;
+}
+
+.plans-compare-section-title {
+  margin-top: 16px;
+  margin-bottom: 6px;
+  font-size: 18px;
+  /* font-size: 12px; */
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  color: #f59e0b;
+}
+
+.plans-compare-row {
+  display: grid;
+  grid-template-columns: 1.5fr 1fr 1fr 1fr;
+  align-items: center;
+  padding: 6px 0;
+  font-size: 16px;
+}
+
+.plans-compare-header {
+  font-size: 12px;
+  font-weight: 600;
+  color: #6b7280;
+  border-bottom: 1px solid #f3f4f6;
+  padding-bottom: 8px;
+}
+
+.plans-compare-feature-col {
+  color: #111827;
+}
+
+.plans-compare-plan-col {
+  text-align: center;
+  color: #000000; /* green for ✔ */
+  border-left: 1px solid #dddddd;
+}
+
+.plans-compare-plan-col:nth-child(2) .cross,
+.plans-compare-plan-col .cross {
+  color: #000000;
+}
+
+/* optional: current plan footer style */
+.plan-card-footer-muted {
+  justify-content: center;
+  padding: 10px 0 6px 0;
+}
+
+.plan-current-label {
+  /* font-size: 12px;
+  font-weight: 500;
+  color: #6b7280; */
+      font-size: 14px;
+    font-weight: 700;
+    color: #6b7280;
+    margin-top: 5px;
+    background: aliceblue;
+    padding: 5px 10px;
+    border-radius: 7px;
+}
+ 
+
+/* Base card */
+.plan-card {
+  flex: 1;
+  /* background: #ffffff; */
+  background: #FFFAF5;
+
+  border-radius: 20px;
+  box-shadow: 0 4px 18px rgba(24, 51, 109, 0.06);
+  padding: 18px 18px 20px 18px;
+  display: flex;
+  flex-direction: column;
+}
+
+/* Highlighted (current) plan */
+.plan-card-active {
+  box-shadow: 0 6px 26px rgba(255, 171, 73, 0.18);
+  border: 1px solid #ffcc80;
+}
+
+/* Header (orange area in mobile) */
+.plan-card-header {
+  background: #ffffff;
+  color: #FFAB49;
+  border-radius: 16px 16px 12px 12px;
+  padding: 16px 16px 14px 16px;
+  /* margin-bottom: 12px; */
+}
+
+.plan-card-title-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 8px;
+}
+
+.plan-card-icon {
+  font-size: 18px;
+}
+
+.plan-card-title {
+  font-size: 16px;
+  font-weight: 700;
+}
+
+.plan-card-tag {
+  display: inline-block;
+  background: #FFF8F8;
+  color: #E94646;
+  border-radius: 999px;
+  padding: 4px 10px;
+  font-size: 11px;
+  font-weight: 500;
+  margin-bottom: 10px;
+}
+
+.plan-card-price-row {
+  display: flex;
+  align-items: baseline;
+  gap: 4px;
+}
+
+.plan-card-price {
+  font-size: 18px;
+  font-weight: 700;
+  color: black;
+}
+
+.plan-card-price-cycle {
+  font-size: 13px;
+  font-weight: 500;
+      color: #A4A4A4;
+}
+
+.plan-card-subline {
+  font-size: 12px;
+  margin-top: 2px;
+}
+
+/* Body: features list area (white) */
+.plan-card-body {
+  background: #ffffff;
+  border-radius: 0 0 16px 16px;
+  padding: 10px 2px 6px 2px;
+  flex: 1;
+  overflow-y: auto;
+  max-height: 380px;
+}
+
+.plan-section-title {
+  font-size: 13px;
+  font-weight: 600;
+  color: #e0872e;
+  margin-top: 10px;
+  margin-bottom: 4px;
+}
+
+.plan-section-list {
+  margin: 0 0 4px 14px;
+  padding: 0;
+  list-style: disc;
+  font-size: 13px;
+  color: #111827;
+}
+
+.plan-section-list li {
+  margin-bottom: 3px;
+}
+
+/* Footer: Get Started button */
+.plan-card-footer {
+  margin-top: 12px;
+  display: flex;
+  justify-content: center;
+}
+
+.plan-cta-btn {
+  border-radius: 999px;
+  border: 1px solid #ffab49;
+  padding: 9px 22px;
+  font-size: 14px;
+  font-weight: 600;
+  background: #fff7ec;
+  color: #e07711;
+  cursor: pointer;
+  transition: background 0.15s ease, transform 0.1s ease;
+}
+
+.plan-cta-btn:hover {
+  background: #ffe3c3;
+  transform: translateY(-1px);
+}
+
+.plan-cta-btn:active {
+  transform: translateY(0);
+}
+
+/* ---------- Responsive ---------- */
+
+@media (max-width: 1024px) {
+  .plans-wrapper {
+    flex-direction: column;
+  }
+
+  .plan-card-body {
+    max-height: none;
+  }
+}
+
+
+.payment-field-group {
+  margin-bottom: 10px;
+}
+
+.payment-field-label {
+  font-size: 13px;
+  font-weight: 500;
+  color: #6b7280;
+  margin-bottom: 4px;
+  display: block;
+}
+
+.required-star {
+  color: #ef4444;
+}
+
+.payment-text-input {
+  width: 100%;
+  border-radius: 999px;
+  border: 1.5px solid #e5e7eb;
+  padding: 10px 14px;
+  font-size: 14px;
+  outline: none;
+}
+
+.payment-text-input:focus {
+  border-color: #ffab49;
+}
+
+.payment-files-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  align-items: center;
+  border-radius: 999px;
+  border: 1.5px solid #ffdeae;
+  padding: 6px 8px;
+  background: #fffaf2;
+}
+
+.payment-file-chip {
+  padding: 4px 10px;
+  border-radius: 999px;
+  background: #ffffff;
+  border: 1px solid #e5e7eb;
+  font-size: 12px;
+}
+
+.payment-upload-btn {
+  margin-left: auto;
+  border-radius: 999px;
+  border: none;
+  padding: 6px 14px;
+  font-size: 13px;
+  font-weight: 600;
+  background: #ffab49;
+  color: #ffffff;
+  cursor: pointer;
+}
+
+.payment-confirm-btn {
+  margin-top: 10px;
+  width: 50%;
+  border-radius: 999px;
+  border: none;
+  padding: 11px 0;
+  font-size: 15px;
+  font-weight: 600;
+  background: #ffab49;
+  color: #ffffff;
+  cursor: pointer;
+}
+
+.payment-back-btn {
+  margin-top: 8px;
+  width: 50%;
+  border-radius: 999px;
+  padding: 9px 0;
+  font-size: 14px;
+  font-weight: 500;
+  border: 1px solid #e5e7eb;
+  background: #f9fafb;
+  color: #4b5563;
+  cursor: pointer;
+}
+
+.payment-back-btn:hover {
+  background: #f3f4f6;
+}
+
+
+
+.payment-confirm-btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.confirm-overlay {
+  position: fixed;
+  inset: 0;
+  background: radial-gradient(
+      circle at top,
+      rgba(248, 250, 252, 0.18),
+      transparent 55%
+    ),
+    rgba(15, 23, 42, 0.55);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 999;
+  backdrop-filter: blur(8px);
+}
+
+.confirm-modal {
+  width: 100%;
+  max-width: 460px;
+  background: linear-gradient(
+      135deg,
+      rgba(255, 255, 255, 0.96),
+      rgba(255, 247, 237, 0.98)
+    );
+  border-radius: 22px;
+  box-shadow:
+    0 24px 60px rgba(15, 23, 42, 0.28),
+    0 0 0 1px rgba(255, 255, 255, 0.7);
+  padding: 22px 22px 18px 22px;
+  border: 1px solid rgba(251, 191, 36, 0.4);
+  animation: confirmModalIn 0.22s cubic-bezier(0.33, 0, 0.2, 1);
+}
+
+.confirm-modal-header {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 10px;
+}
+
+.confirm-modal-title {
+  font-size: 17px;
+  font-weight: 700;
+  color: #111827;
+}
+
+.confirm-badge {
+  font-size: 11px;
+  padding: 2px 8px;
+  border-radius: 999px;
+  background: rgba(248, 113, 113, 0.08);
+  color: #b91c1c;
+  border: 1px solid rgba(248, 113, 113, 0.3);
+}
+
+.confirm-modal-body {
+  font-size: 14px;
+  color: #4b5563;
+}
+
+.confirm-warning {
+  margin-bottom: 12px;
+  line-height: 1.5;
+}
+
+.confirm-warning strong {
+  color: #b91c1c;
+}
+
+.confirm-transaction-box {
+  background: rgba(255, 255, 255, 0.9);
+  border-radius: 14px;
+  padding: 10px 12px;
+  border: 1px dashed rgba(252, 165, 44, 0.7);
+}
+
+.confirm-transaction-label {
+  font-size: 12px;
+  color: #9ca3af;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-bottom: 4px;
+}
+
+.confirm-transaction-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 999px;
+  background: #fb923c;
+}
+
+.confirm-transaction-value {
+  font-size: 15px;
+  font-weight: 600;
+  color: #111827;
+  word-break: break-all;
+}
+
+.confirm-modal-footer {
+  margin-top: 18px;
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+}
+
+/* Buttons */
+.confirm-btn {
+  border-radius: 999px;
+  padding: 9px 18px;
+  font-size: 13px;
+  font-weight: 600;
+  border: none;
+  cursor: pointer;
+  transition:
+    transform 0.12s ease,
+    box-shadow 0.12s ease,
+    background 0.15s ease;
+}
+
+.confirm-btn.cancel {
+  background: rgba(249, 250, 251, 0.9);
+  color: #374151;
+  box-shadow: 0 1px 3px rgba(15, 23, 42, 0.12);
+}
+
+.confirm-btn.cancel:hover {
+  background: #e5e7eb;
+  transform: translateY(-1px);
+}
+
+.confirm-btn.confirm {
+  /* background: linear-gradient(135deg, #fb923c, #facc15); */
+  background: #ffab49;
+  color: white;
+  box-shadow:
+    0 6px 18px rgba(248, 171, 73, 0.45),
+    0 0 0 1px rgba(255, 255, 255, 0.6);
+}
+
+.confirm-btn.confirm:hover {
+  transform: translateY(-1px);
+}
+
+.confirm-btn.confirm:active,
+.confirm-btn.cancel:active {
+  transform: translateY(0);
+  box-shadow: none;
+}
+
+/* Entrance animation */
+@keyframes confirmModalIn {
+  from {
+    opacity: 0;
+    transform: translateY(8px) scale(0.97);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+
+.plans-compare-group{
+  margin-bottom: 16px;
+  background: #FAFAFA;
+  padding: 10px;
+  border-radius: 10px;
+
+}

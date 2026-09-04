@@ -1,0 +1,255 @@
+/* TermsAndConditions.css */
+
+.terms-container {
+  min-height: 100vh;
+  background-color: white;
+  padding: 20px 40px;
+}
+
+.terms-header {
+  /* max-width: 1200px; */
+  width: 90%;
+  margin: 0 auto 30px;
+  padding: 20px 0;
+  border-bottom: 2px solid #FDF8F4;
+}
+
+.back-button {
+  background: #FFE3CA;
+  color: #494949;
+  border: 1px solid #FFAB49;
+  padding: 10px 24px;
+  border-radius: 25px;
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  /* margin-bottom: 20px; */
+  transition: all 0.3s ease;
+}
+
+.back-button:hover {
+  background: #FFAB49;
+  color: white;
+  transform: translateY(-2px);
+}
+
+.terms-header h1 {
+  font-size: 32px;
+  color: #494949;
+  margin: 0;
+  font-weight: 600;
+}
+
+.terms-content {
+  /* max-width removed - now spans full width */
+  width: 95%;
+  margin: 0 auto;
+  padding: 30px 40px;
+  background-color: #FDF8F4;
+  border-radius: 12px;
+  /* line-height: 1.8; */
+  /* font-family: ; */
+}
+
+.last-updated {
+  color: #666;
+  font-size: 14px;
+  margin-bottom: 30px;
+  text-align: right;
+}
+
+
+
+
+.terms-section a {
+  color: #FFAB49;
+  text-decoration: none;
+  font-weight: 500;
+  transition: color 0.3s ease;
+}
+
+.terms-section a:hover {
+  color: #FF9230;
+  text-decoration: underline;
+}
+
+
+
+
+.table-of-contents {
+  background: white;
+  padding: 24px 40px;
+  border-radius: 8px;
+  border: 1px solid #FFE3CA;
+}
+
+.table-of-contents li {
+  margin-bottom: 10px;
+  line-height: 1.6;
+}
+
+/* .table-of-contents a {
+  color: #494949;
+  text-decoration: none;
+  transition: all 0.3s ease;
+} */
+
+.table-of-contents a {
+  /* color: #494949; */
+  color: #c78533;
+  text-decoration: underline !important;
+  text-underline-offset: 4px !important;
+  transition: all 0.3s ease;
+}
+
+
+.table-of-contents a:hover {
+  color: #ffb45f;
+  padding-left: 8px;
+}
+
+.contact-info {
+  background: white;
+  padding: 20px;
+  border-radius: 8px;
+  border-left: 4px solid #FFAB49;
+}
+
+.contact-info p {
+  margin: 8px 0;
+}
+
+
+/* Responsive Design */
+@media (max-width: 768px) {
+  .terms-container {
+    padding: 10px 15px;
+  }
+
+  .terms-header h1 {
+    font-size: 24px;
+  }
+
+  .terms-content {
+    padding: 20px 15px;
+  }
+
+  .terms-section h2 {
+    font-size: 20px;
+  }
+
+  .terms-section p {
+    font-size: 14px;
+  }
+
+  .table-of-contents {
+    padding: 16px 20px;
+  }
+}
+
+
+
+.terms-section {
+  /* margin-bottom: 50px; */
+  /* padding: 15px; */
+  padding: 4px 15px;
+  /* background: #ffffff38; */
+  background: #ffffff00;
+  border-radius: 8px;
+  /* box-shadow: 0 2px 8px rgba(255, 171, 73, 0.1); */
+  transition: box-shadow 0.3s ease;
+}
+
+.terms-section:hover {
+  /* box-shadow: 0 4px 16px rgba(255, 171, 73, 0.15); */
+}
+
+.terms-section h2 {
+  font-size: 26px;
+  color: #494949;
+  margin-bottom: 20px;
+  font-weight: 600;
+  border-bottom: 3px solid #FFAB49;
+  /* padding-bottom: 12px; */
+  letter-spacing: 0.5px;
+}
+
+.terms-section p {
+  color: #494949;
+  font-size: 15px;
+  margin-bottom: 15px;
+  text-align: justify;
+  /* line-height: 1.9; */
+  font-weight: 400;
+}
+
+
+.terms-section ul {
+  list-style-type: "➤ ";
+  padding-left: 1.5rem;
+  margin: 1rem 0;
+}
+
+.terms-section li {
+  margin-bottom: 8px;
+  color: #494949;
+  line-height: 1.6;
+}
+
+
+
+
+.terms-section h3 {
+  font-size: 19px;
+  color: #494949;
+  /* margin: 28px 0 16px; */
+  margin: 28px 0 8px;
+  font-weight: 600;
+  padding-left: 12px;
+  border-left: 4px solid #FFAB49;
+  line-height: 30px;
+}
+
+.terms-section ul {
+  margin: 16px 0;
+  padding-left: 40px;
+  color: #494949;
+}
+
+.terms-section li {
+  /* margin-bottom: 12px; */
+  font-size: 15px;
+  /* line-height: 1.8; */
+}
+
+strong {
+  font-weight: 600;
+  color: #494949;
+}
+
+
+.terms-section ol {
+  margin: 16px 0 24px;
+  padding-left: 40px;
+  color: #494949;
+  counter-reset: item;
+}
+
+.terms-section ol li {
+  /* margin-bottom: 12px; */
+  font-size: 15px;
+  /* line-height: 1.8; */
+  position: relative;
+}
+
+.terms-section ol li::marker {
+  color: #FFAB49;
+  font-weight: 600;
+}
+
+
+.pt-50{
+      /* margin-bottom: 50px; */
+      /* padding-top: 40px; */
+      padding-top: 15px;
+}
