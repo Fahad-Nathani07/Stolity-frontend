@@ -73,9 +73,10 @@ const JobPortalAdmin = () => {
 
   useEffect(() => {
     if (email) {
-      dispatch(fetchJobPortalByEmail({ email, role }));
+      // Already loaded in App; only refresh when forced
+      dispatch(fetchJobPortalByEmail({ email }));
     }
-  }, [dispatch, email, role]);
+  }, [dispatch, email]);
 
   return (
     <div>

@@ -125,7 +125,11 @@ import { FaExclamationTriangle } from "react-icons/fa"; // <FaExclamationTriangl
 import { FaLock } from "react-icons/fa";
 
 
-import { fetchUserSubscription, fetchUserFolderSize } from "../store/subscriptionSlice";
+import { fetchUserFolderSize } from "../store/subscriptionSlice";
+import {
+  addFavoriteName,
+  removeFavoriteName,
+} from "../store/favoritesSlice";
 
 
 import {
@@ -372,7 +376,6 @@ const NestedPage = () => {
   const [dragPop, setDragPop] = useState(false);
   const [dragFile, setDragFile] = useState({});
   const [targetFolder, setTargetFolder] = useState("");
-  const [favoriteFiles, setFavoriteFiles] = useState([]);
   const [copiedFileSize, setCopiedFileSize] = useState(0);
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [showDownloadModal, setShowDownloadModal] = useState(false);
@@ -423,36 +426,20 @@ useEffect(() => {
 
 
 const [showUpgradeModal, setShowUpgradeModal] = useState(false);
-  // Fetching Current user's subscription plan 
+  // Current user's subscription + used storage (loaded once in App.js)
   const subscription = useSelector((state) => state.subscription.subscription);
   const folderSize = useSelector((state) => state.subscription.folderSize);
+  const favoriteFiles = useSelector((state) => state.favorites.fileNames);
 
   const isPremium =
     !!subscription &&
     Array.isArray(subscription.entitlement_ids) &&
     subscription.entitlement_ids.length > 0;
 
-  const [triggerDataSize, setTriggerDataSize] = useState(0);
-
-    useEffect(() => {
-    if (token) {
-      dispatch(fetchUserSubscription(token));
-      console.log("fetchUserSubscription executed")
-    }
-  }, [token, dispatch]);
-
-
-    useEffect(() => {
-    if (token) {
-      dispatch(fetchUserFolderSize(token));
-      console.log("fetchUserFolderSize executed")
-    }
-  }, [token, dispatch, triggerDataSize]);
-
-    useEffect(() => {
-      console.log("subscription",subscription)
-    }, [subscription])
-    useEffect(() => {
+  useEffect(() => {
+    console.log("subscription",subscription)
+  }, [subscription])
+  useEffect(() => {
       console.log("folderSize",folderSize)
     }, [folderSize])
 
@@ -857,7 +844,7 @@ const getFolderNameOnly = (fullPath) => {
   const handleCClose = () => {
     console.log("ggggg handleCClose is being called")
     // reloadAfterTast();
-    dispatch(fetchUserFolderSize(token));
+    dispatch(fetchUserFolderSize({ token, force: true }));
     console.log("ggggg fetchUserFolderSize executed")
     dispatch(resetFolderList());
     setIsCWhisperClicked(false);
@@ -1149,7 +1136,7 @@ const handleMulDelete = async () => {
     setKeys2([]);
 
     // Update storage in Redux
-    dispatch(fetchUserFolderSize(token));
+    dispatch(fetchUserFolderSize({ token, force: true }));
 
     afterMinLoaderDisplay(loaderStartedAt, () => {
       setLoader_Recycle(false);
@@ -1312,31 +1299,9 @@ const handleMulDownload = async () => {
 
 
 
-  const getFavoriteFiles = async () => {
-  try {
-    const response = await axios.get(
-      `${apiUrl}get-favorite-files`,
-      {
-        headers: {
-          Authorization: `Bearer ${token}`,
-          "Content-Type": "application/json",
-        },
-      }
-    );
-    if (response.data && response.data.result) {
-      const favoriteFileNames = response.data.result.map(file => file.fileName);
-      setFavoriteFiles(favoriteFileNames);
-    }
-  } catch (error) {
-    console.error("Error fetching favorite files:", error);
-  }
-};
-
-
-
 const handleAddToFavorites = async (file) => {
   try {
-    const response = await axios.post(
+    await axios.post(
       `${apiUrl}mark-as-favorite`,
       { filePath: file.fileName },
       {
@@ -1347,7 +1312,7 @@ const handleAddToFavorites = async (file) => {
       }
     );
     showToast("success", "Added to favorites");
-    getFavoriteFiles();
+    dispatch(addFavoriteName(file.fileName));
   } catch (error) {
     console.error("Error adding to favorites:", error);
     showToast("error", "Failed to add to favorites");
@@ -1356,7 +1321,7 @@ const handleAddToFavorites = async (file) => {
 
 const handleRemoveFromFavorites = async (file) => {
   try {
-    const response = await axios.post(
+    await axios.post(
       `${apiUrl}unmark-as-favorite`,
       { filePath: file.fileName },
       {
@@ -1367,28 +1332,16 @@ const handleRemoveFromFavorites = async (file) => {
       }
     );
     showToast("success", "Removed from favorites");
-    getFavoriteFiles();
+    dispatch(removeFavoriteName(file.fileName));
   } catch (error) {
     console.error("Error removing from favorites:", error);
     showToast("error", "Failed to remove from favorites");
   }
 };
 
-
-
 const isFileFavorited = (fileName) => {
   return favoriteFiles.includes(fileName);
 };
-
-
-useEffect(() => {
-  getFavoriteFiles();
-}, []);
-
-
-
-
-
 
 
   useEffect(() => {
@@ -2424,7 +2377,9 @@ const handleFileDelete = async (file) => {
     // dispatch(setLoader(false));
     afterMinLoaderDisplay(loaderStartedAt, () => setLoader_Recycle(false));
   } finally {
-    setTriggerDataSize((x) => x + 1);
+    if (token) {
+      dispatch(fetchUserFolderSize({ token, force: true }));
+    }
   }
 };
 
@@ -3869,7 +3824,9 @@ useEffect(() => {
           } catch (e) {}
         });
       }, 800);
-      setTriggerDataSize((x) => x + 1)
+      if (token) {
+        dispatch(fetchUserFolderSize({ token, force: true }));
+      }
 
     } catch (error) {
       showToast("error", error.message || "Error uploading files");
@@ -3970,6 +3927,9 @@ useEffect(() => {
         });
         reloadAfterTast();
         showToast("success", "Folder uploaded successfully!");
+        if (token) {
+          dispatch(fetchUserFolderSize({ token, force: true }));
+        }
       } else {
         throw new Error(`Unexpected response status: ${response.status}`);
       }
@@ -4298,12 +4258,23 @@ const refreshFolderListWithSkeleton = async () => {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [registerCancelRefresh]);
 
-// When landing from Files (or path/shared context ready), always re-fetch via getFolder
-// using the same shared-aware params helper as Files.jsx.
+// When landing from Files: reuse Redux listing if already loaded (avoid duplicate getFolder).
+// Only fetch when this nested level has no Files yet (e.g. hard refresh).
 useEffect(() => {
   if (selectedFolder?.fileName) return; // dropdown path uses getFolderFiles instead
   if (counter < 1) return;
   if (!path && !filenameRedux) return;
+
+  // Files.jsx / NestedPage getFolderFiles already populated this level via addToken
+  if (selectedItem && Array.isArray(selectedItem.Files)) {
+    const folderFiles = normalizeFolderFilesForPreview(selectedItem.Files);
+    setAllData(folderFiles);
+    setTotalEntries(folderFiles.length);
+    setCurrentPage(1);
+    setFileData(folderFiles);
+    setPlaceholderLoading(false);
+    return;
+  }
 
   let cancelled = false;
   setPlaceholderLoading(true);

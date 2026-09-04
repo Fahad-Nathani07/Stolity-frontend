@@ -126,8 +126,42 @@ const moveBlackboxToFront = (files) => {
   return userFiles;
 };
 
+const sharedFolderNameKey = (fileName) =>
+  String(fileName || "")
+    .replace(/\/+$/, "")
+    .toLowerCase();
+
+/** Drop user items that collide with shared folder names (case-insensitive). */
+const excludeSharedNameCollisions = (files, sharedFolders) => {
+  const sharedNames = new Set(
+    (Array.isArray(sharedFolders) ? sharedFolders : [])
+      .map((folder) => sharedFolderNameKey(folder?.fileName))
+      .filter(Boolean)
+  );
+  if (!sharedNames.size) {
+    return Array.isArray(files) ? [...files] : [];
+  }
+  return (Array.isArray(files) ? files : []).filter(
+    (file) => !sharedNames.has(sharedFolderNameKey(file?.fileName))
+  );
+};
+
+/** Prefer first occurrence; keeps shared entries when listed first. */
+export const dedupeFileListingByName = (list) => {
+  const seen = new Set();
+  const result = [];
+  for (const item of Array.isArray(list) ? list : []) {
+    const key = sharedFolderNameKey(item?.fileName);
+    if (!key || seen.has(key)) continue;
+    seen.add(key);
+    result.push(item);
+  }
+  return result;
+};
+
 /**
  * Default root listing (no sort/filter): shared folders first, then blackbox, then files.
+ * Shared names win over same-named personal folders so they never duplicate across pages.
  */
 export const buildDefaultFileListing = (
   files,
@@ -135,15 +169,16 @@ export const buildDefaultFileListing = (
   { isGoogleAuth } = {}
 ) => {
   const userFiles = moveBlackboxToFront(files);
-  if (!isGoogleAuth) return userFiles;
+  if (!isGoogleAuth) return dedupeFileListingByName(userFiles);
 
   const shared = Array.isArray(sharedFolders) ? sharedFolders : [];
-  return [...shared, ...userFiles];
+  const dedupedUser = excludeSharedNameCollisions(userFiles, shared);
+  return dedupeFileListingByName([...shared, ...dedupedUser]);
 };
 
 /**
- * Merge user files with shared folders without pinning shared items on top.
- * Re-sorts the combined list when sort params are provided.
+ * Merge user files with shared folders.
+ * Shared folders stay pinned on top; user list may be sorted underneath.
  */
 export const mergeFilesWithSharedFolders = (
   files,
@@ -151,7 +186,7 @@ export const mergeFilesWithSharedFolders = (
   { isGoogleAuth, sortParams = {}, fileTypes } = {}
 ) => {
   const userFiles = Array.isArray(files) ? files : [];
-  if (!isGoogleAuth) return userFiles;
+  if (!isGoogleAuth) return dedupeFileListingByName(userFiles);
 
   const shared = shouldIncludeSharedFolders(fileTypes)
     ? Array.isArray(sharedFolders)
@@ -159,7 +194,7 @@ export const mergeFilesWithSharedFolders = (
       : []
     : [];
 
-  const combined = [...userFiles, ...shared];
+  const dedupedUser = excludeSharedNameCollisions(userFiles, shared);
   const hasSort =
     sortParams.ascending === true ||
     sortParams.ascending === false ||
@@ -168,7 +203,11 @@ export const mergeFilesWithSharedFolders = (
     sortParams.sortByDate === "asc" ||
     sortParams.sortByDate === "desc";
 
-  return hasSort ? sortFileListByParams(combined, sortParams) : combined;
+  const sortedUser = hasSort
+    ? sortFileListByParams(dedupedUser, sortParams)
+    : dedupedUser;
+
+  return dedupeFileListingByName([...shared, ...sortedUser]);
 };
 
 /** Merge search hits with matching shared folders; relevance first, then optional sort. */

@@ -76,8 +76,8 @@ const PaymentIntegrationPage = () => {
 
    useEffect(() => {
       if (token) {
-        dispatch(fetchUserSubscription(token));
-        console.log("fetchUserSubscription executed")
+        // Already loaded in App; force after plan purchase elsewhere
+        dispatch(fetchUserSubscription({ token }));
       }
     }, [token, dispatch]);
 

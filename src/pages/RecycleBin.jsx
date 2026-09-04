@@ -53,7 +53,7 @@ import Dropzone from "react-dropzone";
 import createFolderPopup from "../images/createFolderPopup.svg";
 import StarIcon from "@mui/icons-material/Star"; // Filled star
 import restoreIcon from "../images/DropdownIcons/MoveIcon.svg"; // Temporary - replace with actual restore icon later
-import { fetchUserSubscription, fetchUserFolderSize } from "../store/subscriptionSlice";
+import { fetchUserFolderSize } from "../store/subscriptionSlice";
 import svgDoc from "../images/TypesDoc.svg"
 import svgFolder from "../images/TypesFolder.svg"
 
@@ -128,7 +128,6 @@ import SelectFolderModal from "./DownloadModal/SelectFolderModal";
 import FileConversionModal from "../components/FileConversionModal";
 import LoaderRestore from "../components/LoaderRestore";
 import LoaderPermanentDelete from "../components/LoaderPermanentDelete";
-import { fetchJobPortalByEmail } from "../store/jobPortalSlice";
 
 let c = 1;
 
@@ -326,13 +325,6 @@ const [showMultiRestoreModal, setShowMultiRestoreModal] = useState(false);
     const { role, companies: assignedCompanyIds } = useSelector(
         (state) => state.jobPortal
       );
-    
-    useEffect(() => {
-    if (email) {
-      // dispatch(fetchJobPortalByEmail(email));
-      dispatch(fetchJobPortalByEmail({ email, role }));
-    }
-  }, [dispatch, role]);
   
 
 
@@ -1113,7 +1105,7 @@ const getFileData = async () => {
     setFileData(recycleBinFiles.slice(0, itemsPerPage));
 
     // Refresh storage info whenever recycle bin is reloaded
-    dispatch(fetchUserFolderSize(token));
+    dispatch(fetchUserFolderSize({ token, force: true }));
   } catch (error) {
     console.log("Error fetching recycle bin files", error);
     showToast("error", "Failed to load recycle bin files");
@@ -1718,7 +1710,7 @@ const performFolderMultiRestore = async (folders) => {
     console.log("ggggg restore-folders response data:", response.data);
 
     // Refresh storage info
-    dispatch(fetchUserFolderSize(token));
+    dispatch(fetchUserFolderSize({ token, force: true }));
 
     console.log("ggggg Calling resetSelectionAndRefresh()");
     resetSelectionAndRefresh();
@@ -1812,7 +1804,7 @@ const confirmMultiFileRestore = async (selectedDestination) => {
     });
 
     // Refresh storage info
-    dispatch(fetchUserFolderSize(token));
+    dispatch(fetchUserFolderSize({ token, force: true }));
 
     resetSelectionAndRefresh();
 
@@ -2003,7 +1995,7 @@ const performRestore = async () => {
       dispatch(setLoader(false));
 
       // Refresh storage after successful folder restore
-      dispatch(fetchUserFolderSize(token));
+      dispatch(fetchUserFolderSize({ token, force: true }));
 
       afterMinLoaderDisplay(loaderStartedAt, () => {
         setLoader_Restore(false);
@@ -2026,7 +2018,7 @@ const performRestore = async () => {
       dispatch(setLoader(false));
 
       // Refresh storage after successful file restore
-      dispatch(fetchUserFolderSize(token));
+      dispatch(fetchUserFolderSize({ token, force: true }));
 
       afterMinLoaderDisplay(loaderStartedAt, () => {
         setLoader_Restore(false);
@@ -5151,7 +5143,7 @@ const isMultiSizeExceeded = selectedTotalBytes > remainingBytes;
         }
       );
 
-      dispatch(fetchUserFolderSize(token));
+      dispatch(fetchUserFolderSize({ token, force: true }));
       getFileData(currentPage);
       getRootFolderSize();
 

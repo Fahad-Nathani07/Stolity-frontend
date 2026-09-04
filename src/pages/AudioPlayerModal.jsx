@@ -46,6 +46,8 @@ const truncateText = (text, maxLength = 30) => {
   return `${text.slice(0, maxLength)}…`;
 };
 
+const DEFAULT_DOCUMENT_TITLE = "Stolity - Smart Storage Solutions";
+
 const AudioPlayerModal = ({
   audioSrc,
   nextAudioSrc,
@@ -80,6 +82,17 @@ const AudioPlayerModal = ({
   useEffect(() => {
     hasRepeatedOnceRef.current = false;
   }, [audioSrc]);
+
+  useEffect(() => {
+    if (isPlaying && displayName) {
+      document.title = `${displayName} · Stolity`;
+    } else {
+      document.title = DEFAULT_DOCUMENT_TITLE;
+    }
+    return () => {
+      document.title = DEFAULT_DOCUMENT_TITLE;
+    };
+  }, [isPlaying, displayName]);
 
   useEffect(() => {
     if (!audioSrc) return undefined;

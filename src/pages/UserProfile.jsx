@@ -39,7 +39,7 @@ import svgPng from "../images/TypesPng.svg"
 import svgTxt from "../images/TypesTxt.svg"
 import svgZip from "../images/TypesZip.svg"
 import { useDispatch, useSelector } from "react-redux";
-import { fetchUserSubscription, fetchUserFolderSize } from "../store/subscriptionSlice";
+// subscription + folder size come from Redux (loaded in App.js)
 import { setUserProfile, normalizeAvatarUrl } from "../store/userProfileSlice";
 import { usePlayAudio } from "../hooks/usePlayAudio";
 import { useSessionEndCleanup } from "../hooks/useSessionEndCleanup";
@@ -64,7 +64,6 @@ import {
   Button,
 } from "rsuite";
 import { Modal as Bigmodal } from "rsuite";
-import { fetchJobPortalByEmail } from "../store/jobPortalSlice";
 import Loader2 from "../components/Loader2";
 
 const getBase64 = (file) =>
@@ -109,8 +108,6 @@ const UserProfile = () => {
 
   const subscription = useSelector((state) => state.subscription.subscription);
   const folderSize = useSelector((state) => state.subscription.folderSize);
-  const [triggerDataSize, setTriggerDataSize] = useState(0);
-
   const [otpFlowStep, setOtpFlowStep] = useState(0); // 0: button only, 1: request OTP, 2: verify OTP, 3: reset password
   const [otpEmail, setOtpEmail] = useState("");
   const [otp, setOtp] = useState("");
@@ -291,21 +288,6 @@ const UserProfile = () => {
   };
 
 
-
-  useEffect(() => {
-    if (token) {
-      dispatch(fetchUserSubscription(token));
-      console.log("fetchUserSubscription executed")
-    }
-  }, [token, dispatch]);
-
-
-  useEffect(() => {
-    if (token) {
-      dispatch(fetchUserFolderSize(token));
-      console.log("fetchUserFolderSize executed")
-    }
-  }, [token, dispatch, triggerDataSize]);
 
   useEffect(() => {
     console.log("✅subscription", subscription)
@@ -494,13 +476,6 @@ const UserProfile = () => {
   const { role, companies: assignedCompanyIds } = useSelector(
     (state) => state.jobPortal
   );
-
-  useEffect(() => {
-    if (email) {
-      // dispatch(fetchJobPortalByEmail(email));
-      dispatch(fetchJobPortalByEmail({ email, role }));
-    }
-  }, [dispatch, role]);
 
 
   const handleChangeFirstName = (e) => {

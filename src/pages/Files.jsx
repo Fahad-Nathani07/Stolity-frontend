@@ -45,6 +45,7 @@ import {
   buildDefaultFileListing,
   mergeFilesWithSharedFolders,
   mergeSearchWithSharedFolders,
+  dedupeFileListingByName,
 } from "../utils/mergeFileListing";
 import UploadFilesPreview from "../components/UploadFilesPreview";
 import UploadConflictModal from "../components/UploadConflictModal";
@@ -149,8 +150,11 @@ import { useLocation } from "react-router-dom";
 import CustomFileModal from './CustomFileModal';
 import ImageGridView from './ImageGridView';
 
-import { fetchUserSubscription, fetchUserFolderSize, setRedirectToPaymentAfterLogin } from "../store/subscriptionSlice";
-import { fetchJobPortalByEmail } from "../store/jobPortalSlice";
+import { fetchUserFolderSize, setRedirectToPaymentAfterLogin } from "../store/subscriptionSlice";
+import {
+  addFavoriteName,
+  removeFavoriteName,
+} from "../store/favoritesSlice";
 
 
 import {
@@ -186,7 +190,6 @@ let c = 1;
 
 const Files = ({setSpanExpanded}) => {
   const [isDownloadModalOpen, setIsDownloadModalOpen] = useState(false);
-  const [triggerDataSize, setTriggerDataSize] = useState(0);
   const [triggerUpdate, setTriggerUpdate] = useState(0);
   const [remainingDownloads, setRemainingDownloads] = useState([]);
   const loader = useSelector((state) => state.getdata.loading);
@@ -293,7 +296,7 @@ const Files = ({setSpanExpanded}) => {
   const [newFileName, setNewFileName] = useState("");
   const [showFTPopup, setShowFTPopup] = useState(false);
   const fileTypeDropdownRef = useRef(null);
-  const [favoriteFiles, setFavoriteFiles] = useState([]);
+  const getFileDataInFlightRef = useRef(null);
   const [showImageGallery, setShowImageGallery] = useState(false);
   const [showDownloadModal, setShowDownloadModal] = useState(false);
   
@@ -529,26 +532,28 @@ const Files = ({setSpanExpanded}) => {
     }, [isSharedValue])
 
   useEffect(() => {
+    let cancelled = false;
+
     const fetchData = async () => {
       setPlaceholderLoading(true); // Start loading
 
       try {
         dispatch(setIsSharedFalse());
         await getFileData(); // Initial load
+        if (cancelled) return;
         setTimeout(() => {
-          setPlaceholderLoading(false);
-        // }, 1500);
+          if (!cancelled) setPlaceholderLoading(false);
         }, 300);
-        await getFavoriteFiles(); // Fetch favorite files list
-        console.log("On root page!!!!!!");
+        if (!cancelled) console.log("On root page!!!!!!");
       } catch (error) {
-        console.log("Error in useEffect:", error);
-      } finally {
-        // setPlaceholderLoading(false); // End loading
+        if (!cancelled) console.log("Error in useEffect:", error);
       }
     };
 
     fetchData();
+    return () => {
+      cancelled = true;
+    };
   }, [triggerUpdate]);
 
 
@@ -556,7 +561,10 @@ const Files = ({setSpanExpanded}) => {
     // Whenever currentPage or itemsPerPage changes, update displayed data
     const startIndex = (currentPage - 1) * itemsPerPage;
     const endIndex = startIndex + itemsPerPage;
-    const slicedData = allEntries.slice(startIndex, endIndex);
+    const slicedData = dedupeFileListingByName(allEntries).slice(
+      startIndex,
+      endIndex
+    );
     setFileData(slicedData);
   }, [currentPage, itemsPerPage, allEntries]);
 
@@ -886,7 +894,7 @@ const handleDragOverFolder = (e) => {
   };
   const handleCClose = () => {
     console.log("ggggg handleCClose is being called")
-    dispatch(fetchUserFolderSize(token));
+    dispatch(fetchUserFolderSize({ token, force: true }));
     console.log("ggggg fetchUserFolderSize executed")
     dispatch(resetFolderList());
     setIsCWhisperClicked(false);
@@ -1008,6 +1016,7 @@ function debounce(fn, delay) {
 
   const subscription = useSelector((state) => state.subscription.subscription);
   const folderSize = useSelector((state) => state.subscription.folderSize);
+  const favoriteFiles = useSelector((state) => state.favorites.fileNames);
   const redirectToPaymentAfterLogin = useSelector(
     (state) => state.subscription.redirectToPaymentAfterLogin
   );
@@ -1030,35 +1039,13 @@ function debounce(fn, delay) {
     return () => clearTimeout(redirectTimeout);
   }, [redirectToPaymentAfterLogin, dispatch, navigate, setSpanExpanded]);
 
-  useEffect(() => {
-    if (token) {
-      dispatch(fetchUserSubscription(token));
-      console.log("fetchUserSubscription executed")
-    }
-  }, [token, dispatch]);
-
   const email = sessionStorage.getItem("email");
   const { role, companies: assignedCompanyIds } = useSelector(
       (state) => state.jobPortal
     );
-  
-  useEffect(() => {
-  if (email) {
-    // dispatch(fetchJobPortalByEmail(email));
-    dispatch(fetchJobPortalByEmail({ email, role }));
-  }
-}, [dispatch, role]);
 
   
 
-
-
-  useEffect(() => {
-    if (token) {
-      dispatch(fetchUserFolderSize(token));
-      console.log("fetchUserFolderSize executed")
-    }
-  }, [token, dispatch, triggerDataSize]);
 
 
   useEffect(() => {
@@ -1269,7 +1256,7 @@ function debounce(fn, delay) {
     getRootFolderSize(); // Refresh folder size
 
     // Refresh storage info in Redux
-    dispatch(fetchUserFolderSize(token));
+    dispatch(fetchUserFolderSize({ token, force: true }));
 
     setKeys([]);  // Reset keys for files
     setKeys2([]); // Reset keys for folders
@@ -1729,7 +1716,9 @@ function debounce(fn, delay) {
   };
 
   const applySortedList = (combinedData) => {
-    const list = Array.isArray(combinedData) ? combinedData : [];
+    const list = dedupeFileListingByName(
+      Array.isArray(combinedData) ? combinedData : []
+    );
     setAllEntries(list);
     setTotalEntries(list.length);
     setCurrentPage(1);
@@ -1891,81 +1880,93 @@ function debounce(fn, delay) {
 // };
 
 const getFileData = async () => {
-  try {
-    const [sharedFoldersResult, filesResult] = await Promise.allSettled([
-      axios.get(`${apiUrl}shared-folders`, {
-        headers: {
-          Authorization: `Bearer ${token}`,
-          "Content-Type": "application/json",
-        },
-      }),
-      axios.get(`${apiUrl}getAllObjectsNew`, {
-        headers: {
-          Authorization: `Bearer ${token}`,
-          "Content-Type": "application/json",
-        },
-        params: {
-          limit: 1000,
-        },
-      }),
-    ]);
+  // Share one in-flight load (avoids Strict Mode / remount double calls)
+  if (getFileDataInFlightRef.current) {
+    return getFileDataInFlightRef.current;
+  }
 
-    // ✅ Detect failure ONLY for files API
-    const filesFailed = filesResult.status === "rejected";
+  const request = (async () => {
+    try {
+      const [sharedFoldersResult, filesResult] = await Promise.allSettled([
+        axios.get(`${apiUrl}shared-folders`, {
+          headers: {
+            Authorization: `Bearer ${token}`,
+            "Content-Type": "application/json",
+          },
+        }),
+        axios.get(`${apiUrl}getAllObjectsNew`, {
+          headers: {
+            Authorization: `Bearer ${token}`,
+            "Content-Type": "application/json",
+          },
+          params: {
+            limit: 1000,
+          },
+        }),
+      ]);
 
-    if (filesFailed) {
-      console.error("getAllObjectsNew failed:", filesResult.reason);
+      // ✅ Detect failure ONLY for files API
+      const filesFailed = filesResult.status === "rejected";
 
-     setTimeout(() => {
+      if (filesFailed) {
+        console.error("getAllObjectsNew failed:", filesResult.reason);
+
+        setTimeout(() => {
+          showToast?.(
+            "error",
+            "Unable to load files from server. Please try again."
+          );
+        }, 1500);
+        return [];
+      }
+
+      const sharedFolders =
+        sharedFoldersResult.status === "fulfilled"
+          ? sharedFoldersResult.value.data.result || []
+          : [];
+
+      const files =
+        filesResult.status === "fulfilled"
+          ? filesResult.value.data.result || []
+          : [];
+
+      if (
+        !isGoogleAuth &&
+        sharedFolders.length > 0 &&
+        !sessionStorage.getItem("googleAuthWarned")
+      ) {
+        setShowGoogleAuthPopup(true);
+        sessionStorage.setItem("googleAuthWarned", "true");
+      }
+
+      const combinedData = buildDefaultFileListing(files, sharedFolders, {
+        isGoogleAuth,
+      });
+
+      setAllEntries(combinedData);
+      setTotalEntries(combinedData.length);
+
+      console.log("combinedData ---------------->>>", combinedData);
+
+      setSelectedFilter("Sort By");
+      setFileData(combinedData.slice(0, itemsPerPage));
+      return combinedData;
+    } catch (error) {
+      console.log("Unexpected error:", error);
+
+      // 🔴 Rare case (Promise.allSettled usually prevents this)
       showToast?.(
         "error",
-        "Unable to load files from server. Please try again."
+        "Unexpected issue occurred while loading data."
       );
-     }, 1500);
-     return [];
+      return [];
+    } finally {
+      getFileDataInFlightRef.current = null;
     }
+  })();
 
-    const sharedFolders =
-      sharedFoldersResult.status === "fulfilled"
-        ? sharedFoldersResult.value.data.result || []
-        : [];
-
-    const files =
-      filesResult.status === "fulfilled"
-        ? filesResult.value.data.result || []
-        : [];
-
-    if (
-      !isGoogleAuth &&
-      sharedFolders.length > 0 &&
-      !sessionStorage.getItem("googleAuthWarned")
-    ) {
-      setShowGoogleAuthPopup(true);
-      sessionStorage.setItem("googleAuthWarned", "true");
-    }
-
-    const combinedData = buildDefaultFileListing(files, sharedFolders, {
-      isGoogleAuth,
-    });
-
-    setAllEntries(combinedData);
-    setTotalEntries(combinedData.length);
-
-    console.log("combinedData ---------------->>>", combinedData);
-
-    setSelectedFilter("Sort By");
-    setFileData(combinedData.slice(0, itemsPerPage));
-    return combinedData;
-  } catch (error) {
-    console.log("Unexpected error:", error);
-
-    // 🔴 Rare case (Promise.allSettled usually prevents this)
-    showToast?.(
-      "error",
-      "Unexpected issue occurred while loading data."
-    );
-    return [];
-  }
+  getFileDataInFlightRef.current = request;
+  return request;
 };
 
 const refreshFileListWithSkeleton = async () => {
@@ -2016,8 +2017,9 @@ const refreshFileListWithSkeleton = async () => {
         }
       }
       if (!isStillActive?.()) return;
-      setAllEntries(merged);
-      setTotalEntries(merged.length);
+      const uniqueMerged = dedupeFileListingByName(merged);
+      setAllEntries(uniqueMerged);
+      setTotalEntries(uniqueMerged.length);
       setCurrentPage(1);
     },
     onSearchClear: () => {
@@ -2038,28 +2040,6 @@ const refreshFileListWithSkeleton = async () => {
     });
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [registerCancelRefresh]);
-
-
-  const getFavoriteFiles = async () => {
-    try {
-      const response = await axios.get(
-        `${apiUrl}get-favorite-files`,
-        {
-          headers: {
-            Authorization: `Bearer ${token}`,
-            "Content-Type": "application/json",
-          },
-        }
-      );
-
-      if (response.data && response.data.result) {
-        const favoriteFileNames = response.data.result.map(file => file.fileName);
-        setFavoriteFiles(favoriteFileNames);
-      }
-    } catch (error) {
-      console.error("Error fetching favorite files:", error);
-    }
-  };
 
 
   // Pagination control handlers (no API calls now)
@@ -2750,7 +2730,7 @@ const chkFileorFolder = (file, size) => {
 
   const handleAddToFavorites = async (file) => {
     try {
-      const response = await axios.post(
+      await axios.post(
         `${apiUrl}mark-as-favorite`,
         { filePath: file.fileName },
         {
@@ -2762,7 +2742,7 @@ const chkFileorFolder = (file, size) => {
       );
 
       showToast("success", "Added to favorites");
-      getFavoriteFiles(); // Refresh the favorite files list
+      dispatch(addFavoriteName(file.fileName));
     } catch (error) {
       console.error("Error adding to favorites:", error);
       showToast("error", "Failed to add to favorites");
@@ -2772,7 +2752,7 @@ const chkFileorFolder = (file, size) => {
 
   const handleRemoveFromFavorites = async (file) => {
     try {
-      const response = await axios.post(
+      await axios.post(
         `${apiUrl}unmark-as-favorite`,
         { filePath: file.fileName },
         {
@@ -2784,7 +2764,7 @@ const chkFileorFolder = (file, size) => {
       );
 
       showToast("success", "Removed from favorites");
-      getFavoriteFiles(); // Refresh the favorite files list
+      dispatch(removeFavoriteName(file.fileName));
     } catch (error) {
       console.error("Error removing from favorites:", error);
       showToast("error", "Failed to remove from favorites");
@@ -2875,7 +2855,6 @@ const chkFileorFolder = (file, size) => {
         showToast("error", `There's an error while moving file to recycle bin!`);
       }
 
-      setTriggerDataSize((x) => x + 1);
       dispatch(setLoader(false));
       afterMinLoaderDisplay(loaderStartedAt, () => {
         setLoader_Recycle(false);
@@ -2885,7 +2864,7 @@ const chkFileorFolder = (file, size) => {
 
     // Update remaining storage after delete
     if (token) {
-      dispatch(fetchUserFolderSize(token));
+      dispatch(fetchUserFolderSize({ token, force: true }));
       console.log("fetchUserFolderSize executed");
     }
   };
@@ -3522,6 +3501,9 @@ const handleConfirmDownload = async () => {
         });
         await getFileData(1);
         showToast("success", "Folder uploaded successfully!");
+        if (token) {
+          dispatch(fetchUserFolderSize({ token, force: true }));
+        }
       } else {
         throw new Error(`Unexpected response status: ${response.status}`);
       }
@@ -4250,7 +4232,9 @@ useEffect(()=>{
           } catch (e) {}
         });
       }, 800);
-      setTriggerDataSize((x) => x + 1)
+      if (token) {
+        dispatch(fetchUserFolderSize({ token, force: true }));
+      }
 
     } catch (error) {
       showToast("error", error.message || "Error uploading files");
@@ -6012,12 +5996,14 @@ const showToast = (status, message) => {
 
                       {filedata.map((file, index) => {
   return (
-    <tbody key={file.fileName || `row-${index}`}>
+    <tbody
+      key={`${file.isShared ? "shared" : "own"}-${file.fileName || "item"}-${index}`}
+    >
       <tr
         className={`hover_cell 
           ${activeRow === 1 ? "active-row" : ""} 
           ${hoveredFolderName === file.fileName ? "drag-over" : ""}`}
-        draggable={!(file.fileName === "blackbox" || file.isShared)}  // ← disabled for blackbox/shared
+        draggable={!(file.fileName === "blackbox" || file.isShared)}
         onDragStart={
           (file.fileName === "blackbox" || file.isShared)
             ? null
@@ -6038,7 +6024,7 @@ const showToast = (status, message) => {
             ? handleDragLeaveFolder
             : null
         }
-        onDragEnd={handleDragEnd}  // Keep this global, it's safe
+        onDragEnd={handleDragEnd}
         onDrop={
           (file.isFolder && !(file.fileName === "blackbox" || file.isShared))
             ? (e) => {
@@ -6880,7 +6866,7 @@ const showToast = (status, message) => {
     ${activeRow === 1 ? "active-row" : ""} 
     ${hoveredFolderName === file.fileName ? "border_highlight" : ""} 
     ${draggedItem?.fileName === file.fileName && !(file.fileName === "blackbox" || file.isShared) ? "dragging" : ""}`}
-  key={index}
+  key={`${file.isShared ? "shared" : "own"}-${file.fileName || "item"}-${index}`}
   style={{ 
     cursor: (file.fileName === "blackbox" || file.isShared) ? "default" : "pointer" 
   }}

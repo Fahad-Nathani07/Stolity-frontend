@@ -134,7 +134,6 @@ import SelectFolderModal from "./DownloadModal/SelectFolderModal";
 import FileConversionModal from "../components/FileConversionModal";
 import CustomFileModal from "./CustomFileModal";
 import LoaderRecycleBin from "../components/LoaderRecycleBin";
-import { fetchJobPortalByEmail } from "../store/jobPortalSlice";
 
 let c = 1;
 
@@ -244,13 +243,6 @@ const Favourites = () => {
       const { role, companies: assignedCompanyIds } = useSelector(
           (state) => state.jobPortal
         );
-      
-      useEffect(() => {
-      if (email) {
-        // dispatch(fetchJobPortalByEmail(email));
-        dispatch(fetchJobPortalByEmail({ email, role }));
-      }
-    }, [dispatch, role]);
     
 
 

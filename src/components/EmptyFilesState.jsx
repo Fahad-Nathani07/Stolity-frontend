@@ -3,9 +3,9 @@ import empty_folder from "../images/empty_folder.svg";
 
 const EMPTY_COPY = {
   files: {
-    title: "No files or folders yet",
+    title: "This folder is empty",
     description:
-      "Start by uploading your first file or creating a new folder to keep your workspace organised.",
+      "Upload files or create a new folder here to add content to this location.",
     filteredTitle: "No matches found",
     filteredDescription:
       "Nothing matches your current filters or search. Try adjusting or clearing them to see more items.",

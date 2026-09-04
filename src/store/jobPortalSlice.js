@@ -2,52 +2,39 @@ import { createSlice, createAsyncThunk } from "@reduxjs/toolkit";
 import { collection, query, where, getDocs } from "firebase/firestore";
 import { db } from "../firebase";
 
+function resolveArg(arg) {
+  if (typeof arg === "string") {
+    return { email: arg, force: false };
+  }
+  return {
+    email: arg?.email,
+    force: Boolean(arg?.force),
+  };
+}
+
+/**
+ * Load job-portal role/companies once per session.
+ * SUPER_ADMIN company list is resolved inside this same call (no second remount fetch).
+ * Pass { email, force: true } to refetch.
+ */
 export const fetchJobPortalByEmail = createAsyncThunk(
   "jobPortal/fetchByEmail",
-  async ({ email, role }, { rejectWithValue }) => {
+  async (arg, { rejectWithValue }) => {
+    const { email } = resolveArg(arg);
+
     try {
-      console.log("ooooo 🔍 fetchJobPortalByEmail START:", { email, role });
-
-      /* ============================
-         ✅ SUPER ADMIN FLOW
-      ============================ */
-      if (role === "SUPER_ADMIN") {
-        console.log("ooooo 👑 SUPER_ADMIN detected - fetching ALL companies");
-
-        const snapshot = await getDocs(collection(db, "companyMaster"));
-
-        if (!snapshot) {
-          throw new Error("Failed to fetch companyMaster collection");
-        }
-
-        const companyIds = snapshot.docs.map(doc => doc.id);
-        console.log("ooooo ✅ SUPER_ADMIN companies fetched:", companyIds.length, "companies");
-
+      if (!email) {
         return {
-          role: "SUPER_ADMIN",
-          companies: companyIds,
+          role: null,
+          companies: [],
           currentUserId: null,
         };
       }
 
-      /* ============================
-         👤 NORMAL USER FLOW
-      ============================ */
-      console.log("ooooo 👤 Normal user flow - querying users by email:", email);
-      
-      const q = query(
-        collection(db, "users"),
-        where("email", "==", email)
-      );
-
+      const q = query(collection(db, "users"), where("email", "==", email));
       const snapshot = await getDocs(q);
 
-      if (!snapshot) {
-        throw new Error("Failed to query users collection");
-      }
-
       if (snapshot.empty) {
-        console.log("ooooo ❌ No user found for email:", email);
         return {
           role: null,
           companies: [],
@@ -57,37 +44,39 @@ export const fetchJobPortalByEmail = createAsyncThunk(
 
       const docSnap = snapshot.docs[0];
       const userData = docSnap.data();
+      const role = userData.jobPortal?.role || null;
+      let companies = userData.jobPortal?.companies || [];
 
-      console.log("ooooo ✅ User found:", {
-        id: docSnap.id,
-        email: userData.email,
-        jobPortal: userData.jobPortal
-      });
+      // SUPER_ADMIN: load all company ids in this same request
+      if (role === "SUPER_ADMIN") {
+        const companySnapshot = await getDocs(collection(db, "companyMaster"));
+        companies = companySnapshot.docs.map((doc) => doc.id);
+      }
 
       return {
-        role: userData.jobPortal?.role || null,
-        companies: userData.jobPortal?.companies || [],
+        role,
+        companies,
         currentUserId: docSnap.id,
       };
-
     } catch (err) {
-      console.error("ooooo 💥 fetchJobPortalByEmail ERROR:", {
-        message: err.message,
-        code: err.code,
-        stack: err.stack?.substring(0, 200) + "...",
-        email: email,
-        role: role
-      });
-      
-      console.error("ooooo Full error details:", err);
-      
+      console.error("fetchJobPortalByEmail ERROR:", err);
       return rejectWithValue({
         message: err.message || "Failed to fetch job portal data",
         code: err.code || "UNKNOWN_ERROR",
-        email: email,
-        role: role
+        email,
       });
     }
+  },
+  {
+    condition: (arg, { getState }) => {
+      const { force } = resolveArg(arg);
+      if (force) return true;
+      const { status, loading } = getState().jobPortal;
+      if (loading || status === "loading" || status === "succeeded") {
+        return false;
+      }
+      return true;
+    },
   }
 );
 
@@ -96,6 +85,7 @@ const initialState = {
   companies: [],
   currentUserId: null,
   loading: false,
+  status: "idle", // idle | loading | succeeded | failed
   error: null,
 };
 
@@ -106,29 +96,21 @@ const jobPortalSlice = createSlice({
   extraReducers: (builder) => {
     builder
       .addCase(fetchJobPortalByEmail.pending, (state) => {
-        console.log("ooooo ⏳ REDUX: fetchJobPortalByEmail pending");
         state.loading = true;
+        state.status = "loading";
         state.error = null;
       })
       .addCase(fetchJobPortalByEmail.fulfilled, (state, action) => {
-        console.log("ooooo ✅ REDUX: fetchJobPortalByEmail fulfilled:", {
-          role: action.payload.role,
-          companiesCount: action.payload.companies?.length || 0,
-          currentUserId: action.payload.currentUserId
-        });
         state.role = action.payload.role;
         state.companies = action.payload.companies;
         state.currentUserId = action.payload.currentUserId;
         state.loading = false;
+        state.status = "succeeded";
         state.error = null;
       })
       .addCase(fetchJobPortalByEmail.rejected, (state, action) => {
-        console.error("ooooo ❌ REDUX: fetchJobPortalByEmail rejected:", {
-          error: action.payload,
-          errorMessage: action.payload?.message,
-          errorCode: action.payload?.code
-        });
         state.loading = false;
+        state.status = "failed";
         state.error = action.payload;
         state.role = null;
         state.companies = [];

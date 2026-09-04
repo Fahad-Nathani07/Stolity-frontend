@@ -45,7 +45,8 @@ import JobDashboard from '../src/pages/JobPortal/JobDashboard';
 import CareerJobListing from "./pages/JobPortal/CareerJobListing";
 import JobPortalAdmin from "./pages/JobPortal/JobPortalAdmin";
 import { fetchJobPortalByEmail } from './store/jobPortalSlice';
-import { fetchUserSubscription } from './store/subscriptionSlice';
+import { fetchUserSubscription, fetchUserFolderSize } from './store/subscriptionSlice';
+import { fetchFavoriteFiles } from './store/favoritesSlice';
 import { fetchCurrentUserByEmail } from "./store/usersAdminSlice";
 import { ToastRoot } from './components/ToastProvider';
 import { motion } from "framer-motion";
@@ -101,7 +102,7 @@ const {
     
     useEffect(() => {
       if (email) {
-        dispatch(fetchJobPortalByEmail(email));
+        dispatch(fetchJobPortalByEmail({ email }));
       }
     }, [dispatch, email]);
 
@@ -115,8 +116,9 @@ const {
 
     useEffect(() => {
       if (token) {
-        dispatch(fetchUserSubscription(token));
-        console.log("fetchUserSubscription executed")
+        dispatch(fetchUserSubscription({ token }));
+        dispatch(fetchUserFolderSize({ token }));
+        dispatch(fetchFavoriteFiles({ token }));
       }
     }, [token, dispatch, email]);
   

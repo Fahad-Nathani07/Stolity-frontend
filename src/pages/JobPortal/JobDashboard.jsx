@@ -927,10 +927,9 @@ useEffect(() => {
     
     useEffect(() => {
     if (email) {
-      // dispatch(fetchJobPortalByEmail(email));
-      dispatch(fetchJobPortalByEmail({ email, role }));
+      dispatch(fetchJobPortalByEmail({ email }));
     }
-  }, [dispatch, role]);
+  }, [dispatch, email]);
 
      const assignedCompanies = useMemo(() => {
           if (!companyMaster.length || !cleanAssignedCompanyIds.length) {

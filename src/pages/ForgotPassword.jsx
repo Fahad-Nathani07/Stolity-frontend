@@ -24,7 +24,7 @@ import { ReactComponent as PasswordHide } from "../images/icon-eye-hide.svg";
 import axios from "axios";
 import protectionIcon from "../images/protectionIcon.svg";
 
-import { FaCheckCircle } from "react-icons/fa"; //<FaCheckCircle />
+import { FaCheckCircle, FaArrowLeft } from "react-icons/fa"; //<FaCheckCircle />
 import { BsXCircleFill } from "react-icons/bs"; // <BsXCircleFill />
 import { IoIosInformationCircle } from "react-icons/io"; // <IoIosInformationCircle />
 import { FaExclamationTriangle } from "react-icons/fa"; // <FaExclamationTriangle />
@@ -470,6 +470,21 @@ const ForgotPassword = () => {
 };
 
 
+  const handleBack = () => {
+    if (step === 1 || step === 4) {
+      navigate("/login");
+      return;
+    }
+    if (step === 2) {
+      setOtp("");
+      setStep(1);
+      return;
+    }
+    if (step === 3) {
+      setStep(2);
+    }
+  };
+
   // Render step content (parity with Signup renderStepContent)
   const renderStepContent = () => {
     // STEP 1: Request OTP (Email input)
@@ -861,6 +876,20 @@ if (step === 3) {
     <>
       <ChakraProvider />
       <div className="form_container">
+        <button
+          type="button"
+          className="login-back-btn"
+          onClick={handleBack}
+          aria-label={
+            step === 1 || step === 4
+              ? "Back to login"
+              : "Back to previous step"
+          }
+        >
+          <FaArrowLeft />
+          <span>Back</span>
+        </button>
+
         <div className="login_left_col">
           <div className="login_graphic_text">
             <h2>Upload Files</h2>
