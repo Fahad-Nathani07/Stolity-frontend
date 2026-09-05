@@ -12,10 +12,11 @@ import { useNavigate } from 'react-router-dom';
 import { useDropzone } from 'react-dropzone';
 import { ChakraProvider, Button, Stack, useToast } from '@chakra-ui/react';
 import { UploadContext } from './UploadContext';
+import { uploadFolderViaMultipart } from "../utils/uploadFolderViaMultipart";
 
 
 const AddFiles = () => {
-  const { addUpload, updateUploadProgress, removeUpload } = useContext(UploadContext);
+  const { uploads, addUpload, updateUploadProgress, updateUploadMeta, removeUpload, getUpload, isPausing } = useContext(UploadContext);
 
   const currentYear = new Date().getFullYear();
   const token = sessionStorage.getItem("number");
@@ -198,61 +199,60 @@ const AddFiles = () => {
 
 
 
-  //Upload folder2
   const uploadFolder = async () => {
+    if (!fileList?.length) {
+      showToast("warning", "Please select a folder first.");
+      return;
+    }
 
+    setPreLoader2(true);
     try {
-      const formData = new FormData();
-      formData.append('folderStructure', JSON.stringify(folderStructure));
-      formData.append('folderPath', `${removeLastSlashAndText(path)}`);
-      formData.append('storageClass', 'STANDARD_IA');
-      formData.append('isPrivate', pubpri2);
-
-      fileList.forEach(fileInfo => {
-        // Append the file to FormData with the correct path
-        formData.append('files', fileInfo.file, `${fileInfo.path}/${fileInfo.file.name}`);
-      });
-      console.log("public private", pubpri2)
-      console.log("Form data is", formData);
-
-      const uploadId = Date.now(); // Unique ID for the folder upload
-      addUpload(uploadId, 'Uploading '+nameOfFolder, {
-        operation: "upload",
-        isFolder: true,
+      const result = await uploadFolderViaMultipart({
+        apiUrl,
+        token,
+        fileList,
+        basePath: removeLastSlashAndText(path || ""),
+        folderName: nameOfFolder || "folder",
+        visibility: pubpri2,
+        uploads,
+        addUpload,
+        updateUploadProgress,
+        updateUploadMeta,
+        removeUpload,
+        getUpload,
+        isPausing,
       });
 
-      console.log("Folder upload started...");
-      setPreLoader2(true);
-      console.log("Folder structure being sent:", folderStructure);
+      if (result.status === "busy") {
+        showToast(
+          "info",
+          "Uploads are already in progress. Please wait for them to finish."
+        );
+        return;
+      }
 
-      const response = await axios.post(`${apiUrl}upload-folder`, formData, {
-        headers: {
-          'Authorization': `Bearer ${token}`,
-          'Content-Type': 'multipart/form-data'
-        },
-        onUploadProgress: (progressEvent) => {
-          const totalLength = progressEvent.lengthComputable
-            ? progressEvent.total
-            : fileList.reduce((acc, fileInfo) => acc + fileInfo.file.size, 0); // Calculate total size of files in folder
-          
-          if (totalLength) {
-            const progress = Math.round((progressEvent.loaded * 100) / totalLength);
-            console.log('Folder Upload Progress:', progress, '%');
-            updateUploadProgress(uploadId, progress); // Update progress in context
-          }
-        }
-      });
-      removeUpload(uploadId);
-      showToast('success',"Folder uploaded successfully!");
-      setPreLoader2(false);
-      console.log('Folder uploaded successfully:', response.data);
-      navigate('/Files');
+      const { displayName, allCanceled, anyFailed, anySucceeded, anyCanceled } =
+        result;
+      if (anySucceeded && !anyFailed && !anyCanceled) {
+        showToast("success", `Folder "${displayName}" uploaded successfully!`);
+        navigate("/Files");
+      } else if (anySucceeded && anyCanceled) {
+        showToast("info", "Upload stopped. Finished files are available.");
+        navigate("/Files");
+      } else if (anySucceeded && anyFailed) {
+        showToast("warning", "Some folder files failed to upload.");
+        navigate("/Files");
+      } else if (allCanceled) {
+        showToast("info", "Folder upload was canceled.");
+      } else if (anyFailed) {
+        showToast("error", "Error uploading folder files");
+      }
     } catch (error) {
-      showToast('error','Error uploading folder');
+      showToast("error", "Error uploading folder");
+    } finally {
+      setPreLoader2(false);
     }
   };
-
-
 
   //Create Folder
   const createJustFolder = async () => {

@@ -172,6 +172,21 @@ const fileSlicer = createSlice({
         console.log("yyyyy STATE in STORE UPDATED as: state.folderName",state.folderName)
         state.isShared = action.payload.isShared; // Store isShared value
       },
+
+      restoreNestedNavigation: (state, action) => {
+        const {
+          folderPath = "",
+          counter = 0,
+          isSharedValue = false,
+          fileName = "",
+        } = action.payload || {};
+        state.folderName = folderPath;
+        state.counter = Number(counter) || 0;
+        state.isSharedValue = Boolean(isSharedValue);
+        state.fileName = fileName || "";
+        // Drop cached listings so NestedPage refetch runs after refresh
+        state.userdata = [];
+      },
     
     
     
@@ -331,6 +346,7 @@ export const {
   resetUserData,
   resetCounter,
   setFolderPath,
+  restoreNestedNavigation,
   incrementFCounter,
   setIsSharedFalse,
   removeLastFolder,

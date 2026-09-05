@@ -319,7 +319,7 @@ const DownloadModal = ({ isOpen, onClose, onDownload, path, reloadAfterTast }) =
         <SelectFolderModal
           onClose={closeFolderModal}
           onSelect={handleFolderSelect}
-          currentPath = {path}
+          fileName={fileName || "downloaded_file"}
         />
       )}
     </div>

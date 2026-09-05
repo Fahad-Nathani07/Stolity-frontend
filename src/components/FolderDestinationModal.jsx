@@ -1,5 +1,14 @@
 import React from "react";
-import { FiX, FiArrowLeft, FiFolder, FiCopy, FiMove, FiRotateCcw } from "react-icons/fi";
+import {
+  FiX,
+  FiArrowLeft,
+  FiFolder,
+  FiCopy,
+  FiMove,
+  FiRotateCcw,
+  FiPackage,
+  FiDownload,
+} from "react-icons/fi";
 import { HiOutlineFolderPlus } from "react-icons/hi2";
 import "./FolderDestinationModal.css";
 
@@ -23,6 +32,21 @@ const VARIANT_META = {
     icon: FiRotateCcw,
     accent: "#FFAB49",
     actionVerb: "restore",
+  },
+  zip: {
+    icon: FiPackage,
+    accent: "#FFAB49",
+    actionVerb: "zip",
+  },
+  unzip: {
+    icon: FiPackage,
+    accent: "#FFAB49",
+    actionVerb: "unzip",
+  },
+  download: {
+    icon: FiDownload,
+    accent: "#FFAB49",
+    actionVerb: "download",
   },
 };
 

@@ -6,6 +6,12 @@ import React, {
   useRef,
   useMemo,
 } from "react";
+import { LONG_RUNNING_AWS_REQUEST_OPTIONS } from "../utils/longRunningAwsRequest";
+import {
+  postZipOrUnzip,
+  getZipUnzipErrorMessage,
+  getZipSuccessMessage,
+} from "../utils/zipUnzipRequest";
 import { DownloadContext } from "./DownloadContext";
 import { Prism as SyntaxHighlighter } from "react-syntax-highlighter";
 import { oneLight } from "react-syntax-highlighter/dist/esm/styles/prism";
@@ -623,7 +629,7 @@ const handleMulDelete = async () => {
     // ────────────────────────────────────────────────
     if (keys2.length > 0) {
       // Assuming your backend now expects the same format as single delete
-      await axios.delete(`${apiUrl}delete-folder`, {
+      await axios.delete(`${apiUrl}delete-folder`, { ...LONG_RUNNING_AWS_REQUEST_OPTIONS, 
         data: {
           folderName: keys2.map(checkLastHash), // ← apply same transformation as single delete
           fromRecycleBin: true,
@@ -1513,7 +1519,7 @@ const handleFileDelete = async (file) => {
   if (file?.isFolder === true) {
     // Permanent folder delete
     try {
-      const res = await axios.delete(`${apiUrl}delete-folder`, {
+      const res = await axios.delete(`${apiUrl}delete-folder`, { ...LONG_RUNNING_AWS_REQUEST_OPTIONS, 
         data: { folderName: [checkLastHash(file.fileName)], fromRecycleBin: true },
         headers: {
           Authorization: `Bearer ${token}`,
@@ -1699,6 +1705,7 @@ const performFolderMultiRestore = async (folders) => {
       `${apiUrl}restore-folders`,
       { folders },
       {
+        ...LONG_RUNNING_AWS_REQUEST_OPTIONS,
         headers: {
           Authorization: `Bearer ${token}`,
           "Content-Type": "application/json",
@@ -1984,7 +1991,7 @@ const performRestore = async () => {
 
     if (fileToRestore.isFolder) {
       const payload = { folders: [fileToRestore.fileName] };
-      await axios.post(`${apiUrl}restore-folders`, payload, {
+      await axios.post(`${apiUrl}restore-folders`, payload, { ...LONG_RUNNING_AWS_REQUEST_OPTIONS, 
         headers: {
           Authorization: `Bearer ${token}`,
           "Content-Type": "application/json",
@@ -2244,24 +2251,19 @@ const fetchFoldersAtLevel = async (folderPath = "") => {
     };
 
     try {
-      const response = await axios.post(apiUrl1, requestData, {
+      const zipResult = await postZipOrUnzip(apiUrl1, requestData, {
         headers: {
           Authorization: `Bearer ${token}`,
         },
-        timeout: 0,
-        maxContentLength: Infinity,
-        maxBodyLength: Infinity,
       });
 
       // console.log("Zip successful:", response.data);
-      showToast("success", "File successfully zipped!");
+      showToast("success", getZipSuccessMessage(zipResult));
     } catch (error) {
       console.error("Error zipping file:", error);
       showToast(
         "error",
-        error?.code === "ECONNABORTED" || /timeout/i.test(error?.message || "")
-          ? "Zip timed out. Large folders need more time on the host proxy."
-          : error?.response?.data?.error || "Failed to zip file."
+        getZipUnzipErrorMessage(error, "Failed to zip file.")
       );
     }
   }
@@ -2284,13 +2286,10 @@ const fetchFoldersAtLevel = async (folderPath = "") => {
     };
 
     try {
-      const response = await axios.post(apiUrl1, requestData, {
+      await postZipOrUnzip(apiUrl1, requestData, {
         headers: {
           Authorization: `Bearer ${token}`,
         },
-        timeout: 0,
-        maxContentLength: Infinity,
-        maxBodyLength: Infinity,
       });
 
       //    console.log("Unzip successful:", response.data);
@@ -2299,9 +2298,7 @@ const fetchFoldersAtLevel = async (folderPath = "") => {
       console.error("Error unzipping file:", error);
       showToast(
         "error",
-        error?.code === "ECONNABORTED" || /timeout/i.test(error?.message || "")
-          ? "Unzip timed out. Large ZIPs need more time on the host proxy."
-          : error?.response?.data?.error || "Failed to unzip file."
+        getZipUnzipErrorMessage(error, "Failed to unzip file.")
       );
     }
   }
@@ -5132,10 +5129,7 @@ const isMultiSizeExceeded = selectedTotalBytes > remainingBytes;
 
     try {
       const apiEndpoint = `${apiUrl}restore-folders`;
-      await axios.post(
-        apiEndpoint,
-        { folders: [folderName] },
-        {
+      await axios.post(apiEndpoint, { folders: [folderName] }, { ...LONG_RUNNING_AWS_REQUEST_OPTIONS, 
           headers: {
             Authorization: `Bearer ${token}`,
             "Content-Type": "application/json",

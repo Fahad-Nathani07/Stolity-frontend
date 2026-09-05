@@ -5,11 +5,19 @@ import React, {
   useCallback,
   useRef,
 } from "react";
+import { LONG_RUNNING_AWS_REQUEST_OPTIONS } from "../utils/longRunningAwsRequest";
+import {
+  postZipOrUnzip,
+  getZipUnzipErrorMessage,
+  getZipSuccessMessage,
+} from "../utils/zipUnzipRequest";
+import { uploadFolderViaMultipart } from "../utils/uploadFolderViaMultipart";
 import { DownloadContext } from "./DownloadContext";
 import { Prism as SyntaxHighlighter } from "react-syntax-highlighter";
 import { oneLight } from "react-syntax-highlighter/dist/esm/styles/prism";
 import { resolveFileIconPath, normalizeFolderFilesForPreview } from "../utils/fileIcon";
 import { buildGetFolderParams } from "../utils/getFolderParams";
+import { clearNestedNav } from "../utils/nestedNavPersistence";
 import { buildFileStreamUrl, preloadStreamedImage } from "../utils/fileStream";
 import { validateItemName, isRenameNameTaken } from "../utils/validateItemName";
 import { getApiErrorMessage } from "../utils/handleS3CopyError";
@@ -1126,7 +1134,7 @@ function debounce(fn, delay) {
 //         sourceFolder: "", // empty string for root folder
 //         keys: keys,
 //       };
-//       await axios.delete(`${apiUrl}soft-delete`, {
+//       await axios.delete(`${apiUrl}soft-delete`, { ...LONG_RUNNING_AWS_REQUEST_OPTIONS, 
 //         data: payload,
 //         headers: {
 //           Authorization: `Bearer ${token}`,
@@ -1137,7 +1145,7 @@ function debounce(fn, delay) {
 
 //     // Soft delete folders if keys2 have items
 //     if (keys2.length > 0) {
-//       await axios.delete(`${apiUrl}soft-delete-folder`, {
+//       await axios.delete(`${apiUrl}soft-delete-folder`, { ...LONG_RUNNING_AWS_REQUEST_OPTIONS, 
 //         data: { sourceFolders: keys2 },
 //         headers: {
 //           Authorization: `Bearer ${token}`,
@@ -1227,7 +1235,7 @@ function debounce(fn, delay) {
         sourceFolder: "", // empty string for root folder
         keys: keys,
       };
-      await axios.delete(`${apiUrl}soft-delete`, {
+      await axios.delete(`${apiUrl}soft-delete`, { ...LONG_RUNNING_AWS_REQUEST_OPTIONS, 
         data: payload,
         headers: {
           Authorization: `Bearer ${token}`,
@@ -1238,7 +1246,7 @@ function debounce(fn, delay) {
 
     // Soft delete folders if keys2 have items
     if (keys2.length > 0) {
-      await axios.delete(`${apiUrl}soft-delete-folder`, {
+      await axios.delete(`${apiUrl}soft-delete-folder`, { ...LONG_RUNNING_AWS_REQUEST_OPTIONS, 
         data: { sourceFolders: keys2 },
         headers: {
           Authorization: `Bearer ${token}`,
@@ -1422,6 +1430,7 @@ function debounce(fn, delay) {
     if (token) {
       // console.log("Current page value is", currentPage);
 
+      clearNestedNav();
       dispatch(resetUserData());
       dispatch(resetCounter());
     }
@@ -2792,7 +2801,7 @@ const chkFileorFolder = (file, size) => {
       // Soft delete folder using new API
       try {
         dispatch(setLoader(true));
-        const res = await axios.delete(`${apiUrl}soft-delete-folder`, {
+        const res = await axios.delete(`${apiUrl}soft-delete-folder`, { ...LONG_RUNNING_AWS_REQUEST_OPTIONS, 
           data: { sourceFolders: [checkLastHash(file.fileName)] },
           headers: {
             Authorization: `Bearer ${token}`,
@@ -2840,7 +2849,7 @@ const chkFileorFolder = (file, size) => {
       console.log("Full file object:", JSON.stringify(file, null, 2));
 
       try {
-        const res = await axios.delete(`${apiUrl}soft-delete`, {
+        const res = await axios.delete(`${apiUrl}soft-delete`, { ...LONG_RUNNING_AWS_REQUEST_OPTIONS, 
           data: dataToSend,
           headers: {
             Authorization: `Bearer ${token}`,
@@ -3257,25 +3266,20 @@ const handleConfirmDownload = async () => {
   };
 
   try {
-    const response = await axios.post(apiUrl1, requestData, {
+    const zipResult = await postZipOrUnzip(apiUrl1, requestData, {
       headers: {
         Authorization: `Bearer ${token}`,
       },
-      timeout: 0,
-      maxContentLength: Infinity,
-      maxBodyLength: Infinity,
     });
 
     // console.log("Zip successful:", response.data);
-    showToast("success", "File successfully zipped!");
+    showToast("success", getZipSuccessMessage(zipResult));
     getFileData();
   } catch (error) {
     console.error("Error zipping file:", error);
     showToast(
       "error",
-      error?.code === "ECONNABORTED" || /timeout/i.test(error?.message || "")
-        ? "Zip timed out. Large folders need more time on the host proxy."
-        : error?.response?.data?.error || "Failed to zip file."
+      getZipUnzipErrorMessage(error, "Failed to zip file.")
     );
   } finally {
     setLoader2(false);   // ← always stop loader (success or fail)
@@ -3304,13 +3308,10 @@ const handleConfirmDownload = async () => {
   };
 
   try {
-    const response = await axios.post(apiUrl1, requestData, {
+    await postZipOrUnzip(apiUrl1, requestData, {
       headers: {
         Authorization: `Bearer ${token}`,
       },
-      timeout: 0,
-      maxContentLength: Infinity,
-      maxBodyLength: Infinity,
     });
 
     // console.log("Unzip successful:", response.data);
@@ -3320,9 +3321,7 @@ const handleConfirmDownload = async () => {
     console.error("Error unzipping file:", error);
     showToast(
       "error",
-      error?.code === "ECONNABORTED" || /timeout/i.test(error?.message || "")
-        ? "Unzip timed out. Large ZIPs need more time on the host proxy."
-        : error?.response?.data?.error || "Failed to unzip file."
+      getZipUnzipErrorMessage(error, "Failed to unzip file.")
     );
   } finally {
     setLoader2(false);   // ← always stop loader (success or fail)
@@ -3433,90 +3432,72 @@ const handleConfirmDownload = async () => {
     }
   };
 
-  const uploadFolder = async ({ fileList, folderStructure, folderName, isPrivate }) => {
+  const uploadFolder = async ({ fileList, folderName, isPrivate }) => {
     if (!fileList?.length) {
       showToast("warning", "Please select a folder first.");
       return;
     }
 
-    const uploadId = Date.now();
-    const displayName = folderName || "folder";
-    let processingNotified = false;
+    const result = await uploadFolderViaMultipart({
+      apiUrl,
+      token,
+      fileList,
+      basePath: path,
+      folderName,
+      visibility: isPrivate,
+      remainingBytes,
+      sanitizeFilename,
+      isVideoFile,
+      uploads,
+      addUpload,
+      updateUploadProgress,
+      updateUploadMeta,
+      removeUpload,
+      getUpload,
+      isPausing,
+      onBeforeStart: () => {
+        handleCloseFileUploadModal();
+        setFiles([]);
+      },
+    });
 
-    try {
-      const formData = new FormData();
-      formData.append("folderStructure", JSON.stringify(folderStructure || {}));
-      formData.append("folderPath", `${removeLastSlashAndText(path)}`);
-      formData.append("isPrivate", isPrivate || "private");
+    if (result.status === "busy") {
+      showToast(
+        "info",
+        "Uploads are already in progress. Please wait for them to finish."
+      );
+      return;
+    }
+    if (result.status === "quota") {
+      showToast(
+        "error",
+        `Not enough storage for this folder (${(result.totalSize / 1_000_000_000).toFixed(2)} GB needed).`
+      );
+      return;
+    }
 
-      fileList.forEach((fileInfo) => {
-        formData.append(
-          "files",
-          fileInfo.file,
-          `${fileInfo.path}/${fileInfo.file.name}`
-        );
-      });
+    const { displayName, allCanceled, anyFailed, anySucceeded, anyCanceled } =
+      result;
+    if (anySucceeded && !anyFailed && !anyCanceled) {
+      showToast("success", `Folder "${displayName}" uploaded successfully!`);
+      setCurrentPage(1);
+      getFileData(1);
+    } else if (anySucceeded && anyCanceled) {
+      showToast("info", "Upload stopped. Finished files are available.");
+      getFileData(1);
+    } else if (anySucceeded && anyFailed) {
+      showToast("warning", "Some folder files failed to upload.");
+      getFileData(1);
+    } else if (allCanceled) {
+      showToast("info", "Folder upload was canceled.");
+    } else if (anyFailed) {
+      showToast("error", "Error uploading folder files.");
+    }
 
-      setOpenFileUploadModal(false);
-      addUpload(uploadId, "Uploading " + displayName, {
-        operation: "upload",
-        isFolder: true,
-      });
-      setFiles([]);
-
-      const response = await axios.post(`${apiUrl}upload-folder`, formData, {
-        headers: {
-          Authorization: `Bearer ${token}`,
-          "Content-Type": "multipart/form-data",
-        },
-        timeout: 300000,
-        onUploadProgress: (progressEvent) => {
-          const totalLength = fileList.reduce(
-            (acc, fileInfo) => acc + fileInfo.file.size,
-            0
-          );
-          // Cap at 99 until the API finishes server-side processing
-          const progress =
-            totalLength > 0
-              ? Math.min(
-                99,
-                Math.round((progressEvent.loaded * 100) / totalLength)
-              )
-              : 0;
-          updateUploadProgress(uploadId, progress);
-
-          if (progress >= 99 && !processingNotified) {
-            processingNotified = true;
-            updateUploadMeta(uploadId, {
-              fileName: `Processing "${displayName}" — please wait…`,
-            });
-          }
-        },
-      });
-
-      if (response.status === 200) {
-        updateUploadProgress(uploadId, 100);
-        updateUploadMeta(uploadId, {
-          fileName: `Uploaded ${displayName}`,
-        });
-        await getFileData(1);
-        showToast("success", "Folder uploaded successfully!");
-        if (token) {
-          dispatch(fetchUserFolderSize({ token, force: true }));
-        }
-      } else {
-        throw new Error(`Unexpected response status: ${response.status}`);
-      }
-    } catch (error) {
-      console.error("Upload error:", error);
-      showToast("error", "Error uploading folder");
-      updateUploadProgress(uploadId, -1);
-    } finally {
-      handleCloseFileUploadModal();
-      setTimeout(() => removeUpload(uploadId), 1500);
+    if (token && anySucceeded) {
+      dispatch(fetchUserFolderSize({ token, force: true }));
     }
   };
-
 
   const handleRadioChange2 = (event) => {
     setPubPri3(event.target.value);
@@ -3773,11 +3754,18 @@ useEffect(()=>{
   };
 
   // START multipart (sends basename and optional folderPath)
-  const startMultipart = async (fileName, folderPath) => {
+  const startMultipart = async (fileName, folderPath, visibilityOverride) => {
     const url = buildAwsUrl(apiUrl, "start-multipart-upload");
     const basename = fileName.replace(/^.*[\\/]/, "");
-    // const payload = folderPath ? { fileName: basename, folderPath, ACL: "public", } : { fileName: basename, ACL: "public", };
-    const payload = folderPath ? { fileName: basename, folderPath,  visibility: pubpri  } : { fileName: basename, visibility: pubpri };
+    const visibility =
+      visibilityOverride === "public-read" || visibilityOverride === "public"
+        ? "public"
+        : visibilityOverride === "private"
+          ? "private"
+          : pubpri;
+    const payload = folderPath
+      ? { fileName: basename, folderPath, visibility }
+      : { fileName: basename, visibility };
     const resp = await axios.post(url, payload, {
       headers: {
         Authorization: `Bearer ${token}`,
@@ -4665,7 +4653,7 @@ const showToast = (status, message) => {
           };
 
     try {
-      await axios.delete(`${apiUrl}soft-delete`, {
+      await axios.delete(`${apiUrl}soft-delete`, { ...LONG_RUNNING_AWS_REQUEST_OPTIONS, 
         data: dataToSend,
         headers: {
           Authorization: `Bearer ${token}`,

@@ -4,7 +4,16 @@ import React, {
   useEffect,
   useRef,
   useCallback,
+  useMemo,
+  startTransition,
 } from "react";
+import { LONG_RUNNING_AWS_REQUEST_OPTIONS } from "../utils/longRunningAwsRequest";
+import {
+  postZipOrUnzip,
+  getZipUnzipErrorMessage,
+  getZipSuccessMessage,
+} from "../utils/zipUnzipRequest";
+import { uploadFolderViaMultipart } from "../utils/uploadFolderViaMultipart";
 import { DownloadContext } from "./DownloadContext";
 import { resolveFileIconPath, normalizeFolderFilesForPreview } from "../utils/fileIcon";
 import { endUserSession } from "../utils/endUserSession";
@@ -18,6 +27,7 @@ import { buildFileStreamUrl, preloadStreamedImage } from "../utils/fileStream";
 import { validateItemName, isRenameNameTaken } from "../utils/validateItemName";
 import { getApiErrorMessage } from "../utils/handleS3CopyError";
 import { streamDownloadResponse, createDownloadWritable, isDownloadCancelledError, scheduleDownloadRemoval } from "../utils/downloadWithProgress";
+import { downloadFolderNoZip } from "../utils/downloadFolderNoZip";
 import FileInfoModal from "../components/FileInfoModal";
 import VisibilityModal from "../components/VisibilityModal";
 import FileShareModal from "../components/FileShareModal";
@@ -35,6 +45,7 @@ import {
   failMoveTransfer,
 } from "../utils/moveTransferProgress";
 import "../css/FilesToolbar.css";
+import "../css/NestedBreadcrumb.css";
 import CardFilePreview from "../components/CardFilePreview";
 import UploadFolderPanel from "../components/UploadFolderPanel";
 import FilesPaginationFooter from "../components/FilesPaginationFooter";
@@ -162,7 +173,7 @@ import CopyFilePopup from "./CopyFilePopup";
 import "yet-another-react-lightbox/styles.css";
 import "yet-another-react-lightbox/plugins/captions.css";
 import axios from "axios";
-import { useLocation, useNavigate, useNavigationType } from "react-router-dom";
+import { useLocation, useNavigate, useNavigationType, useParams } from "react-router-dom";
 import { useDispatch, useSelector } from "react-redux";
 import AvatarDefault from "../images/AvatarDefault.jpg";
 
@@ -173,6 +184,7 @@ import {
   removeLastToken,
   decrementCounter,
   setFolderPath,
+  restoreNestedNavigation,
   addFolder,
   incrementFCounter,
   replacelasttoken,
@@ -180,6 +192,11 @@ import {
   resetFolderList,
   setLoader,
 } from "../store/fileSlicer";
+import {
+  saveNestedNav,
+  loadNestedNav,
+  clearNestedNav,
+} from "../utils/nestedNavPersistence";
 import { usePlayAudio } from "../hooks/usePlayAudio";
 import DownloadModal from "./DownloadModal/DownloadModal";
 import SelectFolderModal from "./DownloadModal/SelectFolderModal";
@@ -305,6 +322,7 @@ const NestedPage = () => {
 
   // const { addUpload, updateUploadProgress, removeUpload } = useContext(UploadContext);
   const {
+    uploads,
     addUpload,
     updateUploadProgress,
     updateUploadMeta,
@@ -345,6 +363,64 @@ const NestedPage = () => {
   const select = useSelector((state) => state.getdata.userdata);
   const isSharedValue = useSelector((state) => state.getdata.isSharedValue);
   const filenameRedux = useSelector((state) => state.getdata.fileName);
+
+  /** Original zip stream folder download (fallback). */
+  const downloadFolderViaZipProxy = useCallback(
+    async ({ fileName, signal, onProgress }) => {
+      const writable = await createDownloadWritable({ fileName, isFolder: true });
+      if (!writable) {
+        throw new Error(
+          "Choose a save location to download folders (use Chrome/Edge)."
+        );
+      }
+      const params = {
+        filePath: fileName,
+        ...(isSharedValue && filenameRedux ? { shared: filenameRedux } : {}),
+      };
+      const response = await fetch(
+        `${apiUrl}download-folder?${new URLSearchParams(params)}`,
+        {
+          headers: { Authorization: `Bearer ${token}` },
+          signal,
+        }
+      );
+      if (!response.ok) throw new Error("Network response was not ok");
+      await streamDownloadResponse({
+        response,
+        fileName,
+        isFolder: true,
+        writable,
+        onProgress,
+      });
+    },
+    [apiUrl, token, isSharedValue, filenameRedux]
+  );
+
+  /** Presigned no-zip folder download, falls back to zip proxy on failure. */
+  const downloadFolderWithFallback = useCallback(
+    async ({ fileName, signal, onProgress }) => {
+      const shared =
+        isSharedValue && filenameRedux ? filenameRedux : undefined;
+      try {
+        await downloadFolderNoZip({
+          apiUrl,
+          token,
+          filePath: fileName,
+          shared,
+          signal,
+          onProgress,
+        });
+      } catch (err) {
+        if (err?.name === "AbortError") throw err;
+        console.warn(
+          "[NestedPage] Presigned no-zip folder download failed, falling back to zip:",
+          err?.message || err
+        );
+        await downloadFolderViaZipProxy({ fileName, signal, onProgress });
+      }
+    },
+    [apiUrl, token, isSharedValue, filenameRedux, downloadFolderViaZipProxy]
+  );
 
   /** Root shared-folder shortcuts only — not files/folders inside shared view */
   const isSharedFolderShortcut = (item) =>
@@ -913,77 +989,7 @@ function debounce(fn, delay) {
   };
 
 
-  //Breadcrum Implementation
-  
-  const handleBreadClick =  async  (event, part, index, len) => {
-    // Prevent default behavior of <a> tag
-    console.log("parts in handleBreadClick -->", parts);
-    console.log("part in handleBreadClick -->", part);
-    event.preventDefault();
-    
-    const cleanPath = parts.filter(Boolean).join("/");
-    console.log("part in handleBreadClick -->", cleanPath);
-
-    const currentPage2 = {
-      fileName: cleanPath,
-    };
-
-    console.log("currentPage2, part in handleBreadClick -->", currentPage2);
-    
-    // now you can call:
-
-    // console.log("jbjb", index, len);
-    const targetPathArray = parts.slice(0, index + 1).filter(Boolean);
-  const targetPath = targetPathArray.join("/"); // "FolderTest/nested1" etc.
-  console.log("  ✅targetPath from breadcrumb:", targetPath);
-
-    if (len === index + 2) {
-      // console.log("Do nothing");
-    } else {
-      console.log(`  ✅You clicked on: ${part} and ${index}`);
-      setKeys([]);
-      setKeys2([]);
-      dispatch(breadCrum({ number: index }));
-
-      const navId = counter - (index + 1);
-      console.log("  ✅navId", navId);
-      console.log("  ✅-navId", -navId);
-
-      // getFolderFiles(currentPage2);
-      // console.log("currentPage2 is called in handleBreadClick");
-      //   setTimeout(() => {
-        
-        // }, 5000);
-        // setTriggerUpdate((x)=>x+1)
-        navigate(-navId);
-        
-        setTimeout(() => {
-          setBreadCrumClickTrigger((x)=> x+1)
-        //   reloadAfterTast();
-        }, 500);
-      
-
-      // await getFolderFiles({ fileName: targetPath });
-    }
-  };
-
-  const handleOneStepBack = (event) => {
-    event.preventDefault();
-    setKeys([]);
-    setKeys2([]);
-
-    // Breadcrumb can jump anywhere; this button always goes only one level up.
-    if (parts.length <= 1) {
-      navigate("/Files");
-      return;
-    }
-
-    navigate(-1);
-    setTimeout(() => {
-      setBreadCrumClickTrigger((x) => x + 1);
-    }, 500);
-  };
-
+  // Breadcrumb handlers are defined after `parts` (see below)
 
   const reduksData = useSelector((state) => state.getdata.userdata);
   // console.log("reduksData", reduksData);
@@ -1075,7 +1081,7 @@ const handleMulDelete = async () => {
         keys: fileNamesOnly,
       };
 
-      await axios.delete(`${apiUrl}soft-delete`, {
+      await axios.delete(`${apiUrl}soft-delete`, { ...LONG_RUNNING_AWS_REQUEST_OPTIONS, 
         data: payload,
         headers: {
           Authorization: `Bearer ${token}`,
@@ -1097,7 +1103,7 @@ const handleMulDelete = async () => {
         normalizeMovePath(folder, sharedPathOptions)
       );
 
-      await axios.delete(`${apiUrl}soft-delete-folder`, {
+      await axios.delete(`${apiUrl}soft-delete-folder`, { ...LONG_RUNNING_AWS_REQUEST_OPTIONS, 
         data: { sourceFolders },
         headers: {
           Authorization: `Bearer ${token}`,
@@ -1189,49 +1195,37 @@ const handleMulDownload = async () => {
     const { fileName, endpoint, downloadId, abortController } = item;
     let succeeded = false;
     try {
-      let writable = null;
       if (item.isFolder) {
-        try {
-          writable = await createDownloadWritable({
-            fileName,
-            isFolder: true,
-          });
-        } catch (pickerErr) {
-          if (isDownloadCancelledError(pickerErr)) throw pickerErr;
-          throw new Error(
-            "Choose a save location to download folders (use Chrome/Edge)."
-          );
-        }
-        if (!writable) {
-          throw new Error(
-            "Choose a save location to download folders (use Chrome/Edge)."
-          );
-        }
-      }
-
-      const params = {
-        filePath: fileName,
-        ...(isSharedValue && filenameRedux ? { shared: filenameRedux } : {}),
-      };
-      const response = await fetch(
-        `${apiUrl}${endpoint}?${new URLSearchParams(params)}`,
-        {
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
+        await downloadFolderWithFallback({
+          fileName,
           signal: abortController.signal,
-        }
-      );
+          onProgress: (percent) => updateDownloadProgress(downloadId, percent),
+        });
+      } else {
+        const params = {
+          filePath: fileName,
+          ...(isSharedValue && filenameRedux ? { shared: filenameRedux } : {}),
+        };
+        const response = await fetch(
+          `${apiUrl}${endpoint}?${new URLSearchParams(params)}`,
+          {
+            headers: {
+              Authorization: `Bearer ${token}`,
+            },
+            signal: abortController.signal,
+          }
+        );
 
-      if (!response.ok) throw new Error("Network response was not ok");
+        if (!response.ok) throw new Error("Network response was not ok");
 
-      await streamDownloadResponse({
-        response,
-        fileName,
-        isFolder: item.isFolder,
-        writable,
-        onProgress: (percent) => updateDownloadProgress(downloadId, percent),
-      });
+        await streamDownloadResponse({
+          response,
+          fileName,
+          isFolder: false,
+          writable: null,
+          onProgress: (percent) => updateDownloadProgress(downloadId, percent),
+        });
+      }
 
       succeeded = true;
       updateDownloadProgress(downloadId, 100);
@@ -2302,7 +2296,7 @@ const handleFileDelete = async (file) => {
         sharedRoot: filenameRedux,
       });
 
-      await axios.delete(`${apiUrl}soft-delete-folder`, {
+      await axios.delete(`${apiUrl}soft-delete-folder`, { ...LONG_RUNNING_AWS_REQUEST_OPTIONS, 
         headers: {
           Authorization: `Bearer ${token}`,
           "Content-Type": "application/json",
@@ -2355,6 +2349,7 @@ const handleFileDelete = async (file) => {
       };
 
       const res = await axios.delete(apiEndpoint, {
+        ...LONG_RUNNING_AWS_REQUEST_OPTIONS,
         ...config,
         data: dataToSend,
       });
@@ -2389,8 +2384,14 @@ const handleFileDelete = async (file) => {
 
 
   //Remove data from redux after back button clicked
+  const isRestoringNavRef = useRef(false);
   useEffect(() => {
     if (location2.pathname !== previousLocationRef.current.pathname) {
+      if (isRestoringNavRef.current) {
+        isRestoringNavRef.current = false;
+        previousLocationRef.current = location2;
+        return;
+      }
       if (navigationType === "POP") {
         // User clicked the back button
         // console.log("Back button was clicked");
@@ -2402,18 +2403,47 @@ const handleFileDelete = async (file) => {
       previousLocationRef.current = location2;
     }
   }, [location2, navigationType]);
-  //Navigate to Files page when user clicks reload button
+  //Restore nested folder after refresh (path lives in sessionStorage; Redux resets)
+  const { folderId } = useParams();
+  const didRestoreNestedNavRef = useRef(false);
 
   useEffect(() => {
-    if (sessionStorage.getItem("reloaded")) {
-      navigate("/Files");
-    } else {
-      sessionStorage.setItem("reloaded", "true");
+    if (didRestoreNestedNavRef.current) return;
+    didRestoreNestedNavRef.current = true;
+
+    // Fresh SPA navigation already has Redux path/counter
+    if (counter > 0 && (newPath || filenameRedux)) {
+      return;
     }
-    return () => {
-      sessionStorage.removeItem("reloaded");
-    };
-  }, [navigate]);
+
+    const saved = loadNestedNav();
+    if (!saved) {
+      clearNestedNav();
+      navigate("/Files", { replace: true });
+      return;
+    }
+
+    isRestoringNavRef.current = true;
+    dispatch(restoreNestedNavigation(saved));
+    if (String(folderId) !== String(saved.counter)) {
+      nav(`/nested/${saved.counter}`, { replace: true });
+    } else {
+      isRestoringNavRef.current = false;
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  // Keep current folder rememberable across refresh
+  useEffect(() => {
+    if (counter > 0 && (newPath || filenameRedux)) {
+      saveNestedNav({
+        folderPath: newPath || (filenameRedux ? `${filenameRedux}/` : ""),
+        counter,
+        isSharedValue,
+        fileName: filenameRedux || "",
+      });
+    }
+  }, [newPath, counter, isSharedValue, filenameRedux]);
 
   const [openPDFModal, setOpenPDFModal] = useState(false);
   const handleOpenPDFModal = () => setOpenPDFModal(true);
@@ -2518,11 +2548,117 @@ useEffect(() => {
   
   
   useEffect(() => {
-    const secondPath = path;
-    setParts(secondPath.split("/"));
-    console.log("yyyyy ✅pathhhhhhhh (This sets `parts`): `path`", path);
-    // reloadAfterTast();
+    setParts(String(path || "").split("/").filter(Boolean));
   }, [path]); // Recompute only when path changes
+
+  const breadcrumbNavigatingRef = useRef(false);
+  const [breadcrumbBusy, setBreadcrumbBusy] = useState(false);
+
+  const finishBreadcrumbNav = useCallback(() => {
+    setBreadCrumClickTrigger((x) => x + 1);
+    breadcrumbNavigatingRef.current = false;
+    setBreadcrumbBusy(false);
+  }, []);
+
+  const handleBreadClick = useCallback(
+    (event, targetIndex) => {
+      event.preventDefault();
+      if (breadcrumbNavigatingRef.current) return;
+      if (targetIndex < 0 || targetIndex >= parts.length - 1) return;
+
+      breadcrumbNavigatingRef.current = true;
+      setBreadcrumbBusy(true);
+      setPlaceholderLoading(true);
+      setKeys([]);
+      setKeys2([]);
+      clearSearchBar();
+
+      const targetPath = `${parts.slice(0, targetIndex + 1).join("/")}/`;
+      dispatch(
+        setFolderPath({
+          folderPath: targetPath,
+          isShared: isSharedValue,
+        })
+      );
+      dispatch(breadCrum({ number: targetIndex }));
+
+      const stepsBack = parts.length - 1 - targetIndex;
+      startTransition(() => {
+        navigate(-stepsBack);
+      });
+
+      // Let history/POP reducers settle, then reload (was a janky 500ms wait)
+      window.setTimeout(finishBreadcrumbNav, 32);
+    },
+    [
+      parts,
+      dispatch,
+      isSharedValue,
+      navigate,
+      clearSearchBar,
+      finishBreadcrumbNav,
+    ]
+  );
+
+  const handleOneStepBack = useCallback(
+    (event) => {
+      event.preventDefault();
+      if (breadcrumbNavigatingRef.current) return;
+
+      if (parts.length <= 1) {
+        clearNestedNav();
+        navigate("/Files");
+        return;
+      }
+
+      breadcrumbNavigatingRef.current = true;
+      setBreadcrumbBusy(true);
+      setPlaceholderLoading(true);
+      setKeys([]);
+      setKeys2([]);
+      clearSearchBar();
+
+      const parentPath = `${parts.slice(0, -1).join("/")}/`;
+      dispatch(
+        setFolderPath({
+          folderPath: parentPath,
+          isShared: isSharedValue,
+        })
+      );
+
+      startTransition(() => {
+        navigate(-1);
+      });
+      window.setTimeout(finishBreadcrumbNav, 32);
+    },
+    [
+      parts,
+      dispatch,
+      isSharedValue,
+      navigate,
+      clearSearchBar,
+      finishBreadcrumbNav,
+    ]
+  );
+
+  const breadcrumbItems = useMemo(() => {
+    if (parts.length <= 4) {
+      return parts.map((part, originalIndex) => ({
+        part,
+        originalIndex,
+        isEllipsis: false,
+      }));
+    }
+    return [
+      { part: parts[0], originalIndex: 0, isEllipsis: false },
+      { part: "…", originalIndex: -1, isEllipsis: true },
+      ...parts.slice(-3).map((part, i) => ({
+        part,
+        originalIndex: parts.length - 3 + i,
+        isEllipsis: false,
+      })),
+    ];
+  }, [parts]);
 
   const normalizedFolderPath = String(path || "").replace(/\/+$/, "");
   const prevFolderPathRef = useRef(normalizedFolderPath);
@@ -3842,104 +3978,79 @@ useEffect(() => {
   // Folder selection logic moved into UploadFolderPanel
 
   //Upload folder2
-  const uploadFolder = async ({ fileList, folderStructure, folderName, isPrivate }) => {
+  const uploadFolder = async ({ fileList, folderName, isPrivate }) => {
     if (!fileList?.length) {
       showToast("warning", "Please select a folder first.");
       return;
     }
-    const uploadId = Date.now();
-    const displayName = folderName || "folder";
-    let processingNotified = false;
 
-    try {
-      const formData = new FormData();
-      formData.append("folderStructure", JSON.stringify(folderStructure || {}));
+    let basePath = removeLastSlashAndText(path || "");
+    if (isSharedValue && filenameRedux) {
+      basePath = basePath
+        .replace(new RegExp(`^${filenameRedux}(/|$)`), "")
+        .replace(/\/$/, "")
+        .replace(/\/+/g, "/");
+    }
 
-      let uploadFolderPath = removeLastSlashAndText(path || "");
-      if (isSharedValue && filenameRedux) {
-        uploadFolderPath = uploadFolderPath
-          .replace(new RegExp(`^${filenameRedux}(/|$)`), "")
-          .replace(/\/$/, "")
-          .replace(/\/+/g, "/");
-      }
+    const result = await uploadFolderViaMultipart({
+      apiUrl,
+      token,
+      fileList,
+      basePath,
+      folderName,
+      visibility: isPrivate,
+      shared: isSharedValue && filenameRedux ? filenameRedux : undefined,
+      remainingBytes,
+      sanitizeFilename,
+      isVideoFile,
+      uploads,
+      addUpload,
+      updateUploadProgress,
+      updateUploadMeta,
+      removeUpload,
+      getUpload,
+      isPausing,
+      onBeforeStart: () => {
+        setOpenFileUploadModal(false);
+        setFiles([]);
+        handleCloseFileUploadModal();
+      },
+    });
 
-      formData.append("folderPath", uploadFolderPath);
-      formData.append("storageClass", "STANDARD_IA");
-      formData.append("isPrivate", isPrivate || "private");
-
-      fileList.forEach((fileInfo) => {
-        formData.append(
-          "files",
-          fileInfo.file,
-          `${fileInfo.path}/${fileInfo.file.name}`
-        );
-      });
-
-      setOpenFileUploadModal(false);
-      addUpload(uploadId, "Uploading " + displayName, {
-        operation: "upload",
-        isFolder: true,
-      });
-      setFiles([]);
-
-      const uploadConfig = {
-        headers: {
-          Authorization: `Bearer ${token}`,
-          "Content-Type": "multipart/form-data",
-        },
-        onUploadProgress: (progressEvent) => {
-          const totalLength = progressEvent.lengthComputable
-            ? progressEvent.total
-            : fileList.reduce((acc, fileInfo) => acc + fileInfo.file.size, 0);
-
-          if (totalLength) {
-            // Cap at 99 until the API finishes server-side processing
-            const progress = Math.min(
-              99,
-              Math.round((progressEvent.loaded * 100) / totalLength)
-            );
-            updateUploadProgress(uploadId, progress);
-
-            if (progress >= 99 && !processingNotified) {
-              processingNotified = true;
-              updateUploadMeta(uploadId, {
-                fileName: `Processing "${displayName}" — please wait…`,
-              });
-            }
-          }
-        },
-      };
-
-      if (isSharedValue && filenameRedux) {
-        uploadConfig.params = { shared: filenameRedux };
-      }
-
-      const response = await axios.post(
-        `${apiUrl}upload-folder`,
-        formData,
-        uploadConfig
+    if (result.status === "busy") {
+      showToast(
+        "info",
+        "Uploads are already in progress. Please wait for them to finish."
       );
+      return;
+    }
+    if (result.status === "quota") {
+      showToast(
+        "error",
+        `Not enough storage for this folder (${(result.totalSize / 1_000_000_000).toFixed(2)} GB needed).`
+      );
+      return;
+    }
 
-      if (response.status === 200) {
-        updateUploadProgress(uploadId, 100);
-        updateUploadMeta(uploadId, {
-          fileName: `Uploaded ${displayName}`,
-        });
-        reloadAfterTast();
-        showToast("success", "Folder uploaded successfully!");
-        if (token) {
-          dispatch(fetchUserFolderSize({ token, force: true }));
-        }
-      } else {
-        throw new Error(`Unexpected response status: ${response.status}`);
-      }
-    } catch (error) {
-      console.error("Upload error:", error);
-      showToast("error", "Error uploading folder");
-      updateUploadProgress(uploadId, -1);
-    } finally {
-      handleCloseFileUploadModal();
-      setTimeout(() => removeUpload(uploadId), 1500);
+    const { displayName, allCanceled, anyFailed, anySucceeded, anyCanceled } =
+      result;
+    if (anySucceeded && !anyFailed && !anyCanceled) {
+      showToast("success", `Folder "${displayName}" uploaded successfully!`);
+      reloadAfterTast();
+    } else if (anySucceeded && anyCanceled) {
+      showToast("info", "Upload stopped. Finished files are available.");
+      reloadAfterTast();
+    } else if (anySucceeded && anyFailed) {
+      showToast("warning", "Some folder files failed to upload.");
+      reloadAfterTast();
+    } else if (allCanceled) {
+      showToast("info", "Folder upload was canceled.");
+    } else if (anyFailed) {
+      showToast("error", "Error uploading folder files.");
+    }
+
+    if (token && anySucceeded) {
+      dispatch(fetchUserFolderSize({ token, force: true }));
     }
   };
 
@@ -4322,51 +4433,44 @@ useEffect(() => {
     cancelToken.current = abortController;
 
     try {
-      const endpoint = isFolder ? "download-folder" : "download-file";
-      const params = {
-        filePath: fileName,
-        ...(isSharedValue && { shared: filenameRedux }),
-      };
-
-      let writable = null;
       if (isFolder) {
-        try {
-          writable = await createDownloadWritable({ fileName, isFolder: true });
-        } catch (pickerErr) {
-          if (isDownloadCancelledError(pickerErr)) throw pickerErr;
-          throw new Error(
-            "Choose a save location to download folders (use Chrome/Edge)."
-          );
-        }
-        if (!writable) {
-          throw new Error(
-            "Choose a save location to download folders (use Chrome/Edge)."
-          );
-        }
-      }
-
-      const response = await fetch(
-        `${apiUrl}${endpoint}?${new URLSearchParams(params)}`,
-        {
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
+        await downloadFolderWithFallback({
+          fileName,
           signal: abortController.signal,
-        }
-      );
+          onProgress: (percent) => {
+            setProgress(percent);
+            updateDownloadProgress(downloadId, percent);
+          },
+        });
+      } else {
+        const params = {
+          filePath: fileName,
+          ...(isSharedValue && { shared: filenameRedux }),
+        };
 
-      if (!response.ok) throw new Error("Network response was not ok");
+        const response = await fetch(
+          `${apiUrl}download-file?${new URLSearchParams(params)}`,
+          {
+            headers: {
+              Authorization: `Bearer ${token}`,
+            },
+            signal: abortController.signal,
+          }
+        );
 
-      await streamDownloadResponse({
-        response,
-        fileName,
-        isFolder,
-        writable,
-        onProgress: (percent) => {
-          setProgress(percent);
-          updateDownloadProgress(downloadId, percent);
-        },
-      });
+        if (!response.ok) throw new Error("Network response was not ok");
+
+        await streamDownloadResponse({
+          response,
+          fileName,
+          isFolder: false,
+          writable: null,
+          onProgress: (percent) => {
+            setProgress(percent);
+            updateDownloadProgress(downloadId, percent);
+          },
+        });
+      }
 
       succeeded = true;
       setProgress(100);
@@ -4592,25 +4696,21 @@ useEffect(() => {
     };
 
     try {
-      const response = await axios.post(apiUrl1, requestData, {
+      const zipResult = await postZipOrUnzip(apiUrl1, requestData, {
         headers: {
           Authorization: `Bearer ${token}`,
         },
         params: isSharedValue ? { shared: filenameRedux } : {},
-        timeout: 0,
-        maxContentLength: Infinity,
-        maxBodyLength: Infinity,
       });
 
-      showToast("success", "File successfully zipped!");
+      showToast("success", getZipSuccessMessage(zipResult));
       reloadAfterTast();
     } catch (error) {
       console.error("Error zipping file:", error);
-      const msg =
-        error?.code === "ECONNABORTED" || /timeout/i.test(error?.message || "")
-          ? "Zip timed out. Large folders need more time — try again after host proxy timeout is raised, or zip a smaller folder."
-          : error?.response?.data?.error || "Failed to zip file.";
-      showToast("error", msg);
+      showToast(
+        "error",
+        getZipUnzipErrorMessage(error, "Failed to zip file.")
+      );
     } finally {
       setLoader2(false);        // ← always stop loader (success or error)
     }
@@ -4645,26 +4745,22 @@ useEffect(() => {
   }
 
   try {
-    const response = await axios.post(apiUrl1, requestData, {
+    await postZipOrUnzip(apiUrl1, requestData, {
       headers: {
         Authorization: `Bearer ${token}`,
         "Content-Type": "application/json",
       },
       params,
-      timeout: 0,
-      maxContentLength: Infinity,
-      maxBodyLength: Infinity,
     });
 
     showToast("success", "File successfully unzipped!");
     reloadAfterTast();
   } catch (error) {
     console.error("Error unzipping file:", error);
-    const msg =
-      error?.code === "ECONNABORTED" || /timeout/i.test(error?.message || "")
-        ? "Unzip timed out. Large ZIPs need more time — try again after host proxy timeout is raised."
-        : error?.response?.data?.error || "Failed to unzip file.";
-    showToast("error", msg);
+    showToast(
+      "error",
+      getZipUnzipErrorMessage(error, "Failed to unzip file.")
+    );
   } finally {
     setLoader2(false);   // ← always stop loader — success or error
   }
@@ -5041,7 +5137,7 @@ const handleNext = () => {
   }
 
   try {
-    await axios.delete(endpoint, {
+    await axios.delete(endpoint, { ...LONG_RUNNING_AWS_REQUEST_OPTIONS, 
       data: dataToSend,
       headers: {
         Authorization: `Bearer ${token}`,
@@ -6366,183 +6462,70 @@ const handleDragEnd = (e) => {
               </div>
 
 
-              <div className="breadcrumb_wrapper" style={{display:"flex", alignItems:"center"}}>
-                <div style={{
-                  padding: "5px 10px",
-                  fontSize: "20px",
-                  background: "#f5f5f5",
-                  margin: "2px 0px 2px 10px",
-                  borderRadius: "8px"
-                  }}>
-                  <button
-                    type="button"
-                    onClick={handleOneStepBack}
-                    style={{
-                      background: "transparent",
-                      border: "none",
-                      cursor: "pointer",
-                      lineHeight: 1,
-                    }}
+              <div className="np-breadcrumb-bar">
+                <button
+                  type="button"
+                  className="np-breadcrumb-back"
+                  onClick={handleOneStepBack}
+                  disabled={breadcrumbBusy}
+                  aria-label="Go up one folder"
+                  title="Back"
+                >
+                  ←
+                </button>
+
+                <nav className="np-breadcrumb-nav" aria-label="breadcrumb">
+                  <ol
+                    className={`np-breadcrumb${breadcrumbBusy ? " is-navigating" : ""}`}
                   >
-                    ←
-                  </button>
-                </div>
-                <div>
-                <nav aria-label="breadcrumb" >
-                    <ol
-                      className="breadcrumb"
-                      style={{
-                        display: "flex",
-                        alignItems: "center",
-                        listStyle: "none",
-                        padding: "6px 14px",
-                        margin: 0,
-                        borderRadius: "999px",
-                        background: "#ffffffff",
-                        // boxShadow: "0 3px 12px rgba(0,0,0,0.05)",
-                        fontSize: "13px",
-                      }}
-                    >
-                      <li
-                        className="breadcrumb-item"
-                        style={{
-                          display: "flex",
-                          alignItems: "center",
-                          color: "#E75454",
-                          fontWeight: 600,
-                        }}
+                    <li className="np-breadcrumb-item">
+                      <Link
+                        to="/Files"
+                        className="np-breadcrumb-link np-breadcrumb-home"
+                        onClick={() => clearNestedNav()}
                       >
-                        <Link
-                          to="/Files"
-                          onMouseEnter={(e) => {
-                            e.currentTarget.style.backgroundColor = "#f3f4f6";
-                          }}
-                          onMouseLeave={(e) => {
-                            e.currentTarget.style.backgroundColor = "transparent";
-                          }}
-                          style={{
-                            color: "#E75454",
-                            fontWeight: 600,
-                            textDecoration: "none",
-                            letterSpacing: 0.25,
-                            borderRadius: "8px",
-                            padding: "2px 8px",
-                            transition: "background-color 0.2s ease",
-                          }}
-                        >
-                          Home
-                        </Link>
-                      </li>
+                        Home
+                      </Link>
+                    </li>
 
-                      {(parts.length <= 4
-                        ? parts.map((part, index) => ({
-                            part,
-                            originalIndex: index,
-                            isEllipsis: false,
-                          }))
-                        : [
-                            { part: parts[0], originalIndex: 0, isEllipsis: false },
-                            { part: "...", originalIndex: -1, isEllipsis: true },
-                            ...parts.slice(-3).map((part, i) => ({
-                              part,
-                              originalIndex: parts.length - 3 + i,
-                              isEllipsis: false,
-                            })),
-                          ]
-                      ).map(({ part, originalIndex, isEllipsis }, index) => {
+                    {breadcrumbItems.map(
+                      ({ part, originalIndex, isEllipsis }, index) => {
                         const isLast = originalIndex === parts.length - 1;
-
-                        // console.log("yyyyy part",part);
-                        // console.log("yyyyy partssss",parts);
-                        
 
                         return (
                           <li
-                            key={index}
-                            className="breadcrumb-item"
-                            style={{
-                              display: "flex",
-                              alignItems: "center",
-                              color: "#E75454",
-                              fontWeight: isLast ? 600 : 500,
-                              content: "none !important",
-                              paddingLeft:"0px",
-                            }}
+                            key={`${part}-${originalIndex}-${index}`}
+                            className={`np-breadcrumb-item${isLast ? " is-current" : ""}`}
                           >
-                            {/* Arrow only before this item, and only if it's not the last */}
-                            {!isLast && (
-                              <span
-                                style={{
-                                  // margin: "0 6px",
-                                  margin: "0px 6px 0px 0px",
-                                  color: "#E0C6AA",
-                                  fontSize: "12px",
-                                }}
-                              >
-                                &gt;
-                              </span>
-                            )}
+                            <span className="np-breadcrumb-sep" aria-hidden="true">
+                              &gt;
+                            </span>
 
                             {isEllipsis ? (
-                              <span
-                                style={{
-                                  color: "#9ca3af",
-                                  fontWeight: 600,
-                                  padding: "0px 4px",
-                                }}
-                              >
-                                ...
-                              </span>
+                              <span className="np-breadcrumb-ellipsis">…</span>
                             ) : isLast ? (
-                              <span
-                                style={{
-                                  maxWidth: "170px",
-                                  whiteSpace: "nowrap",
-                                  overflow: "hidden",
-                                  textOverflow: "ellipsis",
-                                }}
-                                title={part}
-                              >
+                              <span className="np-breadcrumb-current" title={part}>
                                 {part}
                               </span>
                             ) : (
-                              <a
-                                href="#"
-                                onClick={(event) =>
-                                {
-                                  console.log("first")
-                                  handleBreadClick(event, part, originalIndex, parts.length)
-                                }
-                                }
-                                onMouseEnter={(e) => {
-                                  e.currentTarget.style.backgroundColor = "#f3f4f6";
-                                }}
-                                onMouseLeave={(e) => {
-                                  e.currentTarget.style.backgroundColor = "transparent";
-                                }}
-                                style={{
-                                  color: "#E75454",
-                                  textDecoration: "none",
-                                  maxWidth: "170px",
-                                  whiteSpace: "nowrap",
-                                  overflow: "hidden",
-                                  textOverflow: "ellipsis",
-                                  borderRadius: "8px",
-                                  padding: "2px 8px",
-                                  transition: "background-color 0.2s ease",
-                                }}
+                              <button
+                                type="button"
+                                className="np-breadcrumb-link"
                                 title={part}
+                                disabled={breadcrumbBusy}
+                                onClick={(event) =>
+                                  handleBreadClick(event, originalIndex)
+                                }
                               >
                                 {part}
-                              </a>
+                              </button>
                             )}
                           </li>
                         );
-                      })}
-                    </ol>
-                  </nav>
-
-                </div>
+                      }
+                    )}
+                  </ol>
+                </nav>
               </div>
 
               {filenameRedux === "blackbox" && (

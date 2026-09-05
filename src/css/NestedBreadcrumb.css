@@ -1,0 +1,144 @@
+.np-breadcrumb-bar {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+  margin: 2px 0 2px 10px;
+}
+
+.np-breadcrumb-back {
+  flex-shrink: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  padding: 0;
+  border: none;
+  border-radius: 10px;
+  background: #f3f4f6;
+  color: #374151;
+  font-size: 18px;
+  line-height: 1;
+  cursor: pointer;
+  transition:
+    background-color 0.18s ease,
+    transform 0.18s ease,
+    box-shadow 0.18s ease;
+}
+
+.np-breadcrumb-back:hover:not(:disabled) {
+  background: #e5e7eb;
+  transform: translateX(-1px);
+}
+
+.np-breadcrumb-back:active:not(:disabled) {
+  transform: scale(0.96);
+}
+
+.np-breadcrumb-back:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+
+.np-breadcrumb-nav {
+  min-width: 0;
+  flex: 1;
+}
+
+.np-breadcrumb {
+  display: flex;
+  align-items: center;
+  flex-wrap: nowrap;
+  list-style: none;
+  margin: 0;
+  padding: 6px 10px;
+  border-radius: 999px;
+  background: #ffffff;
+  font-size: 13px;
+  overflow-x: auto;
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+
+.np-breadcrumb::-webkit-scrollbar {
+  display: none;
+}
+
+.np-breadcrumb-item {
+  display: inline-flex;
+  align-items: center;
+  flex-shrink: 0;
+  color: #e75454;
+  font-weight: 500;
+  padding-left: 0;
+}
+
+.np-breadcrumb-item.is-current {
+  font-weight: 600;
+}
+
+.np-breadcrumb-sep {
+  margin: 0 4px 0 2px;
+  color: #e0c6aa;
+  font-size: 12px;
+  user-select: none;
+}
+
+.np-breadcrumb-link,
+.np-breadcrumb-current,
+.np-breadcrumb-ellipsis {
+  max-width: 170px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  border-radius: 8px;
+  padding: 2px 8px;
+  border: none;
+  background: transparent;
+  color: #e75454;
+  font: inherit;
+  text-decoration: none;
+  letter-spacing: 0.2px;
+  cursor: pointer;
+  transition:
+    background-color 0.16s ease,
+    color 0.16s ease,
+    transform 0.16s ease;
+}
+
+.np-breadcrumb-link:hover {
+  background-color: #f3f4f6;
+}
+
+.np-breadcrumb-link:active {
+  transform: scale(0.98);
+  background-color: #eceff3;
+}
+
+.np-breadcrumb-home {
+  font-weight: 600;
+}
+
+.np-breadcrumb-home:hover {
+  background-color: #f3f4f6;
+}
+
+.np-breadcrumb-current {
+  cursor: default;
+  pointer-events: none;
+}
+
+.np-breadcrumb-ellipsis {
+  color: #9ca3af;
+  font-weight: 600;
+  cursor: default;
+  pointer-events: none;
+  padding: 0 4px;
+}
+
+.np-breadcrumb.is-navigating {
+  opacity: 0.72;
+  pointer-events: none;
+  transition: opacity 0.15s ease;
+}
