@@ -44,6 +44,10 @@ import {
   finishMoveTransfer,
   failMoveTransfer,
 } from "../utils/moveTransferProgress";
+import {
+  installHashAnchorGuard,
+  stripLocationHash,
+} from "../utils/preventHashAnchorClicks";
 import "../css/FilesToolbar.css";
 import "../css/NestedBreadcrumb.css";
 import CardFilePreview from "../components/CardFilePreview";
@@ -2554,6 +2558,10 @@ useEffect(() => {
   const breadcrumbNavigatingRef = useRef(false);
   const [breadcrumbBusy, setBreadcrumbBusy] = useState(false);
 
+  // Menu items use <a href="#">; without this, clicks push /nested/N# into history
+  // and breadcrumb navigate(-1) only clears the hash instead of going up a folder.
+  useEffect(() => installHashAnchorGuard(), []);
+
   const finishBreadcrumbNav = useCallback(() => {
     setBreadCrumClickTrigger((x) => x + 1);
     breadcrumbNavigatingRef.current = false;
@@ -2582,6 +2590,8 @@ useEffect(() => {
       );
       dispatch(breadCrum({ number: targetIndex }));
 
+      // Drop a spurious # history entry before stepping back in nested history
+      stripLocationHash();
       const stepsBack = parts.length - 1 - targetIndex;
       startTransition(() => {
         navigate(-stepsBack);
@@ -2626,6 +2636,7 @@ useEffect(() => {
         })
       );
 
+      stripLocationHash();
       startTransition(() => {
         navigate(-1);
       });

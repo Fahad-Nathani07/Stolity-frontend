@@ -39,6 +39,7 @@ import {
   finishMoveTransfer,
   failMoveTransfer,
 } from "../utils/moveTransferProgress";
+import { installHashAnchorGuard } from "../utils/preventHashAnchorClicks";
 import CardFilePreview from "../components/CardFilePreview";
 import UploadFolderPanel from "../components/UploadFolderPanel";
 import FilesPaginationFooter from "../components/FilesPaginationFooter";
@@ -326,6 +327,8 @@ const Files = ({setSpanExpanded}) => {
       // }, 2000);
     }
   }, [nav]);
+
+  useEffect(() => installHashAnchorGuard(), []);
 
   useEffect(()=>{
     // setSpanExpanded(false)
