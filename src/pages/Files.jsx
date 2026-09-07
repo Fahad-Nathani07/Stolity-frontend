@@ -7714,6 +7714,7 @@ const showToast = (status, message) => {
                   files={keys}
                   fileSize={copiedFileSize}
                   setTriggerUpdate={setTriggerUpdate}
+                  onCopySuccess={getFileData}
                   showToast={showToast}
                 />
               )}

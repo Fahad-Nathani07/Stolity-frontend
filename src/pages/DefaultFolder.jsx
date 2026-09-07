@@ -4749,6 +4749,8 @@ const showToast = (status, message) => {
                   source={""}
                   onClose={handleCClose}
                   files={keys}
+                  onCopySuccess={getFileData}
+                  showToast={showToast}
                 />
               )}
             </div>

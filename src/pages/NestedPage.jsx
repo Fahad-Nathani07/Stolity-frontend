@@ -923,12 +923,12 @@ const getFolderNameOnly = (fullPath) => {
   };
   const handleCClose = () => {
     console.log("ggggg handleCClose is being called")
-    // reloadAfterTast();
     dispatch(fetchUserFolderSize({ token, force: true }));
     console.log("ggggg fetchUserFolderSize executed")
     dispatch(resetFolderList());
     setIsCWhisperClicked(false);
     setKeys([]);
+    setCopiedFile(null);
   };
 
   

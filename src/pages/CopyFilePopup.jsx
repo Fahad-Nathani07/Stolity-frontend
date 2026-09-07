@@ -21,7 +21,7 @@ import FolderDestinationModal, {
   formatModalItemSummary,
 } from "../components/FolderDestinationModal";
 import { handleS3CopyError } from "../utils/handleS3CopyError";
-import { resolveSourceFolderAndKeys, normalizeMovePath } from "../utils/movePath";
+import { resolveSourceFolderAndKeys } from "../utils/movePath";
 import {
   buildGetFolderParams,
   parseFolderListingItems,
@@ -283,14 +283,11 @@ const handleMove = async () => {
       console.log("ddddd: Files1 source: ", adjustedSourceFolder);
       console.log("ddddd: Files1 destination: ", selectedPath);
 
-      const destFolder = normalizeMovePath(selectedPath ?? "", copyPathOptions);
-      const viewingFolder = normalizeMovePath(sourceFol, copyPathOptions);
-      const shouldRefreshView = destFolder === viewingFolder;
-
-      if (shouldRefreshView) {
-        setTriggerUpdate?.((x) => x + 1);
-        onCopySuccess?.();
-      }
+      // Always refresh the current listing after copy (same as move).
+      // NestedPage's triggerUpdate effect often no-ops without selectedFolder,
+      // so onCopySuccess (reloadAfterTast / getFileData) is the reliable path.
+      setTriggerUpdate?.((x) => x + 1);
+      onCopySuccess?.();
 
       showToast("success", "File(s) copied successfully!");
       setTimeout(() => {

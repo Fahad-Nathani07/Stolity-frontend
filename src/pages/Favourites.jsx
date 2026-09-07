@@ -6886,6 +6886,9 @@ const handleNext = () => {
                   source={""}
                   onClose={handleCClose}
                   files={keys}
+                  setTriggerUpdate={setTriggerUpdate}
+                  onCopySuccess={getFileData}
+                  showToast={showToast}
                 />
               )}
             </div>
