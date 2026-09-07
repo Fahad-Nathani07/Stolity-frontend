@@ -8782,8 +8782,8 @@ const handleDragEnd = (e) => {
                     Close
                   </button>
 
-                   {/* NEW: Convert Files Button */}
-                   {files.length > 0 && (
+                   {/* Convert Files — hidden for now */}
+                   {false && files.length > 0 && (
 
                     <button
                     

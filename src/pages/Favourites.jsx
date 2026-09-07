@@ -7053,7 +7053,8 @@ const handleNext = () => {
                   >
                     Close
                   </button>
-                  {files.length > 0 && (
+                  {/* Convert Files — hidden for now */}
+                  {false && files.length > 0 && (
                    <button
   // onClick={() => setShowConversionModal(true)}
   onClick={() => {
