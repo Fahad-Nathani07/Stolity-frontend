@@ -1,4 +1,6 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
+import AOS from "aos";
+import "aos/dist/aos.css";
 import Select from "react-select";
 import { fetchCompaniesByIds } from "../../store/companyMasterSlice";
 import { fetchUpcomingInterviews, fetchMeetingsForCompany } from "../../store/interviewMasterSlice";
@@ -605,6 +607,19 @@ const dispatch = useDispatch();
 
 
   const [activeTab, setActiveTab] = useState("overview"); // default tab
+
+  useEffect(() => {
+    AOS.init({
+      duration: 1000,
+      offset: 80,
+      easing: "ease-in-out",
+      once: true,
+    });
+  }, []);
+
+  useEffect(() => {
+    AOS.refresh();
+  }, [activeTab, activeCompanyId]);
   const [isCalendarOpen, setIsCalendarOpen] = useState(false);
   const [postJobsOpen, setPostJobsOpen] = useState(false);
   const [searchTerm, setSearchTerm] = useState("");
@@ -1985,7 +2000,7 @@ const toggleStatusDropdown = (idx) => {
       {/* Header */}
 
      <div style={{backgroundColor:"#F7F8F8"}}>
-         <div className="dashboard-header bgwhite">
+         <div className="dashboard-header bgwhite" data-aos="zoom-out">
         <div className="breadcrumb SFProTextClass font20" >
           <span >Jobs</span>
           <span className="separator fontW500" style={{color:'#E94545'}}>›</span>
@@ -1995,7 +2010,7 @@ const toggleStatusDropdown = (idx) => {
 
 
       {/* Title Section */}
-      <div className="title-section SFProTextClass" style={{ alignItems: "center" }}>
+      <div className="title-section SFProTextClass" style={{ alignItems: "center" }} data-aos="zoom-in">
   <div style={{ width: "28%" }}>
     <p className="fontW500 font18" style={{ color: "black" }}>
       Recruitment Dashboard
@@ -2128,7 +2143,7 @@ const toggleStatusDropdown = (idx) => {
   
     
        {/* Tabs */}
-     <div className="tabs font16">
+     <div className="tabs font16" data-aos="zoom-in">
 
   {/* Overview */}
   <button
@@ -2188,7 +2203,7 @@ const toggleStatusDropdown = (idx) => {
         
 {/* OverView Section */}
    {activeTab === "overview" && (
-    <div style={{marginTop:"24px"}}>
+    <div style={{marginTop:"24px"}} data-aos="zoom-in" key="overview">
       {/* Stats Cards */}
 
       {/* Premium Stats Cards */}
@@ -2847,7 +2862,7 @@ onMouseLeave={(e) => e.currentTarget.style.boxShadow = "0 6px 16px rgba(0,0,0,0.
  
  {/* dsifbisdhfdhf  m dijfoidsjhfo  sjdpoiasjdipj */}
   {activeTab === "jobPostings" && (
-  <div style={{marginTop:"24px"}}>
+  <div style={{marginTop:"24px"}} data-aos="zoom-in" key="jobPostings">
     {/* Stats Cards + Search + Grid - Part 1 */}
     {viewMode === 'grid' && (
       <div>
@@ -4496,7 +4511,7 @@ onMouseLeave={(e) => e.currentTarget.style.boxShadow = "0 6px 16px rgba(0,0,0,0.
 
 {/* applications */}
 {activeTab === "applications" && (
-  <div>
+  <div data-aos="zoom-in" key="applications">
    
       <div>
         {/* Stats Cards */}

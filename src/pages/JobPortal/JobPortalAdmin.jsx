@@ -1,4 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
+import AOS from "aos";
+import "aos/dist/aos.css";
 import UsersTab from "./UsersTab";
 import SideNav from "../../components/SideNav";
 import { fetchCompanies } from "../../store/companyMasterSlice";
@@ -66,6 +68,19 @@ const JobPortalAdmin = () => {
     dispatch(fetchCompanies());
   }, [dispatch]);
 
+  useEffect(() => {
+    AOS.init({
+      duration: 1000,
+      offset: 80,
+      easing: "ease-in-out",
+      once: true,
+    });
+  }, []);
+
+  useEffect(() => {
+    AOS.refresh();
+  }, [activeTab]);
+
   const email = sessionStorage.getItem("email");
   const { role, companies: assignedCompanyIds } = useSelector(
     (state) => state.jobPortal
@@ -98,7 +113,7 @@ const JobPortalAdmin = () => {
           }}
         >
           {/* Header */}
-          <div className="dashboard-header bgwhite">
+          <div className="dashboard-header bgwhite" data-aos="zoom-out">
             <div className="breadcrumb SFProTextClass font20">
               <span>Jobs</span>
               <span className="separator fontW500" style={{ color: "#E94545" }}>
@@ -113,7 +128,7 @@ const JobPortalAdmin = () => {
             </div>
           </div>
 
-          <div style={{ padding: "24px" }}>
+          <div style={{ padding: "24px" }} data-aos="zoom-in">
             <h2 style={{ fontWeight: 600 }}>Job Portal Administration</h2>
             <p style={{ color: "#777", marginBottom: "24px" }}>
               Manage job portal access, roles, and companies
@@ -145,7 +160,7 @@ const JobPortalAdmin = () => {
             </div>
 
             {/* Tab Content */}
-            <div style={{ paddingTop: "24px" }}>
+            <div style={{ paddingTop: "24px" }} data-aos="zoom-in" key={activeTab}>
               {activeTab === "users" && <UsersTab />}
               {activeTab === "companies" && <CompaniesTab />}
               {activeTab === "subscription-payments" && <SubscriptionPaymentsTab />}

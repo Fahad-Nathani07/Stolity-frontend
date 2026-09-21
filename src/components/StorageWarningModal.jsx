@@ -41,13 +41,15 @@ const StorageWarningModal = () => {
     "/ForgotPassword",
     "/careers",
     "/reset-password",
+    "/Industries",
     "/",
   ];
 
   const isPublicRoute =
     publicPaths.includes(location.pathname) ||
     location.pathname.endsWith("/careers") ||
-    location.pathname.endsWith("/careers/");
+    location.pathname.endsWith("/careers/") ||
+    location.pathname.startsWith("/Industries");
 
   
 

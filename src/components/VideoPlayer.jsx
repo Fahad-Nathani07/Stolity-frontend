@@ -10,6 +10,7 @@ import {
 } from "react-icons/fa";
 import { MdForward10, MdReplay10 } from "react-icons/md";
 import ApTooltip from "./ApTooltip";
+import { DualRingMark } from "./brandLoaders";
 import { getVideoFileName } from "../utils/videoPlayer";
 import "../css/VideoPlayer.css";
 
@@ -424,7 +425,7 @@ const VideoPlayer = ({
 
         {buffering && !error && (
           <div className="vp-buffering" aria-hidden="true">
-            <span className="vp-spinner" />
+            <DualRingMark size={36} />
           </div>
         )}
 

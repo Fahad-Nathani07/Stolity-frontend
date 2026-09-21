@@ -1,0 +1,222 @@
+/* Shared brand loader mark animations (used by gallery + overlay loaders) */
+
+.bl-logo {
+  display: block;
+  object-fit: contain;
+}
+
+.bl-logo--invert {
+  filter: brightness(0) invert(1);
+}
+
+/* Ripple pulse */
+.bl-ripple {
+  position: relative;
+  width: 88px;
+  height: 88px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.bl-ripple-ring {
+  position: absolute;
+  inset: 8px;
+  border: 2px solid rgba(255, 171, 73, 0.7);
+  border-radius: 50%;
+  animation: bl-ripple 1.8s ease-out infinite;
+  pointer-events: none;
+}
+
+.bl-ripple-ring:nth-child(2) {
+  animation-delay: 0.6s;
+}
+
+@keyframes bl-ripple {
+  0% {
+    transform: scale(0.7);
+    opacity: 0.85;
+  }
+  100% {
+    transform: scale(1.55);
+    opacity: 0;
+  }
+}
+
+/* Dual ring */
+.bl-dual {
+  position: relative;
+  width: 92px;
+  height: 92px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.bl-dual::before,
+.bl-dual::after {
+  content: "";
+  position: absolute;
+  border-radius: 50%;
+  border: 3px solid transparent;
+}
+
+.bl-dual::before {
+  inset: 0;
+  border-top-color: #e5252a;
+  border-right-color: #ffab49;
+  animation: bl-spin 0.95s linear infinite;
+}
+
+.bl-dual::after {
+  inset: 10px;
+  border-bottom-color: #e7400c;
+  border-left-color: #ffc895;
+  animation: bl-spin 1.35s linear infinite reverse;
+}
+
+@keyframes bl-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+/* Orbit dots */
+.bl-orbit {
+  position: relative;
+  width: 104px;
+  height: 104px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.bl-orbit-dot {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 10px;
+  height: 10px;
+  margin: -5px 0 0 -5px;
+  border-radius: 50%;
+  animation: bl-orbit 1.6s linear infinite;
+}
+
+.bl-orbit-dot:nth-child(1) {
+  background: #e5252a;
+}
+
+.bl-orbit-dot:nth-child(2) {
+  background: #e7400c;
+  animation-delay: -0.53s;
+}
+
+.bl-orbit-dot:nth-child(3) {
+  background: #ffab49;
+  animation-delay: -1.06s;
+}
+
+@keyframes bl-orbit {
+  from {
+    transform: rotate(0deg) translateX(44px) rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg) translateX(44px) rotate(-360deg);
+  }
+}
+
+/* Arc spinner */
+.bl-arc {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.bl-arc-svg {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  transform: rotate(-90deg);
+}
+
+.bl-arc-track {
+  fill: none;
+  stroke: rgba(229, 37, 42, 0.12);
+  stroke-width: 7;
+}
+
+.bl-arc-progress {
+  fill: none;
+  stroke-width: 7;
+  stroke-linecap: round;
+  stroke-dasharray: 70 180;
+  animation: bl-arc-spin 1.05s linear infinite;
+}
+
+.bl-arc-logo {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+@keyframes bl-arc-spin {
+  to {
+    stroke-dashoffset: -250;
+  }
+}
+
+/* Soft progress bar */
+.bl-progress {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 16px;
+  width: min(220px, 70vw);
+}
+
+.bl-progress-track {
+  position: relative;
+  width: 100%;
+  height: 8px;
+  border-radius: 999px;
+  overflow: hidden;
+  background: rgba(229, 37, 42, 0.12);
+}
+
+.bl-progress-fill {
+  position: absolute;
+  top: 0;
+  left: 0;
+  height: 100%;
+  width: 38%;
+  border-radius: inherit;
+  background: linear-gradient(90deg, #ffab49 0%, #e7400c 50%, #e5252a 100%);
+  animation: bl-progress-slide 1.35s ease-in-out infinite;
+}
+
+@keyframes bl-progress-slide {
+  0% {
+    left: -40%;
+  }
+  100% {
+    left: 100%;
+  }
+}
+
+/* Full-page overlay shell (matches Loader2 layout) */
+.bl-overlay {
+  position: fixed;
+  inset: 0;
+  width: 100vw;
+  height: 100vh;
+  background-color: rgba(0, 0, 0, 0.4);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 9999;
+  cursor: wait;
+}

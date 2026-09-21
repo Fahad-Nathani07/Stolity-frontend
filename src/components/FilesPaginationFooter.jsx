@@ -1,6 +1,7 @@
 import React, { useEffect, useRef, useState } from "react";
 import {
   Check,
+  ChevronDown,
   ChevronFirst,
   ChevronLast,
   ChevronLeft,
@@ -9,7 +10,6 @@ import {
 import "./FilesPaginationFooter.css";
 
 const DEFAULT_PAGE_SIZES = [10, 15, 25, 50, 100];
-const CUSTOM_VALUE = "__custom__";
 const MIN_ROWS = 1;
 const MAX_ROWS = 500;
 
@@ -26,9 +26,11 @@ const FilesPaginationFooter = ({
 }) => {
   const presets = pageSizeOptions;
   const isPreset = presets.includes(Number(itemsPerPage));
+  const [menuOpen, setMenuOpen] = useState(false);
   const [editingCustom, setEditingCustom] = useState(false);
   const [customDraft, setCustomDraft] = useState(String(itemsPerPage || 15));
   const customInputRef = useRef(null);
+  const sizeControlRef = useRef(null);
 
   useEffect(() => {
     if (!editingCustom) {
@@ -43,6 +45,26 @@ const FilesPaginationFooter = ({
     }
   }, [editingCustom]);
 
+  useEffect(() => {
+    if (!menuOpen) return undefined;
+
+    const onPointerDown = (e) => {
+      if (!sizeControlRef.current?.contains(e.target)) {
+        setMenuOpen(false);
+      }
+    };
+    const onKeyDown = (e) => {
+      if (e.key === "Escape") setMenuOpen(false);
+    };
+
+    document.addEventListener("mousedown", onPointerDown);
+    document.addEventListener("keydown", onKeyDown);
+    return () => {
+      document.removeEventListener("mousedown", onPointerDown);
+      document.removeEventListener("keydown", onKeyDown);
+    };
+  }, [menuOpen]);
+
   const totalPages = Math.max(1, Math.ceil(totalEntries / itemsPerPage) || 1);
   const page = Math.min(Math.max(1, currentPage), totalPages);
   const startItem = totalEntries === 0 ? 0 : (page - 1) * itemsPerPage + 1;
@@ -50,11 +72,7 @@ const FilesPaginationFooter = ({
   const canPrev = page > 1 && totalEntries > 0;
   const canNext = page < totalPages && totalEntries > 0;
 
-  const selectValue = editingCustom
-    ? CUSTOM_VALUE
-    : isPreset
-      ? String(itemsPerPage)
-      : String(itemsPerPage);
+  const displaySize = Number(itemsPerPage) || 15;
 
   const goTo = (nextPage) => {
     const clamped = Math.min(Math.max(1, nextPage), totalPages);
@@ -71,6 +89,7 @@ const FilesPaginationFooter = ({
     const nextSize = Math.min(MAX_ROWS, Math.max(MIN_ROWS, parsed));
     setCustomDraft(String(nextSize));
     setEditingCustom(false);
+    setMenuOpen(false);
     if (nextSize !== Number(itemsPerPage)) {
       onItemsPerPageChange?.(nextSize);
     }
@@ -81,17 +100,18 @@ const FilesPaginationFooter = ({
     setEditingCustom(false);
   };
 
-  const handleSelectChange = (e) => {
-    const value = e.target.value;
-    if (value === CUSTOM_VALUE) {
-      setCustomDraft(isPreset ? "" : String(itemsPerPage || ""));
-      setEditingCustom(true);
-      return;
-    }
-    const nextSize = Number(value);
-    if (!Number.isFinite(nextSize) || nextSize <= 0) return;
+  const selectPreset = (nextSize) => {
     setEditingCustom(false);
-    onItemsPerPageChange?.(nextSize);
+    setMenuOpen(false);
+    if (nextSize !== Number(itemsPerPage)) {
+      onItemsPerPageChange?.(nextSize);
+    }
+  };
+
+  const openCustomEditor = () => {
+    setMenuOpen(false);
+    setCustomDraft(isPreset ? "" : String(itemsPerPage || ""));
+    setEditingCustom(true);
   };
 
   return (
@@ -104,7 +124,10 @@ const FilesPaginationFooter = ({
             </span>
 
             <div
-              className={`fp-size-control${editingCustom ? " is-editing" : ""}`}
+              ref={sizeControlRef}
+              className={`fp-size-control${editingCustom ? " is-editing" : ""}${
+                menuOpen ? " is-open" : ""
+              }`}
             >
               {editingCustom ? (
                 <>
@@ -120,7 +143,6 @@ const FilesPaginationFooter = ({
                       setCustomDraft(e.target.value.replace(/\D/g, "").slice(0, 3))
                     }
                     onBlur={(e) => {
-                      // Allow Apply button click before closing
                       const next = e.relatedTarget;
                       if (next?.closest?.(".fp-custom-apply")) return;
                       if (customDraft.trim()) {
@@ -154,24 +176,87 @@ const FilesPaginationFooter = ({
                   </button>
                 </>
               ) : (
-                <select
-                  id="fp-page-size"
-                  className="fp-size-select"
-                  value={selectValue}
-                  onChange={handleSelectChange}
-                  aria-labelledby="fp-page-size-label"
-                  aria-label="Rows per page"
-                >
-                  {presets.map((size) => (
-                    <option key={size} value={size}>
-                      {size}
-                    </option>
-                  ))}
-                  {!isPreset && (
-                    <option value={String(itemsPerPage)}>{itemsPerPage}</option>
-                  )}
-                  <option value={CUSTOM_VALUE}>Custom…</option>
-                </select>
+                <>
+                  <button
+                    type="button"
+                    id="fp-page-size"
+                    className="fp-size-trigger"
+                    onClick={() => setMenuOpen((open) => !open)}
+                    aria-labelledby="fp-page-size-label"
+                    aria-label="Rows per page"
+                    aria-haspopup="listbox"
+                    aria-expanded={menuOpen}
+                  >
+                    <span className="fp-size-trigger-value">{displaySize}</span>
+                    <ChevronDown
+                      className={`fp-size-chevron${menuOpen ? " is-open" : ""}`}
+                      size={14}
+                      strokeWidth={2.4}
+                      aria-hidden
+                    />
+                  </button>
+
+                  {menuOpen ? (
+                    <div
+                      className="fp-size-menu"
+                      role="listbox"
+                      aria-labelledby="fp-page-size-label"
+                    >
+                      <div className="fp-size-menu-title">Rows per page</div>
+                      {presets.map((size) => {
+                        const selected = Number(itemsPerPage) === size;
+                        return (
+                          <button
+                            key={size}
+                            type="button"
+                            role="option"
+                            aria-selected={selected}
+                            className={`fp-size-option${
+                              selected ? " is-selected" : ""
+                            }`}
+                            onClick={() => selectPreset(size)}
+                          >
+                            <span>{size}</span>
+                            {selected ? (
+                              <Check
+                                className="fp-size-check"
+                                size={14}
+                                strokeWidth={2.5}
+                                aria-hidden
+                              />
+                            ) : null}
+                          </button>
+                        );
+                      })}
+                      {!isPreset ? (
+                        <button
+                          type="button"
+                          role="option"
+                          aria-selected
+                          className="fp-size-option is-selected"
+                          onClick={() => openCustomEditor()}
+                        >
+                          <span>{itemsPerPage}</span>
+                          <Check
+                            className="fp-size-check"
+                            size={14}
+                            strokeWidth={2.5}
+                            aria-hidden
+                          />
+                        </button>
+                      ) : null}
+                      <button
+                        type="button"
+                        role="option"
+                        aria-selected={false}
+                        className="fp-size-option fp-size-option--custom"
+                        onClick={openCustomEditor}
+                      >
+                        <span>Custom…</span>
+                      </button>
+                    </div>
+                  ) : null}
+                </>
               )}
             </div>
           </div>

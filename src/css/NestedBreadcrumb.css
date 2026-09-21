@@ -3,7 +3,9 @@
   align-items: center;
   gap: 8px;
   min-width: 0;
-  margin: 2px 0 2px 10px;
+  /* Same horizontal inset as card-view header + grid cards */
+  margin: 2px var(--files-align-inset, 20px);
+  box-sizing: border-box;
 }
 
 .np-breadcrumb-back {
@@ -11,25 +13,36 @@
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  width: 36px;
-  height: 36px;
   padding: 0;
+  margin: 0;
   border: none;
-  border-radius: 10px;
-  background: #f3f4f6;
+  border-radius: 0;
+  background: transparent !important;
+  background-color: transparent !important;
+  box-shadow: none !important;
   color: #374151;
-  font-size: 18px;
+  font-size: 20px;
   line-height: 1;
   cursor: pointer;
+  appearance: none;
+  -webkit-appearance: none;
   transition:
-    background-color 0.18s ease,
-    transform 0.18s ease,
-    box-shadow 0.18s ease;
+    color 0.18s ease,
+    transform 0.18s ease;
+}
+
+.np-breadcrumb-back:hover,
+.np-breadcrumb-back:focus,
+.np-breadcrumb-back:focus-visible,
+.np-breadcrumb-back:active {
+  background: transparent !important;
+  background-color: transparent !important;
+  box-shadow: none !important;
+  outline: none;
 }
 
 .np-breadcrumb-back:hover:not(:disabled) {
-  background: #e5e7eb;
-  transform: translateX(-1px);
+  color: #111827;
 }
 
 .np-breadcrumb-back:active:not(:disabled) {
@@ -52,7 +65,7 @@
   flex-wrap: nowrap;
   list-style: none;
   margin: 0;
-  padding: 6px 10px;
+  padding: 6px 0;
   border-radius: 999px;
   background: #ffffff;
   font-size: 13px;
@@ -93,7 +106,7 @@
   overflow: hidden;
   text-overflow: ellipsis;
   border-radius: 8px;
-  padding: 2px 8px;
+  padding: 2px 6px;
   border: none;
   background: transparent;
   color: #e75454;
@@ -107,8 +120,17 @@
     transform 0.16s ease;
 }
 
+.np-breadcrumb-item:first-child .np-breadcrumb-link {
+  padding-left: 0;
+}
+
+.np-breadcrumb-link {
+  color: #888;
+}
+
 .np-breadcrumb-link:hover {
-  background-color: #f3f4f6;
+  background: none;
+  color: #888;
 }
 
 .np-breadcrumb-link:active {
@@ -118,10 +140,6 @@
 
 .np-breadcrumb-home {
   font-weight: 600;
-}
-
-.np-breadcrumb-home:hover {
-  background-color: #f3f4f6;
 }
 
 .np-breadcrumb-current {

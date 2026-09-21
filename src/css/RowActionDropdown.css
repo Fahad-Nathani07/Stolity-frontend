@@ -1,0 +1,404 @@
+/* =========================================================
+   Row / card 3-dot action menu — premium, right-anchored
+   ========================================================= */
+
+.files-col-action .dropdown,
+.menu-icon2 .dropdown,
+td.hover_cell .dropdown {
+  position: relative;
+}
+
+/* Open menu stacks above sticky chrome + footer — do NOT set overflow:visible
+   on table wrappers (that expands scroll height). Menu uses position:fixed.
+   Do NOT force position:relative on .menu-icon2 — it is absolute top-right in
+   grid cards; relative pulls the 3-dot control to the left on open. */
+.files-col-action:has(.dropdown.show),
+td.hover_cell:has(.dropdown.show) {
+  position: relative;
+  z-index: 80;
+}
+
+.menu-icon2:has(.dropdown.show) {
+  z-index: 80;
+}
+
+.dropdown.show {
+  z-index: 80;
+}
+
+/* While a row menu is open, don't let sticky chrome paint over it */
+.stolity-list-sticky:has(.dropdown.show) .filerbar_row,
+.stolity-list-sticky:has(.dropdown.show) #filestable thead th,
+.stolity-list-sticky:has(.dropdown.show) .files-card-view-header {
+  z-index: 45;
+}
+
+.dropdown-toggle.row-action-bulk-disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+.files-col-action .dropdown-toggle,
+.menu-icon2 .dropdown-toggle {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 34px;
+  height: 34px;
+  border-radius: 10px;
+  color: #64748b;
+  transition: background 0.15s ease, color 0.15s ease, box-shadow 0.15s ease;
+}
+
+.files-col-action .dropdown-toggle:hover,
+.menu-icon2 .dropdown-toggle:hover {
+  background: #f1f5f9;
+  color: #0f172a;
+}
+
+.files-col-action .dropdown.show .dropdown-toggle,
+.menu-icon2 .dropdown.show .dropdown-toggle {
+  background: rgba(255, 171, 73, 0.16);
+  color: #c2410c;
+  box-shadow: 0 0 0 1px rgba(255, 171, 73, 0.25);
+}
+
+/* ---------- Panel ---------- */
+.custom-dropdown-menu.dropdown-menu,
+.dropdown-menu.custom-dropdown-menu {
+  --ram-pad: 3px;
+  --ram-radius: 12px;
+  --ram-row-h: 30px;
+  --ram-icon: 14px;
+  --ram-accent: #ffab49;
+
+  position: absolute !important;
+  top: 0 !important;
+  right: calc(100% + 10px) !important;
+  left: auto !important;
+  bottom: auto !important;
+  width: min(260px, calc(100vw - 24px)) !important;
+  min-width: 232px !important;
+  max-width: min(260px, calc(100vw - 24px)) !important;
+  margin: 0 !important;
+  padding: var(--ram-pad) !important;
+  border: 1px solid rgba(226, 232, 240, 0.98) !important;
+  border-radius: var(--ram-radius) !important;
+  background: #ffffff !important;
+  color: #0f172a !important;
+  box-shadow:
+    0 18px 36px -14px rgba(15, 23, 42, 0.26),
+    0 6px 12px -6px rgba(15, 23, 42, 0.1),
+    0 0 0 1px rgba(255, 255, 255, 0.7) inset !important;
+  z-index: 1300 !important;
+  float: none !important;
+  transform-origin: top right !important;
+  /* Closed menus must not stay in the layout tree — abspos + visibility:hidden
+     still expands ancestor scroll height (ghost space / page scroll). */
+  display: none !important;
+  flex-direction: column;
+  gap: 0;
+  max-height: none !important;
+  overflow: visible !important;
+  /* Default anchors are overridden by .ram-viewport (fixed) via JS */
+}
+
+.dropdown.show > .custom-dropdown-menu.dropdown-menu,
+.dropdown.show > .dropdown-menu.custom-dropdown-menu,
+.dropdown.show .custom-dropdown-menu.show {
+  display: flex !important;
+  opacity: 1 !important;
+  visibility: visible !important;
+  pointer-events: auto !important;
+  animation: ram-menu-in 0.16s cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+/* Fixed to viewport while open — stays in React tree so clicks work */
+.custom-dropdown-menu.ram-viewport {
+  position: fixed !important;
+  z-index: 10050 !important;
+  margin: 0 !important;
+}
+
+.custom-dropdown-menu.ram-viewport.ram-open-end {
+  transform-origin: top left !important;
+}
+
+/* Flip upward when near pagination footer / viewport bottom */
+.dropdown.ram-dropup > .custom-dropdown-menu.dropdown-menu,
+.dropdown.ram-dropup > .dropdown-menu.custom-dropdown-menu {
+  transform-origin: bottom right !important;
+}
+
+.dropdown.ram-dropup.show > .custom-dropdown-menu.dropdown-menu,
+.dropdown.ram-dropup.show > .dropdown-menu.custom-dropdown-menu,
+.dropdown.ram-dropup.show .custom-dropdown-menu.show {
+  animation: ram-menu-in-up 0.16s cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+@keyframes ram-menu-in {
+  from {
+    opacity: 0;
+    transform: translate3d(6px, 0, 0) scale(0.97);
+  }
+  to {
+    opacity: 1;
+    transform: translate3d(0, 0, 0) scale(1);
+  }
+}
+
+@keyframes ram-menu-in-up {
+  from {
+    opacity: 0;
+    transform: translate3d(6px, 4px, 0) scale(0.97);
+  }
+  to {
+    opacity: 1;
+    transform: translate3d(0, 0, 0) scale(1);
+  }
+}
+
+/* ---------- File header ---------- */
+.custom-dropdown-menu > .file-container,
+.custom-dropdown-menu a.file-container {
+  display: flex !important;
+  align-items: center;
+  gap: 10px;
+  margin: 1px 1px 4px !important;
+  padding: 8px 9px !important;
+  max-width: none !important;
+  border: 1px solid #eef2f7 !important;
+  border-radius: 9px !important;
+  background: #f8fafc !important;
+  box-shadow: none !important;
+  text-decoration: none !important;
+  cursor: default;
+  pointer-events: none;
+  width: auto !important;
+}
+
+.custom-dropdown-menu .file-icon {
+  margin: 0 !important;
+  flex: 0 0 34px;
+  width: 34px;
+  height: 34px;
+  border-radius: 9px;
+  background: #ffffff;
+  border: 1px solid #e8eef5;
+  box-shadow: 0 1px 2px rgba(15, 23, 42, 0.04);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.custom-dropdown-menu .file-icon img {
+  width: 20px !important;
+  height: 20px !important;
+  object-fit: contain;
+}
+
+.custom-dropdown-menu .file-details {
+  min-width: 0;
+  flex: 1 1 auto;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: 2px;
+  padding-right: 2px;
+}
+
+.custom-dropdown-menu .file-name {
+  margin: 0;
+  font-size: 0.78rem !important;
+  font-weight: 650 !important;
+  line-height: 1.3 !important;
+  color: #0f172a !important;
+  letter-spacing: -0.02em;
+  white-space: nowrap !important;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 100% !important;
+  word-wrap: normal !important;
+}
+
+.custom-dropdown-menu .file-size {
+  margin: 0;
+  font-size: 0.65rem !important;
+  line-height: 1.3 !important;
+  color: #64748b !important;
+  font-weight: 550;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.custom-dropdown-menu .upload-date {
+  margin: 0;
+  font-size: 0.65rem !important;
+  line-height: 1.3 !important;
+  color: #94a3b8 !important;
+  display: flex;
+  align-items: center;
+  flex-wrap: nowrap;
+  gap: 0;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.custom-dropdown-menu .upload-date p {
+  margin: 0 !important;
+  padding: 0;
+  font-size: inherit !important;
+  color: inherit !important;
+  display: inline;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.custom-dropdown-menu .upload-date span {
+  margin-left: 6px;
+  color: #64748b !important;
+  flex-shrink: 0;
+  font-weight: 550;
+}
+
+/* ---------- Action rows (works with BOTH markup shapes) ----------
+   A) <a><span>icon+label</span><badge/></a>
+   B) <a><img/> Label</a>
+   Never use space-between on the row itself — that pushes bare labels right.
+*/
+.custom-dropdown-menu .dropdown-item,
+.custom-dropdown-menu .dropdown-item-custom,
+.custom-dropdown-menu a.dropdown-item-custom {
+  display: flex !important;
+  flex-direction: row !important;
+  align-items: center !important;
+  justify-content: flex-start !important;
+  gap: 7px !important;
+  width: 100% !important;
+  min-height: var(--ram-row-h);
+  height: var(--ram-row-h);
+  margin: 0 !important;
+  padding: 0 7px !important;
+  border: none !important;
+  border-radius: 6px !important;
+  background: transparent !important;
+  color: #334155 !important;
+  font-size: 0.72rem !important;
+  font-weight: 550 !important;
+  line-height: 1.1 !important;
+  letter-spacing: -0.01em;
+  text-align: left !important;
+  text-decoration: none !important;
+  white-space: nowrap;
+  clear: none;
+  float: none;
+  transition: background 0.12s ease, color 0.12s ease;
+}
+
+.custom-dropdown-menu .dropdown-item:hover,
+.custom-dropdown-menu .dropdown-item:focus,
+.custom-dropdown-menu .dropdown-item-custom:hover,
+.custom-dropdown-menu .dropdown-item-custom:focus {
+  background: #f8fafc !important;
+  color: #0f172a !important;
+  text-decoration: none !important;
+}
+
+.custom-dropdown-menu .dropdown-item:active,
+.custom-dropdown-menu .dropdown-item-custom:active {
+  background: #fff7ed !important;
+  color: #c2410c !important;
+}
+
+.custom-dropdown-menu .dropdown-item.blur-effect,
+.custom-dropdown-menu .dropdown-item.disabled,
+.custom-dropdown-menu .dropdown-item-custom.blur-effect,
+.custom-dropdown-menu .dropdown-item-custom.disabled {
+  opacity: 0.42;
+  pointer-events: none;
+}
+
+/* Direct icon (shape B) */
+.custom-dropdown-menu .dropdown-item-custom > img,
+.custom-dropdown-menu .dropdown-item-custom > .dropdown-icon-list,
+.custom-dropdown-menu .dropdown-icon-list {
+  width: var(--ram-icon) !important;
+  height: var(--ram-icon) !important;
+  min-width: var(--ram-icon);
+  flex: 0 0 var(--ram-icon);
+  margin: 0 !important;
+  object-fit: contain;
+  opacity: 0.88;
+}
+
+/* Wrapped label group (shape A) */
+.custom-dropdown-menu .dropdown-item-custom > span:first-child {
+  display: inline-flex !important;
+  align-items: center;
+  justify-content: flex-start;
+  gap: 8px;
+  flex: 1 1 auto;
+  min-width: 0;
+  max-width: 100%;
+}
+
+.custom-dropdown-menu .dropdown-item-custom > span:first-child img,
+.custom-dropdown-menu .dropdown-item-custom > span:first-child .dropdown-icon-list,
+.custom-dropdown-menu .dropdown-item-custom > span:first-child .MuiSvgIcon-root {
+  width: var(--ram-icon) !important;
+  height: var(--ram-icon) !important;
+  font-size: var(--ram-icon) !important;
+  flex: 0 0 var(--ram-icon);
+}
+
+/* Trailing badge / lock / crown — pin to the right */
+.custom-dropdown-menu .dropdown-item-custom > .context-menu-icon,
+.custom-dropdown-menu .dropdown-item-custom > svg:last-child:not(.dropdown-icon-list) {
+  margin-left: auto !important;
+  flex: 0 0 auto;
+  color: #94a3b8;
+}
+
+.custom-dropdown-menu .context-menu-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.custom-dropdown-menu .context-menu-icon img {
+  height: 13px !important;
+  width: auto !important;
+}
+
+/* Delete row — soft danger */
+.custom-dropdown-menu .dropdown-item-custom img[alt="Delete"] {
+  opacity: 0.95;
+}
+
+.custom-dropdown-menu a.dropdown-item-custom:has(img[alt="Delete"]):hover,
+.custom-dropdown-menu a.dropdown-item-custom:has(img[alt="Delete"]):focus {
+  background: #fef2f2 !important;
+  color: #b91c1c !important;
+}
+
+@media (max-width: 768px) {
+  .custom-dropdown-menu.dropdown-menu,
+  .dropdown-menu.custom-dropdown-menu {
+    width: min(236px, calc(100vw - 20px)) !important;
+    min-width: 200px !important;
+    max-width: min(236px, calc(100vw - 20px)) !important;
+    right: 0 !important;
+    left: auto !important;
+    top: calc(100% + 4px) !important;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .dropdown.show > .custom-dropdown-menu.dropdown-menu,
+  .dropdown.show > .dropdown-menu.custom-dropdown-menu,
+  .dropdown.ram-dropup.show > .custom-dropdown-menu.dropdown-menu {
+    animation: none !important;
+  }
+}

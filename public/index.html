@@ -10,33 +10,42 @@
   <meta name="author" content="Stolity" />
   <meta name="robots" content="index, follow" />
 
-  <!-- ✅ VERY IMPORTANT (FIX YOUR ISSUE) -->
+  <!-- ✅ CANONICAL -->
   <link rel="canonical" href="https://stolity.com/" />
 
   <!-- ✅ MOBILE -->
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <meta name="theme-color" content="#000000" />
+  <meta name="theme-color" content="#FFAB49" />
 
-  <!-- ✅ ICONS -->
-  <link rel="icon" href="%PUBLIC_URL%/favicon.svg" type="image/svg+xml" />
-  <link rel="apple-touch-icon" href="%PUBLIC_URL%/favicon.svg" />
+  <!--
+    ✅ ICONS (Google Search needs a square icon that is a multiple of 48px)fa
+    Prefer PNG/ICO over SVG for Google SERP favicons.
+  -->
+  <link rel="icon" href="%PUBLIC_URL%/favicon.ico" sizes="48x48" />
+  <link rel="icon" href="%PUBLIC_URL%/favicon.svg" type="image/svg+xml" sizes="any" />
+  <link rel="icon" type="image/png" sizes="48x48" href="%PUBLIC_URL%/favicon-48.png" />
+  <link rel="icon" type="image/png" sizes="96x96" href="%PUBLIC_URL%/favicon-96.png" />
+  <link rel="icon" type="image/png" sizes="192x192" href="%PUBLIC_URL%/android-chrome-192x192.png" />
+  <link rel="apple-touch-icon" sizes="180x180" href="%PUBLIC_URL%/apple-touch-icon.png" />
   <link rel="manifest" href="%PUBLIC_URL%/manifest.json" />
 
-  <!-- ✅ OPEN GRAPH (FIXED → NO WWW) -->
+  <!-- ✅ OPEN GRAPH -->
   <meta property="og:type" content="website" />
   <meta property="og:url" content="https://stolity.com/" />
   <meta property="og:title" content="Stolity - Smart Storage Solutions" />
   <meta property="og:description" content="Stolity brings you smart storage solutions where storage meets utility." />
-  <meta property="og:image" content="https://stolity.com/images/NewLogo.png" />
+  <meta property="og:image" content="https://stolity.com/images/og-image.png" />
   <meta property="og:image:width" content="1200" />
   <meta property="og:image:height" content="630" />
+  <meta property="og:image:type" content="image/png" />
+  <meta property="og:site_name" content="Stolity" />
 
-  <!-- ✅ TWITTER (FIXED → NO WWW) -->
+  <!-- ✅ TWITTER -->
   <meta name="twitter:card" content="summary_large_image" />
   <meta name="twitter:url" content="https://stolity.com/" />
   <meta name="twitter:title" content="Stolity - Smart Storage Solutions" />
   <meta name="twitter:description" content="Stolity provides smart storage solutions where storage meets utility." />
-  <meta name="twitter:image" content="https://stolity.com/images/NewLogo.png" />
+  <meta name="twitter:image" content="https://stolity.com/images/og-image.png" />
 
   <!-- ✅ FONTS -->
   <link rel="preconnect" href="https://fonts.googleapis.com" />
@@ -48,7 +57,7 @@
   <link rel="stylesheet" href="%PUBLIC_URL%/assets/vendors/css/vendor.bundle.base.css" />
   <link rel="stylesheet" href="%PUBLIC_URL%/assets/css/style.css" />
 
-  <!-- ✅ FONT AWESOME (keep only ONE version) -->
+  <!-- ✅ FONT AWESOME -->
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.7.2/css/all.min.css" crossorigin="anonymous" referrerpolicy="no-referrer" />
 </head>
 

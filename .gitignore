@@ -1,4 +1,5 @@
 # Dependencies
+node_modules/
 /node_modules
 /.pnp
 .pnp.js
@@ -45,3 +46,8 @@ Desktop.ini
 # Misc
 *.local
 .turbo
+
+# Local scratch / temp (do not commit)
+tmp-loader-frames/
+StolityWithoutNodeModules.zip
+*.tgz

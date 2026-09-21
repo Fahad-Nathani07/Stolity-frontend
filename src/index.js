@@ -9,14 +9,19 @@ import store from '../src/store/store';
 import "../src/assests/fonts/sfpro/fonts.css"
 import { CustomProvider } from 'rsuite';
 
-// CRA treats this benign browser warning as a fatal overlay error.
+// CRA / webpack-dev-server treat this benign browser warning as a fatal overlay.
+// Capture phase so we run before the webpack client handler.
 const resizeObserverLoopErr =
-  /ResizeObserver loop (completed with undelivered notifications|limit exceeded)/;
-window.addEventListener('error', (event) => {
-  if (resizeObserverLoopErr.test(event.message)) {
-    event.stopImmediatePropagation();
-  }
-});
+  /ResizeObserver loop (completed with undelivered notifications|limit exceeded)/i;
+window.addEventListener(
+  "error",
+  (event) => {
+    if (resizeObserverLoopErr.test(event.message || "")) {
+      event.stopImmediatePropagation();
+    }
+  },
+  true
+);
 
 const root = ReactDOM.createRoot(document.getElementById('root'));
 root.render(

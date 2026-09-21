@@ -1,28 +1,75 @@
-import React from "react";
-import { Dropdown } from "rsuite";
-import { isPremiumSortKey } from "../utils/premiumSort";
+import React, { useEffect, useRef, useState } from "react";
+import {
+  ArrowDownAZ,
+  ArrowDownWideNarrow,
+  ArrowUpAZ,
+  ArrowUpDown,
+  ArrowUpNarrowWide,
+  CalendarArrowDown,
+  CalendarArrowUp,
+  Check,
+  ChevronDown,
+  ListOrdered,
+  X,
+} from "lucide-react";
 import "./SortByDropdown.css";
 
 const SORT_OPTIONS = [
   {
     group: "Name",
     items: [
-      { key: "name-filter1", label: "A → Z", value: "By Name(A-Z)" },
-      { key: "name-filter2", label: "Z → A", value: "By Name(Z-A)" },
+      {
+        key: "name-filter1",
+        label: "A → Z",
+        hint: "Alphabetical",
+        value: "By Name(A-Z)",
+        Icon: ArrowDownAZ,
+      },
+      {
+        key: "name-filter2",
+        label: "Z → A",
+        hint: "Reverse alpha",
+        value: "By Name(Z-A)",
+        Icon: ArrowUpAZ,
+      },
     ],
   },
   {
     group: "Size",
     items: [
-      { key: "size-filter1", label: "Smallest first", value: "By Size(Asc)" },
-      { key: "size-filter2", label: "Largest first", value: "By Size(Desc)" },
+      {
+        key: "size-filter1",
+        label: "Smallest first",
+        hint: "Ascending",
+        value: "By Size(Asc)",
+        Icon: ArrowUpNarrowWide,
+      },
+      {
+        key: "size-filter2",
+        label: "Largest first",
+        hint: "Descending",
+        value: "By Size(Desc)",
+        Icon: ArrowDownWideNarrow,
+      },
     ],
   },
   {
     group: "Date",
     items: [
-      { key: "date-filter1", label: "Oldest first", value: "By Date(Oldest)" },
-      { key: "date-filter2", label: "Newest first", value: "By Date(Newest)" },
+      {
+        key: "date-filter1",
+        label: "Oldest first",
+        hint: "Earliest",
+        value: "By Date(Oldest)",
+        Icon: CalendarArrowUp,
+      },
+      {
+        key: "date-filter2",
+        label: "Newest first",
+        hint: "Latest",
+        value: "By Date(Newest)",
+        Icon: CalendarArrowDown,
+      },
     ],
   },
 ];
@@ -38,139 +85,179 @@ const DISPLAY_LABELS = {
 };
 
 /**
- * Modern Sort By control with clear action.
+ * Premium Sort By control — custom menu (no native/rsuite select).
+ * Entire Sort By feature is premium-only.
  */
 const SortByDropdown = ({
   value = "Sort By",
   onSelect,
   isPremium = true,
   onUpgradeRequired,
-  sortIcon,
   crownIcon,
 }) => {
   const isActive = Boolean(value && value !== "Sort By");
   const displayLabel = DISPLAY_LABELS[value] || value || "Sort By";
+  const [open, setOpen] = useState(false);
+  const rootRef = useRef(null);
 
-  const guardPremium = (eventKey) => {
-    if (isPremium || !isPremiumSortKey(eventKey)) return true;
-    onUpgradeRequired?.();
-    return false;
+  useEffect(() => {
+    if (!open) return undefined;
+
+    const onPointerDown = (e) => {
+      if (!rootRef.current?.contains(e.target)) setOpen(false);
+    };
+    const onKeyDown = (e) => {
+      if (e.key === "Escape") setOpen(false);
+    };
+
+    document.addEventListener("mousedown", onPointerDown);
+    document.addEventListener("keydown", onKeyDown);
+    return () => {
+      document.removeEventListener("mousedown", onPointerDown);
+      document.removeEventListener("keydown", onKeyDown);
+    };
+  }, [open]);
+
+  const handleTriggerClick = () => {
+    if (!isPremium) {
+      onUpgradeRequired?.();
+      return;
+    }
+    setOpen((v) => !v);
   };
 
   const handleSelect = (eventKey) => {
-    if (eventKey == null || String(eventKey).startsWith("group-")) return;
-    if (!guardPremium(eventKey)) return;
+    if (eventKey == null) return;
+    if (!isPremium && eventKey !== "default") {
+      onUpgradeRequired?.();
+      return;
+    }
     onSelect?.(eventKey);
+    setOpen(false);
   };
 
   const handleClear = (e) => {
     e.preventDefault();
     e.stopPropagation();
     onSelect?.("default");
+    setOpen(false);
   };
 
   return (
-    <div className={`sort-by-dropdown ${isActive ? "is-active" : ""}`}>
-      <Dropdown
-        onSelect={handleSelect}
-        className="filter_dropdown sort-by-dd"
-        menuStyle={{ padding: 8 }}
-        title={
-          <span className="sort-filter-span sort-by-trigger">
-            {sortIcon ? (
-              <img src={sortIcon} alt="" className="sort-by-icon" />
-            ) : null}
-            <span className="sort-filter-label sort-by-label">
-              {displayLabel}
-            </span>
-            {isActive && (
+    <div
+      ref={rootRef}
+      className={`sort-by-dropdown${isActive ? " is-active" : ""}${
+        open ? " is-open" : ""
+      }${!isPremium ? " is-locked" : ""}`}
+    >
+      <div className="sort-by-trigger-wrap">
+        <button
+          type="button"
+          className="sort-by-trigger"
+          onClick={handleTriggerClick}
+          aria-haspopup="listbox"
+          aria-expanded={open}
+          aria-label="Sort by"
+          title={!isPremium ? "Premium feature" : undefined}
+        >
+          <span className="sort-by-trigger-icon" aria-hidden>
+            <ArrowUpDown size={15} strokeWidth={2.2} />
+          </span>
+          <span className="sort-by-label">{displayLabel}</span>
+          {!isPremium && crownIcon ? (
+            <img
+              src={crownIcon}
+              alt=""
+              className="sort-by-trigger-crown"
+              title="Premium feature"
+            />
+          ) : null}
+          <ChevronDown
+            className={`sort-by-chevron${open ? " is-open" : ""}`}
+            size={14}
+            strokeWidth={2.4}
+            aria-hidden
+          />
+        </button>
+        {isActive && isPremium ? (
+          <button
+            type="button"
+            className="sort-by-clear-btn"
+            onClick={handleClear}
+            aria-label="Clear sort"
+            title="Clear sort"
+          >
+            <X size={12} strokeWidth={2.5} />
+          </button>
+        ) : null}
+      </div>
+
+      {open && isPremium ? (
+        <div className="sort-by-menu" role="listbox" aria-label="Sort options">
+          <div className="sort-by-menu-head">
+            <span className="sort-by-menu-title">Sort by</span>
+            {isActive ? (
               <button
                 type="button"
-                className="sort-by-clear-btn"
+                className="sort-by-menu-clear"
                 onClick={handleClear}
-                onMouseDown={(e) => {
-                  e.preventDefault();
-                  e.stopPropagation();
-                }}
-                onPointerDown={(e) => {
-                  e.preventDefault();
-                  e.stopPropagation();
-                }}
-                aria-label="Clear sort"
-                title="Clear sort"
               >
-                ×
+                Clear
               </button>
-            )}
-          </span>
-        }
-      >
-        <Dropdown.Item eventKey="header" disabled className="sort-by-header-item">
-          <span className="sort-by-menu-title">Sort by</span>
-          {isActive ? (
-            <button
-              type="button"
-              className="sort-by-menu-clear"
-              onClick={handleClear}
-              onMouseDown={(e) => e.stopPropagation()}
-            >
-              Clear
-            </button>
-          ) : null}
-        </Dropdown.Item>
+            ) : null}
+          </div>
 
-        <Dropdown.Item
-          eventKey="default"
-          className={`sort-by-item ${!isActive ? "is-selected" : ""}`}
-        >
-          <span className="sort-by-item-main">Default order</span>
-          <span className="sort-by-item-meta">Original listing</span>
-          {!isActive ? (
-            <span className="sort-by-check" aria-hidden>
-              ✓
-            </span>
-          ) : null}
-        </Dropdown.Item>
-
-        {SORT_OPTIONS.map((group) => [
-          <Dropdown.Item
-            key={`group-${group.group}`}
-            eventKey={`group-${group.group}`}
-            disabled
-            className="sort-by-group-item"
+          <button
+            type="button"
+            role="option"
+            aria-selected={!isActive}
+            className={`sort-by-item${!isActive ? " is-selected" : ""}`}
+            onClick={() => handleSelect("default")}
           >
-            <span className="sort-by-group-label">
-              {group.group}
-              {!isPremium && group.group !== "Name" && crownIcon ? (
-                <img src={crownIcon} alt="" className="sort-filter-crown" />
-              ) : null}
+            <span className="sort-by-item-icon" aria-hidden>
+              <ListOrdered size={14} strokeWidth={2} />
             </span>
-          </Dropdown.Item>,
-          ...group.items.map((item) => {
-            const selected = value === item.value;
-            const premiumItem = !isPremium && isPremiumSortKey(item.key);
-            return (
-              <Dropdown.Item
-                key={item.key}
-                eventKey={item.key}
-                className={`sort-by-item ${selected ? "is-selected" : ""}${
-                  premiumItem ? " is-premium" : ""
-                }`}
-              >
-                <span className="sort-by-item-main">{item.label}</span>
-                {premiumItem && crownIcon ? (
-                  <img src={crownIcon} alt="" className="sort-filter-crown" />
-                ) : null}
-                {selected ? (
-                  <span className="sort-by-check" aria-hidden>
-                    ✓
-                  </span>
-                ) : null}
-              </Dropdown.Item>
-            );
-          }),
-        ])}
-      </Dropdown>
+            <span className="sort-by-item-main">Default order</span>
+            {!isActive ? (
+              <Check className="sort-by-check" size={13} strokeWidth={2.5} />
+            ) : null}
+          </button>
+
+          {SORT_OPTIONS.map((group) => (
+            <div key={group.group} className="sort-by-group">
+              <div className="sort-by-group-label">
+                <span>{group.group}</span>
+              </div>
+              {group.items.map((item) => {
+                const selected = value === item.value;
+                const Icon = item.Icon;
+                return (
+                  <button
+                    key={item.key}
+                    type="button"
+                    role="option"
+                    aria-selected={selected}
+                    className={`sort-by-item${selected ? " is-selected" : ""}`}
+                    onClick={() => handleSelect(item.key)}
+                  >
+                    <span className="sort-by-item-icon" aria-hidden>
+                      <Icon size={14} strokeWidth={2} />
+                    </span>
+                    <span className="sort-by-item-main">{item.label}</span>
+                    {selected ? (
+                      <Check
+                        className="sort-by-check"
+                        size={13}
+                        strokeWidth={2.5}
+                      />
+                    ) : null}
+                  </button>
+                );
+              })}
+            </div>
+          ))}
+        </div>
+      ) : null}
     </div>
   );
 };

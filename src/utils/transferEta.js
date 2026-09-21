@@ -100,7 +100,7 @@ export function buildSoftEtaLabel({
   return soft ? `About ${soft}` : null;
 }
 
-/** Strip progress-UI verb prefixes so icons resolve from the real name. */
+/** Strip progress-UI verb prefixes and return basename for the modal list. */
 export function getTransferDisplayName(fileName = "") {
   const raw = String(fileName || "").trim();
   let cleaned = raw
@@ -109,5 +109,9 @@ export function getTransferDisplayName(fileName = "") {
   // e.g. Processing "MyFolder" — please wait…
   const processingMatch = cleaned.match(/^Processing\s+"([^"]+)"/i);
   if (processingMatch) cleaned = processingMatch[1];
+  // Paths from nested folders: show only the file/folder name in the modal.
+  cleaned = cleaned.replace(/\\/g, "/").replace(/\/+$/, "");
+  const slash = cleaned.lastIndexOf("/");
+  if (slash >= 0) cleaned = cleaned.slice(slash + 1);
   return cleaned || raw || "File";
 }

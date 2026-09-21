@@ -35,7 +35,10 @@ export const DownloadProvider = ({ children }) => {
   const cancelDownload = (id) => {
     setDownloads((prev) => {
       const download = prev.find((d) => d.id === id);
-      if (download?.abortController) {
+      if (
+        download?.abortController &&
+        Math.round(download.progress || 0) < 100
+      ) {
         download.abortController.abort();
       }
       return prev.filter((d) => d.id !== id);
@@ -44,9 +47,17 @@ export const DownloadProvider = ({ children }) => {
 
   const cancelAllDownloads = useCallback(() => {
     setDownloads((prev) => {
+      // Always abort controllers — including completed ones.
+      // Multi-file batches share one AbortController; skipping completed
+      // entries used to leave that shared signal live so remaining downloads continued.
+      const seen = new Set();
       prev.forEach((d) => {
         try {
-          if (!d.paused) d.abortController?.abort?.();
+          if (d.paused) return;
+          const ac = d.abortController;
+          if (!ac || seen.has(ac)) return;
+          seen.add(ac);
+          ac.abort?.();
         } catch (e) {}
       });
       return [];

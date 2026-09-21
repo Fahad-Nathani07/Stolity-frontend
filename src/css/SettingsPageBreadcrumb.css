@@ -1,0 +1,25 @@
+/* Shared settings-page breadcrumb — matches JobPortal "Jobs › Dashboard" */
+
+.stolity-settings-header {
+  background-color: #ffffff;
+  border-bottom: 1px solid #f2f2f2;
+  padding: 14px 20px;
+}
+
+.stolity-settings-breadcrumb {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 0;
+  font-family: "SF Pro", "SFProText", -apple-system, BlinkMacSystemFont, sans-serif;
+  font-size: 20px;
+  color: #666666;
+  line-height: 1.3;
+}
+
+.stolity-settings-breadcrumb-sep,
+.stolity-settings-breadcrumb-current {
+  color: #e94545;
+  font-weight: 500;
+  font-family: "SF Pro", "SFProText", -apple-system, BlinkMacSystemFont, sans-serif;
+}

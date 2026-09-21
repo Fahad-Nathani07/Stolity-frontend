@@ -1,4 +1,5 @@
-import React, { useCallback, useEffect, useRef, useState } from "react";
+import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useLocation } from "react-router-dom";
 import Draggable from "react-draggable";
 import "../css/AudioPlayerModal.css";
 import {
@@ -17,6 +18,18 @@ import { LuRepeat, LuRepeat1 } from "react-icons/lu";
 import { TbRepeatOff } from "react-icons/tb";
 import { resolveFileIconPath } from "../utils/fileIcon";
 import ApTooltip from "../components/ApTooltip";
+
+/** Pages that pin a table/pagination footer — player sits above it. */
+const TABLE_FOOTER_PATHS = [
+  /^\/Files$/i,
+  /^\/Favourites$/i,
+  /^\/Bin$/i,
+  /^\/nested\//i,
+  /^\/folder\//i,
+];
+
+const pathHasTableFooter = (pathname = "") =>
+  TABLE_FOOTER_PATHS.some((re) => re.test(pathname));
 
 const REPEAT_OPTIONS = [
   { id: "off", label: "Repeat off", shortLabel: "Off", Icon: TbRepeatOff },
@@ -60,6 +73,11 @@ const AudioPlayerModal = ({
   repeatMode,
   onSetRepeatMode,
 }) => {
+  const location = useLocation();
+  const sitsAboveFooter = useMemo(
+    () => pathHasTableFooter(location.pathname),
+    [location.pathname]
+  );
   const audioRef = useRef(null);
   const progressRef = useRef(null);
   const miniRef = useRef(null);
@@ -255,7 +273,7 @@ const AudioPlayerModal = ({
         >
           <div
             ref={miniRef}
-            className="ap-mini-widget"
+            className={`ap-mini-widget${sitsAboveFooter ? "" : " ap-mini-widget--flush"}`}
           >
             <ApTooltip label="Expand player" placement="bottom" className="ap-mini-expand-tip">
               <div
@@ -295,8 +313,11 @@ const AudioPlayerModal = ({
           </div>
         </Draggable>
       ) : (
-        <div className="ap-bar" role="region" aria-label="Audio player">
-
+        <div
+          className={`ap-bar${sitsAboveFooter ? "" : " ap-bar--flush"}`}
+          role="region"
+          aria-label="Audio player"
+        >
       <div className="ap-bar-track">
         <div className="ap-bar-art">
           <img src={fileIcon} alt="" />

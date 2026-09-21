@@ -1,0 +1,68 @@
+.trunc-tip-wrap {
+  position: relative;
+  display: inline-block;
+  max-width: 100%;
+  min-width: 0;
+  vertical-align: middle;
+}
+
+/* Table list: keep name column ellipsis + room for the tip above */
+.file-item > .trunc-tip-wrap {
+  flex: 1 1 auto;
+  max-width: 85%;
+  min-width: 0;
+}
+
+.file-item > .trunc-tip-wrap .trunc-tip-text.file-name {
+  max-width: 100%;
+}
+
+.trunc-tip-text {
+  display: block;
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.trunc-tip {
+  max-width: min(420px, 80vw);
+  padding: 8px 12px;
+  border-radius: 8px;
+  border: 1px solid rgba(15, 23, 42, 0.1);
+  background: #ffffff;
+  color: #111827;
+  font-family: "SF Pro", "SFProText", -apple-system, BlinkMacSystemFont, sans-serif;
+  font-size: 12px;
+  font-weight: 500;
+  line-height: 1.35;
+  white-space: normal;
+  word-break: break-word;
+  pointer-events: none;
+  box-shadow:
+    0 8px 24px rgba(15, 23, 42, 0.12),
+    0 2px 6px rgba(15, 23, 42, 0.08);
+}
+
+.trunc-tip--portal {
+  position: fixed;
+  z-index: 10050;
+}
+
+.trunc-tip--portal::after {
+  content: "";
+  position: absolute;
+  border: 5px solid transparent;
+}
+
+.trunc-tip--top::after {
+  top: 100%;
+  left: 16px;
+  border-top-color: #ffffff;
+}
+
+.trunc-tip--bottom::after {
+  bottom: 100%;
+  left: 16px;
+  border-bottom-color: #ffffff;
+}

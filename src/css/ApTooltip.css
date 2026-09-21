@@ -11,8 +11,9 @@
   z-index: 30;
   padding: 5px 9px;
   border-radius: 6px;
-  background: #0f172a;
-  color: #ffffff;
+  border: 1px solid rgba(15, 23, 42, 0.1);
+  background: #ffffff;
+  color: #111827;
   font-size: 11px;
   font-weight: 500;
   line-height: 1.25;
@@ -21,7 +22,9 @@
   opacity: 0;
   visibility: hidden;
   transition: opacity 0.15s ease, transform 0.15s ease, visibility 0.15s ease;
-  box-shadow: 0 4px 14px rgba(15, 23, 42, 0.2);
+  box-shadow:
+    0 8px 24px rgba(15, 23, 42, 0.12),
+    0 2px 6px rgba(15, 23, 42, 0.08);
 }
 
 .ap-tip::after {
@@ -48,7 +51,7 @@
   top: 100%;
   left: 50%;
   transform: translateX(-50%);
-  border-top-color: #0f172a;
+  border-top-color: #ffffff;
 }
 
 /* Bottom — below control (mini widget) */
@@ -69,5 +72,5 @@
   bottom: 100%;
   left: 50%;
   transform: translateX(-50%);
-  border-bottom-color: #0f172a;
+  border-bottom-color: #ffffff;
 }

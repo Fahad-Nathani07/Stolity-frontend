@@ -65,3 +65,47 @@ export function isRenameNameTaken(listing, oldFullPath, newFullPath) {
     return Boolean(itemNorm && itemNorm !== oldNorm && itemNorm === newNorm);
   });
 }
+
+export const FOLDER_EXISTS_MESSAGE =
+  "A folder with this name already exists here.";
+
+function listingItemBaseName(fileName) {
+  const name = String(fileName || "")
+    .replace(/\\/g, "/")
+    .replace(/\/+$/, "");
+  if (!name) return "";
+  const parts = name.split("/").filter(Boolean);
+  return (parts[parts.length - 1] || "").toLowerCase();
+}
+
+/**
+ * True when the current folder listing already has a folder with this name.
+ * Accepts a basename or a full relative path (uses the last segment).
+ *
+ * @param {Array<{ fileName?: string, isFolder?: boolean, fileType?: string }>|null|undefined} listing
+ * @param {string} folderNameOrPath
+ */
+export function isCreateFolderNameTaken(listing, folderNameOrPath) {
+  const wanted = listingItemBaseName(folderNameOrPath);
+  if (!wanted) return false;
+
+  return (listing || []).some((item) => {
+    const isFolder = item?.isFolder === true || item?.fileType === "Folder";
+    if (!isFolder) return false;
+    return listingItemBaseName(item?.fileName) === wanted;
+  });
+}
+
+/** Map create-folder API errors to a user-facing message. */
+export function getCreateFolderErrorMessage(error) {
+  const status = error?.response?.status;
+  const msg =
+    error?.response?.data?.message || error?.response?.data?.error || "";
+  if (
+    status === 409 ||
+    /already exists/i.test(String(msg))
+  ) {
+    return FOLDER_EXISTS_MESSAGE;
+  }
+  return msg || "Failed to create folder. Please try again.";
+}

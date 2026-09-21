@@ -1,5 +1,8 @@
 import React, { useEffect, useState } from "react";
+import AOS from "aos";
+import "aos/dist/aos.css";
 import "../css/PaymentIntegrationPage.css";
+import "../css/SettingsPageBreadcrumb.css";
 import SideNav from "../components/SideNav";
 import PaymentQRImg from "../images/QRCode Dummy.svg";
 import CopyIcon from "../images/CopyIcon.svg";
@@ -7,21 +10,14 @@ import PaymentPageIcon1 from "../images/PaymentPageIcon1.svg";
 import GreenTick from "../images/GreenTick.svg";
 import RedCross from "../images/RedCross.svg";
 
-import { FaCheckCircle } from "react-icons/fa"; //<FaCheckCircle />
-import { BsXCircleFill } from "react-icons/bs"; // <BsXCircleFill />
-import { IoIosInformationCircle } from "react-icons/io"; // <IoIosInformationCircle />
-import { FaExclamationTriangle } from "react-icons/fa"; // <FaExclamationTriangle />
 import { IoIosArrowRoundBack } from "react-icons/io";
 import { useDispatch, useSelector } from "react-redux";
-
-// import {  useToast, ChakraProvider } from "@chakra-ui/react";
-
-
 import { fetchUserSubscription } from "../store/subscriptionSlice";
 import { doc, setDoc } from "firebase/firestore";
 import { db } from "../firebase"; // adjust path if needed
 
 import { useNavigate } from "react-router-dom";
+import { showToast } from "../components/ToastProvider";
 
 
 
@@ -32,8 +28,7 @@ const PaymentIntegrationPage = () => {
   // const [email, setEmail] = useState("Sunipa@infomanav.in");
   const apiUrl = process.env.REACT_APP_API_ENDPOINT;
   const [selectedPlan, setSelectedPlan] = useState("free");
-  const [toasts, setToasts] = useState([]);
-  const navigate = useNavigate();
+const navigate = useNavigate();
 
   const [screenshots, setScreenshots] = useState([]);
   const [transactionId, setTransactionId] = useState("");
@@ -73,6 +68,19 @@ const PaymentIntegrationPage = () => {
     setEmail(storedEmail);
     setUserName(storedName);
   }, []);
+
+  useEffect(() => {
+    AOS.init({
+      duration: 1000,
+      offset: 80,
+      easing: "ease-in-out",
+      once: true,
+    });
+  }, []);
+
+  useEffect(() => {
+    AOS.refresh();
+  }, [selectedPlan, activePlan, showConfirmModal]);
 
    useEffect(() => {
       if (token) {
@@ -227,106 +235,13 @@ useEffect(() => {
   };
 
  
-  //  const toast = useToast();
- 
- 
- const iconMap = {
-   success: FaCheckCircle,
-   error: BsXCircleFill,
-   info: IoIosInformationCircle,
-   warning: FaExclamationTriangle,
- };
- 
- 
- const getStatusColors = (status) => {
-   return {
-     bg: 'rgba(255, 255, 255, 0.85)',     // Clean white glass
-     border: status === 'success' ? 'rgba(16, 185, 129, 0.3)' :
-             status === 'error' ? 'rgba(239, 68, 68, 0.3)' :
-             status === 'info' ? 'rgba(59, 130, 246, 0.3)' :
-             'rgba(245, 158, 11, 0.3)',        // Status-colored border
-     icon: status === 'success' ? '#10b981' :
-           status === 'error' ? '#ef4444' :
-           status === 'info' ? '#3b82f6' :
-           '#f59e0b'
-   };
- };
- 
- 
- 
-//  const showToast = (status, message) => {
-//    const IconComponent = iconMap[status];
-//    const colors = getStatusColors(status);
-   
-//   //  toast({
-//   //    // position: 'bottom-center',
-//   //    position: 'bottom-right',
-//   //    duration: 4000,
-//   //    isClosable: true,
-//   //    render: () => (
-//   //      <div className="premium-toast" style={{
-//   //        background: `linear-gradient(135deg, ${colors.bg}, rgba(255,255,255,0.9))`,
-//   //        backdropFilter: 'blur(20px)',
-//   //        border: `2px solid ${colors.border}`,
-//   //        borderRadius: '16px',
-//   //        boxShadow: '0 25px 50px -12px rgba(0,0,0,0.25), 0 0 0 1px rgba(255,255,255,0.05)',
-//   //        padding: '20px',
-//   //        maxWidth: '720px',
-//   //        fontFamily: "'SF Pro', 'SFProText', -apple-system, BlinkMacSystemFont, sans-serif",
-//   //        animation: 'toastSlideIn 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
-//   //      }}>
-//   //        <div style={{ display: 'flex', alignItems: 'flex-start', gap: '12px' }}>
-//   //          <IconComponent 
-//   //            style={{ 
-//   //              width: '24px', 
-//   //              height: '24px', 
-//   //              color: colors.icon,
-//   //              flexShrink: 0,
-//   //              marginTop: '2px'
-//   //            }} 
-//   //          />
-//   //          <div style={{ flex: 1, minWidth: 0 }}>
-//   //            <div style={{
-//   //              fontSize: '14px',
-//   //              fontWeight: '600',
-//   //              color: '#1f2937',
-//   //              marginBottom: '4px',
-//   //              lineHeight: '1.3'
-//   //            }}>
-//   //              {status.charAt(0).toUpperCase() + status.slice(1)}
-//   //            </div>
-//   //            <div style={{
-//   //              fontSize: '14px',
-//   //              color: '#6b7280',
-//   //              lineHeight: '1.4'
-//   //            }}>
-//   //              {message}
-//   //            </div>
-//   //          </div>
-//   //          <button 
-//   //            style={{
-//   //              background: 'none',
-//   //              border: 'none',
-//   //              padding: '4px',
-//   //              cursor: 'pointer',
-//   //              color: '#9ca3af',
-//   //              borderRadius: '4px',
-//   //              opacity: 0.7,
-//   //              transition: 'all 0.2s'
-//   //            }}
-//   //            onClick={() => toast.closeAll()}
-//   //            onMouseEnter={(e) => e.target.style.opacity = 1}
-//   //            onMouseLeave={(e) => e.target.style.opacity = 0.7}
-//   //          >
-//   //            ✕
-//   //          </button>
-//   //        </div>
-//   //      </div>
-//   //    ),
-//   //  });
-//  };
 
+ 
+ 
 
+ 
+ 
+ 
 //   const handleConfirmPayment = () => {
 //   if (!transactionId.trim()) {
 //     showToast(
@@ -575,32 +490,29 @@ const handleConfirmPayment = async () => {
 };
  
 
-const showToast = (status, message) => {
-  const id = Date.now();
-  setToasts((prev) => [...prev, { id, status, message }]);
 
-  // auto remove after 4s
-  setTimeout(() => {
-    setToasts((prev) => prev.filter((t) => t.id !== id));
-  }, 4000);
-};
 
 
   return (
    <>
 
-   {/* <ChakraProvider> </ChakraProvider> */}
+   {/*
+*/}
     <div className="faq-main-wrapper2">
       <SideNav />
-      <div className="settings-breadcrumb" style={{ marginBottom: "0" }}>
-        <span style={{ fontFamily: 800 }}>Settings</span>
-        <span className="breadcrumb-separator">›</span>
-        <span className="breadcrumb-current">Payment</span>
+      <div className="stolity-settings-header" data-aos="zoom-out">
+        <div className="stolity-settings-breadcrumb">
+          <span>Settings</span>
+          <span className="stolity-settings-breadcrumb-sep" aria-hidden="true">
+            ›
+          </span>
+          <span className="stolity-settings-breadcrumb-current">Payment</span>
+        </div>
       </div>
 
       <div className="faq-main-wrapper">
         <div className="faqBody">
-         <div>
+         <div data-aos="zoom-in">
           {selectedPlan === "free" && (
             <>
             <h1 className="faq-title" style={{ marginBottom: "0px" }}>
@@ -624,10 +536,10 @@ const showToast = (status, message) => {
           )}
          </div>
 
-          <div className="faq-content-wrapper">
+          <div className="faq-content-wrapper" data-aos="zoom-in">
             {/* SCREEN 1: Plan cards + comparison */}
 {selectedPlan === "free" && (
-  <div className="plans-screen">
+  <div className="plans-screen" key="plans">
     {/* Top: 3 plan cards (no features inside) */}
     <div className="plans-wrapper">
 
@@ -1327,90 +1239,8 @@ Amount: ${
 
 
 
-{/* PREMIUM TOAST CONTAINER */}
-<div
-  style={{
-    position: "fixed",
-    bottom: "24px",
-    right: "24px",
-    zIndex: 9999,
-    display: "flex",
-    flexDirection: "column",
-    gap: "12px",
-  }}
->
-  {toasts.map(({ id, status, message }) => {
-    const IconComponent = iconMap[status];
-    const colors = getStatusColors(status);
 
-    return (
-      <div
-        key={id}
-        className="premium-toast"
-        style={{
-          background: `linear-gradient(135deg, ${colors.bg}, rgba(255,255,255,0.9))`,
-          backdropFilter: "blur(20px)",
-          border: `2px solid ${colors.border}`,
-          borderRadius: "16px",
-          boxShadow:
-            "0 25px 50px -12px rgba(0,0,0,0.25), 0 0 0 1px rgba(255,255,255,0.05)",
-          padding: "20px",
-          maxWidth: "420px",
-          display: "flex",
-          gap: "12px",
-          animation: "toastSlideIn 0.3s cubic-bezier(0.4, 0, 0.2, 1)",
-        }}
-      >
-        <IconComponent
-          style={{
-            width: "24px",
-            height: "24px",
-            color: colors.icon,
-            flexShrink: 0,
-            marginTop: "2px",
-          }}
-        />
 
-        <div style={{ flex: 1 }}>
-          <div
-            style={{
-              fontSize: "14px",
-              fontWeight: "600",
-              color: "#1f2937",
-              marginBottom: "4px",
-            }}
-          >
-            {status.charAt(0).toUpperCase() + status.slice(1)}
-          </div>
-          <div
-            style={{
-              fontSize: "14px",
-              color: "#6b7280",
-              lineHeight: "1.4",
-            }}
-          >
-            {message}
-          </div>
-        </div>
-
-        <button
-          style={{
-            background: "none",
-            border: "none",
-            cursor: "pointer",
-            color: "#9ca3af",
-            fontSize: "16px",
-          }}
-          onClick={() =>
-            setToasts((prev) => prev.filter((t) => t.id !== id))
-          }
-        >
-          ✕
-        </button>
-      </div>
-    );
-  })}
-</div>
 
 
 

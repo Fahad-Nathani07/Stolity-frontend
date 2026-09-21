@@ -17,11 +17,15 @@ import Signup from './pages/Signup';
 import SignupWithGoogle from './pages/SignupWithGoogle';
 import NestedPage from './pages/NestedPage';
 import Loader from './pages/Loader';
+import PageLoaders from './pages/PageLoaders';
+import ToastExamples from './pages/ToastExamples';
 import { UploadProvider } from './pages/UploadContext';
 import UploadProgressModal from './pages/UploadProgressModal';
 import UserProfile from './pages/UserProfile'
 import { GoogleOAuthProvider } from '@react-oauth/google';
 import PreLogin from './pages/PreLogin';
+import Industries from './pages/Industries';
+import IndustryDetail from './pages/IndustryDetail';
 import { DownloadProvider } from './pages/DownloadContext';
 import { Download } from 'lucide-react';
 import DownloadProgressModal from './pages/DownloadProgressModal';
@@ -31,6 +35,7 @@ import PrivacyPolicy from './pages/PrivacyPolicy';  // <-- NEW IMPORT
 import Favourites from './pages/Favourites';
 import RecycleBin from './pages/RecycleBin';
 import AudioPlayerModal from "./pages/AudioPlayerModal";
+import AnalyticsPageViews from './components/AnalyticsPageViews';
 import { useSelector, useDispatch } from 'react-redux';
 import { closeAudioPlayer, playNextTrack, playPrevTrack, shuffleTrack, setRepeatMode } from './store/fileSlicer';
 import { buildAudioStreamUrl } from './utils/audioPlayer';
@@ -54,6 +59,7 @@ import NewLogo from "./images/NewLogo.svg";
 import InactivityHandler from './components/InactivityHandler';
 import StorageWarningModal from './components/StorageWarningModal';
 import PrivateRoute from './components/PrivateRoute';
+import { installRowActionDropdownPosition } from './utils/rowActionDropdownPosition';
 
 
 
@@ -100,6 +106,8 @@ const {
 
     const email = sessionStorage.getItem("email");
     
+    useEffect(() => installRowActionDropdownPosition(), []);
+
     useEffect(() => {
       if (email) {
         dispatch(fetchJobPortalByEmail({ email }));
@@ -128,6 +136,7 @@ const {
       <UploadProvider>
       <DownloadProvider>
         <Router basename="/">
+      <AnalyticsPageViews />
       <InactivityHandler />
       <StorageWarningModal />
       <ToastRoot />
@@ -190,6 +199,8 @@ const {
               <Route path="/ForgotPassword" element={<ForgotPassword />} />
               <Route path="/SignupWithGoogle" element={<SignupWithGoogle />} />
               <Route path="/pre-login" element={<PreLogin />} />
+              <Route path="/Industries" element={<Industries />} />
+              <Route path="/Industries/:slug" element={<IndustryDetail />} />
               <Route path="/terms-and-conditions" element={<TermsAndConditions />} />
               <Route path="/privacy-policy" element={<PrivacyPolicy />} />
               <Route path="/:companySlug/careers" element={<CareerJobListing />} />
@@ -215,6 +226,9 @@ const {
                 <Route path="/nested/:folderId" element={<NestedPage />} />
                 <Route path="/folder/:folderName" element={<DefaultFolder />} />
                 <Route path="/Loader" element={<Loader />} />
+                <Route path="/PageLoaders" element={<PageLoaders />} />
+                <Route path="/Toast" element={<ToastExamples />} />
+                <Route path="/toast" element={<ToastExamples />} />
                 <Route path="/JobPortal" element={<JobDashboard />} />
                 <Route path="/HelpSupportCenter" element={<HelpSupportCenter />} />
                 <Route path="/SupportDashboard" element={<SupportDashboard />} />
@@ -223,17 +237,6 @@ const {
                 <Route path="/JobPortalAdmin" element={<JobPortalAdmin />} />
               </Route>
             </Routes>
-          </Router>
-
-          {/* {showAudioPlayer && (
-            <AudioPlayerModal
-              audioSrc={`${apiUrl}getFileDefault?token=${token}&filePath=${currentAudioFile}`}
-              fileName={currentAudioFile}
-              onClose={() => dispatch(closeAudioPlayer())}
-              onNext={() => dispatch(playNextTrack())}
-              onPrev={() => dispatch(playPrevTrack())}
-            />
-          )} */}
           {isLoggedIn && showAudioPlayer && currentAudioFile && (
             <AudioPlayerModal
               audioSrc={buildAudioStreamUrl(apiUrl, token, currentAudioFile, {
@@ -260,6 +263,17 @@ const {
               onSetRepeatMode={(mode) => dispatch(setRepeatMode(mode))}
             />
           )}
+          </Router>
+
+          {/* {showAudioPlayer && (
+            <AudioPlayerModal
+              audioSrc={`${apiUrl}getFileDefault?token=${token}&filePath=${currentAudioFile}`}
+              fileName={currentAudioFile}
+              onClose={() => dispatch(closeAudioPlayer())}
+              onNext={() => dispatch(playNextTrack())}
+              onPrev={() => dispatch(playPrevTrack())}
+            />
+          )} */}
 
 
 

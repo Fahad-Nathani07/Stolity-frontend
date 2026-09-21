@@ -13,13 +13,26 @@ import {
 } from "../utils/zipUnzipRequest";
 import { uploadFolderViaMultipart } from "../utils/uploadFolderViaMultipart";
 import {
+  isCreateFolderNameTaken,
+  getCreateFolderErrorMessage,
+  FOLDER_EXISTS_MESSAGE,
+} from "../utils/validateItemName";
+import {
   ChevronFirst,
   ChevronLast,
   ChevronLeft,
   ChevronRight,
+  SlidersHorizontal,
 } from "lucide-react";
 
 import { DownloadContext } from "./DownloadContext";
+import {
+  streamDownloadResponse,
+  ensureDownloadWritable,
+  isDownloadCancelledError,
+  scheduleDownloadRemoval,
+} from "../utils/downloadWithProgress";
+import { downloadFileNativeBrowser } from "../utils/downloadFilePresigned";
 import { Prism as SyntaxHighlighter } from "react-syntax-highlighter";
 import { oneLight } from "react-syntax-highlighter/dist/esm/styles/prism";
 import Logo from "../images/logo.png";
@@ -27,8 +40,24 @@ import sharedIcon from "../images/shared_icon.svg";
 import { resolveFileIconPath } from "../utils/fileIcon";
 import { buildFileStreamUrl, preloadStreamedImage } from "../utils/fileStream";
 import FileInfoModal from "../components/FileInfoModal";
+import GoogleAuthRequiredModal from "../components/GoogleAuthRequiredModal";
+import {
+  clearFileSelection,
+  getFileSelectionKeys,
+  getFolderSelectionKeys,
+  hasFileSelection,
+  toggleFileSelection,
+  subscribeFileSelection,
+  syncSelectionDomClass,
+} from "../components/fileSelectionStore";
+import RowSelectCheckbox from "../components/RowSelectCheckbox";
+import PageSelectAllCheckbox from "../components/PageSelectAllCheckbox";
+import StoreBulkSelectionToolbar from "../components/StoreBulkSelectionToolbar";
+import { BULK_ROW_ACTION_TOAST_MESSAGE } from "../utils/bulkSelectionRowActions";
 import VisibilityModal from "../components/VisibilityModal";
 import RenameModal from "../components/RenameModal";
+import CreateFolderModal from "../components/CreateFolderModal";
+import PremiumUpgradeModal from "../components/PremiumUpgradeModal";
 import FileShareModal from "../components/FileShareModal";
 import { gatePremiumSort } from "../utils/premiumSort";
 import CardFilePreview from "../components/CardFilePreview";
@@ -61,7 +90,6 @@ import DeletePopup from "../images/deletePopup.svg";
 import CreateFolder from "../images/CreateFolderNavbar.svg";
 import DownloafFromUrl from "../images/Download_Link_Icon_1 1.svg";
 import SortHome from "../images/SortHome.svg";
-import FilterHome from "../images/filterHome.svg";
 import SortIcon from "../images/sort-style-1.svg";
 import { Tab, Tabs, TabList, TabPanel } from "react-tabs";
 import copyIcon from "../images/DropdownIcons/copyIcon.svg";
@@ -77,12 +105,9 @@ import renameIcon from "../images/DropdownIcons/renameIcon.svg";
 import shareIcon from "../images/DropdownIcons/shareIcon.svg";
 import eyeIcon from "../images/DropdownIcons/eyeIcon.svg";
 import loaderGif from "../images/Loaders/Animation4.gif";
+import { DualRingMark } from "../components/brandLoaders";
 import Dropzone from "react-dropzone";
 import createFolderPopup from "../images/createFolderPopup.svg";
-import { FaCheckCircle } from "react-icons/fa"; //<FaCheckCircle />
-import { BsXCircleFill } from "react-icons/bs"; // <BsXCircleFill />
-import { IoIosInformationCircle } from "react-icons/io"; // <IoIosInformationCircle />
-import { FaExclamationTriangle } from "react-icons/fa"; // <FaExclamationTriangle />
 import {
   Tooltip,
   Whisper,
@@ -99,12 +124,13 @@ import "rsuite/dist/rsuite.min.css";
 import { useDropzone } from "react-dropzone";
 import { UploadContext } from "./UploadContext";
 import { Modal as BootstrapModal } from "react-bootstrap";
-import { ChakraProvider, Stack, useToast } from "@chakra-ui/react";
+
 import VideoPlayer from "../components/VideoPlayer";
 import { buildVideoStreamUrl } from "../utils/videoPlayer";
 import SideNav from "../components/SideNav";
 import Footer from "../components/Footer";
 import ToggleNav from "../components/ToggleNav";
+import TruncatedTooltip from "../components/TruncatedTooltip";
 
 //LIGHTBOX
 import { Lightbox } from "yet-another-react-lightbox";
@@ -117,6 +143,7 @@ import Fullscreen from "yet-another-react-lightbox/plugins/fullscreen";
 import Video from "yet-another-react-lightbox/plugins/video";
 import Zoom from "yet-another-react-lightbox/plugins/zoom";
 import "yet-another-react-lightbox/plugins/captions.css";
+import "../css/FilesToolbar.css";
 import BackgroundImageFileUpload from "../images/Background.svg";
 import UploadIcon from "../images/UploadIcon.svg";
 import axios from "axios";
@@ -141,6 +168,7 @@ import { usePlayAudio } from "../hooks/usePlayAudio";
 import { isAudioExtension } from "../utils/audioPlayer";
 import DownloadModal from "./DownloadModal/DownloadModal";
 import SelectFolderModal from "./DownloadModal/SelectFolderModal";
+import { showToast } from "../components/ToastProvider";
 let c = 1;
 
 //Anurag Imports
@@ -203,6 +231,8 @@ const DefaultFolder = () => {
   const [targetFolder, setTargetFolder] = useState("");
 
   const [folderFieldError, setFolderFieldError] = useState("");
+  const [isCreatingFolder, setIsCreatingFolder] = useState(false);
+  const [newFolderName, setNewFolderName] = useState("");
   const [showDropdown, setShowDropdown] = useState(false);
 
   const [isVideo, setisVideo] = useState(false);
@@ -340,14 +370,35 @@ const DefaultFolder = () => {
   const [selectStatus2, setSelectStatus2] = useState(false);
   const [checkedFiles, setCheckedFiles] = useState([]);
   const [selectedFiles, setSelectedFiles] = useState([]);
-  const [keys, setKeys] = useState([]);
-  const [keys2, setKeys2] = useState([]);
-
   const [moveFol, setMoveFol] = useState(false);
 
   const fileTypes = ["pdf", "jpg", "jpeg", "png", "mov", "mp3", "mp4"];
   const [selectedFileTypes, setSelectedFileTypes] = useState([]);
   const [view, setView] = useState(localStorage.getItem("view") || "list");
+
+  useEffect(() => {
+    syncSelectionDomClass();
+    const unsubscribe = subscribeFileSelection(() => syncSelectionDomClass());
+    return () => {
+      unsubscribe();
+      clearFileSelection();
+    };
+  }, []);
+
+  useEffect(() => {
+    const onClick = (e) => {
+      if (!hasFileSelection()) return;
+      const toggle = e.target.closest?.(".dropdown-toggle");
+      if (!toggle) return;
+      if (toggle.closest(".bulk-selection-slot, .bulk-selection-float")) return;
+      if (!toggle.closest("#filestable") && !toggle.closest("#dataView")) return;
+      e.preventDefault();
+      e.stopPropagation();
+      showToast("warning", BULK_ROW_ACTION_TOAST_MESSAGE);
+    };
+    document.addEventListener("click", onClick, true);
+    return () => document.removeEventListener("click", onClick, true);
+  }, []);
 
   const toggleView = (selectedView) => {
     setView(selectedView);
@@ -366,8 +417,7 @@ const DefaultFolder = () => {
     dispatch(resetFolderList());
     getFileData(1);
     setIsWhisperClicked(false);
-    setKeys([]);
-    setKeys2([]);
+    clearFileSelection();
     setCurrentPage(1);
     getLatestFolderList();
   };
@@ -391,85 +441,32 @@ const DefaultFolder = () => {
   const handleCClose = () => {
     dispatch(resetFolderList());
     setIsCWhisperClicked(false);
-    setKeys([]);
+    clearFileSelection();
   };
 
-  // const location = useLocation();
-
-  // useEffect(() => {
-  //   if (location.pathname === "/file-system/Files") {
-  //     console.log("/file-system/Files value changed ")
-  //     dispatch(setIsSharedValue(false));
-  //   }
-  // }, [location.pathname, dispatch]);
-
-  //Checkbox code
-  const [isSelectAll, setIsSelectAll] = useState(false);
-
-  const handleCheckboxChange = (file) => {
-    if (file.isFolder) {
-      // If the file is a folder, update the keys2 list
-      setKeys2((prevKeys2) => {
-        const isChecked = prevKeys2.includes(file.fileName);
-        const newKeys2 = isChecked
-          ? prevKeys2.filter((f) => f !== file.fileName)
-          : [...prevKeys2, file.fileName];
-        return newKeys2;
-      });
-    } else {
-      // If the file is not a folder, update the keys list
-      setKeys((prevKeys) => {
-        const isChecked = prevKeys.includes(file.fileName);
-        const newKeys = isChecked
-          ? prevKeys.filter((f) => f !== file.fileName)
-          : [...prevKeys, file.fileName];
-        return newKeys;
-      });
+  const handleBulkMoveSelection = () => {
+    const keys = getFileSelectionKeys();
+    const keys2 = getFolderSelectionKeys();
+    if (keys.length === 0 && keys2.length === 0) {
+      showToast("error", "No files or folders selected.");
+      return;
     }
-  };
 
-  const handleSelectAllToggle = () => {
-    if (!isSelectAll) {
-      // Select all - preserve existing selections and add all other items
-      const allFiles = filedata
-        .filter((file) => !file.isFolder)
-        .map((file) => file.fileName);
-      const allFolders = filedata
-        .filter((file) => file.isFolder)
-        .map((file) => file.fileName);
-
-      setKeys((prevKeys) => [...new Set([...prevKeys, ...allFiles])]);
-      setKeys2((prevKeys2) => [...new Set([...prevKeys2, ...allFolders])]);
-    } else {
-      // Deselect all
-      setKeys([]);
-      setKeys2([]);
+    if (keys.length > 0) {
+      setMovedFile(keys);
+      setIsWhisperClicked(true);
+      return;
     }
-    setIsSelectAll(!isSelectAll);
+
+    setMovedFol(keys2);
+    setMoveFol(true);
   };
-
-  useEffect(() => {
-    // Check if all files and folders are selected
-    const allFiles = filedata
-      .filter((file) => !file.isFolder)
-      .map((file) => file.fileName);
-    const allFolders = filedata
-      .filter((file) => file.isFolder)
-      .map((file) => file.fileName);
-
-    const areAllFilesSelected = allFiles.every((file) => keys.includes(file));
-    const areAllFoldersSelected = allFolders.every((folder) =>
-      keys2.includes(folder)
-    );
-
-    // Update the isSelectAll state
-    setIsSelectAll(areAllFilesSelected && areAllFoldersSelected);
-  }, [keys, keys2, filedata]);
 
   const handleMulDelete = async () => {
-    try {
-      console.log(keys, keys2);
+    const keys = getFileSelectionKeys();
+    const keys2 = getFolderSelectionKeys();
 
+    try {
       // Check if any selected item is a shared folder
       const hasSharedFolders = filedata.some(
         (file) => file.isShared && keys2.includes(file.fileName)
@@ -508,13 +505,11 @@ const DefaultFolder = () => {
 
       // After successful delete, reset states and refresh data
       getLatestFolderList();
-      setIsSelectAll(false);
       setSelectStatus(false);
       getFileData(1); // Refresh file data
       setCurrentPage(1);
       getRootFolderSize(); // Refresh folder size
-      setKeys([]); // Reset keys for files
-      setKeys2([]); // Reset keys for folders
+      clearFileSelection();
     } catch (error) {
       showToast("error", "Some error has occurred");
     }
@@ -1419,6 +1414,7 @@ const DefaultFolder = () => {
   const handleCloseCreateFolder = () => {
     setCreateFolderButton(false);
     setFolderFieldError("");
+    setNewFolderName("");
   };
 
   const [pubpri, setPubPri] = useState("private");
@@ -1523,74 +1519,85 @@ const DefaultFolder = () => {
 
   const handleConfirmDownload = async () => {
     if (!selectedFile) return;
-  
+
     const fileName = removeSlash2(selectedFile.fileName);
     const isFolder = selectedFile.isFolder;
     const downloadId = Date.now();
-    const tokenSource = axios.CancelToken.source();
-  
-    // Add download and immediately close the popup
-    addDownload(downloadId, fileName, tokenSource, isFolder);
+    const abortController = new AbortController();
+    let succeeded = false;
+
+    addDownload(downloadId, fileName, abortController, isFolder);
     setDownloadpopup(false);
-  
+
     isSetLoading(true);
     setProgress(0);
-    cancelToken.current = tokenSource;
-  
+    cancelToken.current = abortController;
+
     try {
-      const endpoint = isFolder ? "download-folder" : "download-file";
-      const res = await axios.get(`${apiUrl}${endpoint}`, {
-        params: { filePath: fileName },
-        headers: { Authorization: `Bearer ${token}` },
-        responseType: "arraybuffer",
-        cancelToken: tokenSource.token,
-        onDownloadProgress: (progressEvent) => {
-          let percentCompleted;
-          if (progressEvent.lengthComputable) {
-            percentCompleted = Math.round(
-              (progressEvent.loaded * 100) / progressEvent.total
-            );
-          } else {
-            percentCompleted = Math.min((progress || 0) + 10, 90);
+      if (isFolder) {
+        const writable = await ensureDownloadWritable({
+          fileName,
+          isFolder: true,
+          required: true,
+        });
+        const response = await fetch(
+          `${apiUrl}download-folder?filePath=${encodeURIComponent(fileName)}`,
+          {
+            headers: { Authorization: `Bearer ${token}` },
+            signal: abortController.signal,
           }
-          setProgress(percentCompleted);
-          updateDownloadProgress(downloadId, percentCompleted);
-        },
-      });
-  
-      const blob = new Blob([res.data], { type: res.headers["content-type"] });
-      const url = window.URL.createObjectURL(blob);
-      const a = document.createElement("a");
-      a.href = url;
-      a.download = fileName;
-      document.body.appendChild(a);
-      a.click();
-      document.body.removeChild(a);
-  
+        );
+
+        if (!response.ok) throw new Error("Network response was not ok");
+
+        await streamDownloadResponse({
+          response,
+          fileName,
+          isFolder: true,
+          writable,
+          onProgress: (percent) => {
+            setProgress(percent);
+            updateDownloadProgress(downloadId, percent);
+          },
+        });
+      } else {
+        await downloadFileNativeBrowser({
+          apiUrl,
+          token,
+          filePath: fileName,
+          signal: abortController.signal,
+          onProgress: (percent) => {
+            setProgress(percent);
+            updateDownloadProgress(downloadId, percent);
+          },
+        });
+      }
+
+      succeeded = true;
       setProgress(100);
       updateDownloadProgress(downloadId, 100);
-  
-      setTimeout(() => {
-        isSetLoading(false);
-        setProgress(0);
-        removeDownload(downloadId);
-      }, 500);
     } catch (error) {
-      if (axios.isCancel(error)) {
-        console.warn("Download canceled:", error.message);
+      if (isDownloadCancelledError(error)) {
+        console.warn("Download canceled by user");
       } else {
-        alert("Error downloading file. Please try again.");
+        console.error("Download error:", error);
+        alert(error.message || "Error downloading file. Please try again.");
       }
+    } finally {
       isSetLoading(false);
-      setProgress(0);
-      removeDownload(downloadId);
+      scheduleDownloadRemoval(removeDownload, downloadId, {
+        delayMs: succeeded ? 500 : 0,
+      });
     }
   };
-  
 
   const handleCancelDownload = () => {
     if (cancelToken.current) {
-      cancelToken.current.cancel("Download canceled by user.");
+      if (typeof cancelToken.current.abort === "function") {
+        cancelToken.current.abort();
+      } else if (typeof cancelToken.current.cancel === "function") {
+        cancelToken.current.cancel("Download canceled by user.");
+      }
     }
     isSetLoading(false);
     setProgress(0);
@@ -1646,7 +1653,6 @@ const DefaultFolder = () => {
   //   }
   // };
 
-
   const shareFile = (file) => {
     setSharepopup(true);
     setSelectedFile(file);
@@ -1656,7 +1662,6 @@ const DefaultFolder = () => {
     setSharepopup(false);
     setSelectedFile(null);
   };
-
 
   const [codeContent, setCodeContent] = useState("");
   const [codeLanguage, setCodeLanguage] = useState("javascript");
@@ -1833,45 +1838,58 @@ const DefaultFolder = () => {
 
   //Create Folder
   const createJustFolder = async (event) => {
-    event.preventDefault();
-    const input = document.getElementById("folname");
-    const folderInput = input?.value?.trim();
-  
+    event?.preventDefault?.();
+    if (isCreatingFolder) return;
+
+    const folderInput = (newFolderName || "").trim();
     const isValid = /^[a-zA-Z0-9_\- ]{1,}$/.test(folderInput);
-  
+
+    if (!folderInput) {
+      setFolderFieldError("Please enter a folder name.");
+      return;
+    }
+
     if (!isValid) {
       setFolderFieldError(
         "Folder name can only contain letters, numbers, underscores, hyphens, and spaces."
       );
       return;
     }
-  
-    if (folderInput) {
-      const folderPath = folderName ? `${folderName}/${folderInput}` : folderInput;
-      console.log("Creating folder at path:", folderPath);
-  
-      try {
-        const res = await axios.post(
-          `${apiUrl}create-folder`,
-          { folderName: folderPath },
-          {
-            headers: {
-              Authorization: `Bearer ${token}`,
-              "Content-Type": "application/x-www-form-urlencoded",
-            },
-          }
-        );
-  
-        handleCloseFileUploadModal();
-        getLatestFolderList();
-        getFileData(currentPage);
-        handleCloseCreateFolder();
-        setOpenFileUploadModal(false);
-        showToast("success", "Folder created successfully!");
-        input.value = ""; // Clear the input
-      } catch (error) {
-        console.error("Error creating folder:", error);
-      }
+
+    if (isCreateFolderNameTaken(allEntries, folderInput)) {
+      setFolderFieldError(FOLDER_EXISTS_MESSAGE);
+      return;
+    }
+
+    const folderPath = folderName ? `${folderName}/${folderInput}` : folderInput;
+    console.log("Creating folder at path:", folderPath);
+
+    setIsCreatingFolder(true);
+    try {
+      await axios.post(
+        `${apiUrl}create-folder`,
+        { folderName: folderPath },
+        {
+          headers: {
+            Authorization: `Bearer ${token}`,
+            "Content-Type": "application/x-www-form-urlencoded",
+          },
+        }
+      );
+
+      handleCloseFileUploadModal();
+      getLatestFolderList();
+      getFileData(currentPage);
+      handleCloseCreateFolder();
+      setOpenFileUploadModal(false);
+      showToast("success", "Folder created successfully!");
+    } catch (error) {
+      console.error("Error creating folder:", error);
+      const message = getCreateFolderErrorMessage(error);
+      setFolderFieldError(message);
+      showToast("error", message);
+    } finally {
+      setIsCreatingFolder(false);
     }
   };
 
@@ -2239,103 +2257,6 @@ const DefaultFolder = () => {
     }
   };
 
-  const toast = useToast();
-const iconMap = {
-  success: FaCheckCircle,
-  error: BsXCircleFill,
-  info: IoIosInformationCircle,
-  warning: FaExclamationTriangle,
-};
-
-
-const getStatusColors = (status) => {
-  return {
-    bg: 'rgba(255, 255, 255, 0.85)',     // Clean white glass
-    border: status === 'success' ? 'rgba(16, 185, 129, 0.3)' :
-            status === 'error' ? 'rgba(239, 68, 68, 0.3)' :
-            status === 'info' ? 'rgba(59, 130, 246, 0.3)' :
-            'rgba(245, 158, 11, 0.3)',        // Status-colored border
-    icon: status === 'success' ? '#10b981' :
-          status === 'error' ? '#ef4444' :
-          status === 'info' ? '#3b82f6' :
-          '#f59e0b'
-  };
-};
-
-
-
-const showToast = (status, message) => {
-  const IconComponent = iconMap[status];
-  const colors = getStatusColors(status);
-  
-  toast({
-    // position: 'bottom-center',
-    position: 'bottom-right',
-    duration: 4000,
-    isClosable: true,
-    render: () => (
-      <div className="premium-toast" style={{
-        background: `linear-gradient(135deg, ${colors.bg}, rgba(255,255,255,0.9))`,
-        backdropFilter: 'blur(20px)',
-        border: `2px solid ${colors.border}`,
-        borderRadius: '16px',
-        boxShadow: '0 25px 50px -12px rgba(0,0,0,0.25), 0 0 0 1px rgba(255,255,255,0.05)',
-        padding: '20px',
-        maxWidth: '720px',
-        fontFamily: "'SF Pro', 'SFProText', -apple-system, BlinkMacSystemFont, sans-serif",
-        animation: 'toastSlideIn 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
-      }}>
-        <div style={{ display: 'flex', alignItems: 'flex-start', gap: '12px' }}>
-          <IconComponent 
-            style={{ 
-              width: '24px', 
-              height: '24px', 
-              color: colors.icon,
-              flexShrink: 0,
-              marginTop: '2px'
-            }} 
-          />
-          <div style={{ flex: 1, minWidth: 0 }}>
-            <div style={{
-              fontSize: '14px',
-              fontWeight: '600',
-              color: '#1f2937',
-              marginBottom: '4px',
-              lineHeight: '1.3'
-            }}>
-              {status.charAt(0).toUpperCase() + status.slice(1)}
-            </div>
-            <div style={{
-              fontSize: '14px',
-              color: '#6b7280',
-              lineHeight: '1.4'
-            }}>
-              {message}
-            </div>
-          </div>
-          <button 
-            style={{
-              background: 'none',
-              border: 'none',
-              padding: '4px',
-              cursor: 'pointer',
-              color: '#9ca3af',
-              borderRadius: '4px',
-              opacity: 0.7,
-              transition: 'all 0.2s'
-            }}
-            onClick={() => toast.closeAll()}
-            onMouseEnter={(e) => e.target.style.opacity = 1}
-            onMouseLeave={(e) => e.target.style.opacity = 0.7}
-          >
-            ✕
-          </button>
-        </div>
-      </div>
-    ),
-  });
-};
-
   //Image slider functionality
   const [isFullscreen, setIsFullscreen] = useState(false);
   const [zoomLevel, setZoomLevel] = useState(1);
@@ -2636,6 +2557,8 @@ const showToast = (status, message) => {
     setDraggedItem(file); // Keep track of the currently dragged item
     e.dataTransfer.effectAllowed = "move";
 
+    const keys = getFileSelectionKeys();
+    const keys2 = getFolderSelectionKeys();
     const totalSelectedItems = keys.length + keys2.length;
 
     const dragPreview = document.createElement("div");
@@ -2910,7 +2833,7 @@ const showToast = (status, message) => {
             },
           }
         );
-        setKeys([]);
+        clearFileSelection();
         console.log(res);
         setDragPop(false);
         removeUpload(uploadId);
@@ -2964,7 +2887,7 @@ const showToast = (status, message) => {
           }
         );
 
-        setKeys2([]);
+        clearFileSelection();
         setDragPop(false);
         removeUpload(uploadId);
         getFileData(currentPage);
@@ -3063,9 +2986,7 @@ const showToast = (status, message) => {
 
   return (
     <>
-      <ChakraProvider></ChakraProvider>
-
-      {codePopup && (
+{codePopup && (
   <div className="code-popup-overlay">
     <div className="code-popup-container">
       {/* Close Button */}
@@ -3092,18 +3013,10 @@ const showToast = (status, message) => {
   </div>
 )}
 
-      {showGoogleAuthPopup && (
-        <div className="rename_popup_wrapper">
-          <div className="modal-content">
-            <h2>Google Sign-In Required</h2>
-            <p>
-              Shared folder functionality is available for your account, but
-              please log in with Google Sign-In to access it.
-            </p>
-            <button onClick={() => setShowGoogleAuthPopup(false)}>Okay</button>
-          </div>
-        </div>
-      )}
+      <GoogleAuthRequiredModal
+        isOpen={showGoogleAuthPopup}
+        onClose={() => setShowGoogleAuthPopup(false)}
+      />
 
       <FileInfoModal
         isOpen={infoShower}
@@ -3190,11 +3103,13 @@ const showToast = (status, message) => {
                 className="drag_btn ok"
                 onClick={() => {
                   moveDraggedFile(dragFile);
-                  if (keys.length > 0) {
-                    moveMultipleDrag(keys, targetFolder);
+                  const dragKeys = getFileSelectionKeys();
+                  const dragKeys2 = getFolderSelectionKeys();
+                  if (dragKeys.length > 0) {
+                    moveMultipleDrag(dragKeys, targetFolder);
                   }
-                  if (keys2.length > 0) {
-                    moveMultipleDrag2(keys2, targetFolder);
+                  if (dragKeys2.length > 0) {
+                    moveMultipleDrag2(dragKeys2, targetFolder);
                   }
                 }}
               >
@@ -3363,7 +3278,13 @@ const showToast = (status, message) => {
                         onSelect={handleFTypeSelect}
                         title={
                           <span className="sort-filter-span">
-                            <img src={FilterHome} alt="" /> File Type
+                            <SlidersHorizontal
+                              className="sort-filter-lucide"
+                              size={15}
+                              strokeWidth={2}
+                              aria-hidden
+                            />{" "}
+                            File Type
                           </span>
                         }
                         className="filter_dropdown"
@@ -3457,57 +3378,20 @@ const showToast = (status, message) => {
                 </div>
               </div>
 
-              {(keys.length > 0 || keys2.length > 0) && (
-                <div className="selected_table_row">
-                  <div className="selected_table_text">
-                    <button
-                      onClick={() => {
-                        setKeys([]);
-                        setKeys2([]);
-                      }}
-                      className="selected_close_table"
-                    >
-                      <i className="icon-cross"></i>
-                    </button>
-                    <span>{keys.length + keys2.length} Selected</span>
-
-                    <button onClick={handleSelectAllToggle} class="button-18">
-                      {isSelectAll ? "Deselect All" : "Select All"}
-                    </button>
-                  </div>
-
-                  <ul className="selected_table_icons">
-                    <li>
-                      <button
-                        onClick={() => {
-                          if (keys2.length > 0) {
-                            showToast("error", "Copy folder is not available!");
-                          } else {
-                            setIsCWhisperClicked(true);
-                          }
-                        }}
-                        class="icon-copy"
-                      ></button>
-                    </li>
-                    <li>
-                      <button
-                        onClick={() => {
-                          setIsWhisperClicked(true);
-                        }}
-                        class="icon-move"
-                      ></button>
-                    </li>
-                    <li>
-                      <button
-                        onClick={() => {
-                          handleMulDelete();
-                        }}
-                        class="icon-delete2"
-                      ></button>
-                    </li>
-                  </ul>
-                </div>
-              )}
+              <StoreBulkSelectionToolbar
+                pageItems={filedata}
+                variant="files"
+                showDownload={false}
+                onCopy={() => {
+                  if (getFolderSelectionKeys().length > 0) {
+                    showToast("error", "Copy folder is not available!");
+                  } else {
+                    setIsCWhisperClicked(true);
+                  }
+                }}
+                onMove={handleBulkMoveSelection}
+                onDelete={handleMulDelete}
+              />
 
               {(isLoading || searchLoading) ? (
                 <Placeholder.Grid
@@ -3524,17 +3408,12 @@ const showToast = (status, message) => {
                         <thead>
                           <tr>
                             <th style={{ width: "40px", textAlign: "center" }}>
-                              <input
-                                id="check-Atharva"
-                                type="checkbox"
-                                onChange={handleSelectAllToggle}
-                                checked={isSelectAll}
-                              />
+                              <PageSelectAllCheckbox pageItems={filedata} />
                             </th>
 
                             <th
                               style={{
-                                width: "60%",
+                                width: "40%",
                                 fontWeight: 600,
                                 color: "#181818",
                               }}
@@ -3561,7 +3440,7 @@ const showToast = (status, message) => {
 
                             <th
                               style={{
-                                width: "15%",
+                                width: "20%",
                                 fontWeight: 600,
                                 color: "#181818",
                                 justifyContent: "center",
@@ -3592,7 +3471,7 @@ const showToast = (status, message) => {
 
                             <th
                               style={{
-                                width: "15%",
+                                width: "25%",
                                 fontWeight: 600,
                                 color: "#181818",
                                 justifyContent: "center",
@@ -3664,17 +3543,10 @@ const showToast = (status, message) => {
                                   }
                                 >
                                   <td>
-                                    <input
-                                      id="check-Atharva"
-                                      type="checkbox"
-                                      onChange={() =>
-                                        handleCheckboxChange(file)
-                                      }
-                                      checked={
-                                        file.isFolder
-                                          ? keys2.includes(file.fileName)
-                                          : keys.includes(file.fileName)
-                                      }
+                                    <RowSelectCheckbox
+                                      fileName={file.fileName}
+                                      isFolder={!!file.isFolder}
+                                      disabled={file.fileName === "blackbox" || file.isShared}
                                     />
                                   </td>
                                   <td
@@ -3698,11 +3570,11 @@ const showToast = (status, message) => {
                                       />
                                     </span>
                                     <div className="file-item">
-                                      <span
-                                        title={getTextAfterLastSlash(
+                                      <TruncatedTooltip
+                                        label={getTextAfterLastSlash(
                                           file.fileName
                                         )}
-                                        className="file-name filename_link"
+                                        textClassName="file-name filename_link"
                                         style={{ cursor: "pointer" }}
                                         onClick={() => {
                                           setErrorMessage2("");
@@ -3781,7 +3653,7 @@ const showToast = (status, message) => {
                                             55
                                           )
                                         )}
-                                      </span>
+                                      </TruncatedTooltip>
                                       <span
                                         className="file-path"
                                         title={getTextBeforeLastSlash(
@@ -3863,11 +3735,6 @@ const showToast = (status, message) => {
                                       </button>
                                       <div
                                         className="dropdown-menu custom-dropdown-menu"
-                                        style={{
-                                          transform:
-                                            "translate3d(-242px, -25px, 0px)",
-                                        }}
-                                        // aria-labelledby="dropdownMenuButton"
                                       >
                                         <a className="file-container">
                                           <div className="file-icon">
@@ -3881,21 +3748,20 @@ const showToast = (status, message) => {
                                             />
                                           </div>
                                           <div className="file-details">
-                                            <div className="file-name">
-                                              {file.fileName}
+                                            <div
+                                              className="file-name"
+                                              style={{
+                                                whiteSpace: "nowrap",
+                                                overflow: "hidden",
+                                                textOverflow: "ellipsis",
+                                                maxWidth: "220px",
+                                                display: "block",
+                                              }}
+                                              title={getTextAfterLastSlash(file.fileName)}
+                                            >
+                                              {getTextAfterLastSlash(file.fileName)}
                                             </div>
-                                            <div className="upload-date">
-                                              <p>
-                                                Uploaded on{" "}
-                                                {file.uploadDateTime.substring(
-                                                  0,
-                                                  file.uploadDateTime.indexOf(
-                                                    ","
-                                                  )
-                                                )}
-                                              </p>
-                                              <span>• {file.fileSize}</span>
-                                            </div>
+                                            <div className="file-size">{file.fileSize}</div>
                                           </div>
                                         </a>
                                         {file.isFolder === false && (
@@ -4173,41 +4039,28 @@ const showToast = (status, message) => {
                     </div>
                   ) : (
                     <>
-                      <th style={{ width: "40px", textAlign: "center" }}>
-                        <input
-                          id="check-Atharva"
-                          type="checkbox"
-                          onChange={handleSelectAllToggle}
-                          checked={isSelectAll}
-                        />
-                      </th>
-
-                      <th
-                        style={{
-                          width: "60%",
-                          fontWeight: 600,
-                          color: "#181818",
-                        }}
-                      >
-                        <span
-                          className="column-name-new"
-                          style={{ alignItems: "center" }}
-                        >
-                          File Name
-                          <img
-                            src={SortIcon}
-                            alt=""
-                            style={{ cursor: "pointer", marginLeft: 6 }}
-                            onClick={() =>
-                              handleFilterSelect(
-                                selectedFilter === "By Name(A-Z)"
-                                  ? "name-filter2"
-                                  : "name-filter1"
-                              )
-                            }
-                          />
-                        </span>
-                      </th>
+                      <div className="files-card-view-header">
+                        <div className="files-card-view-header__check">
+                          <PageSelectAllCheckbox pageItems={filedata} />
+                        </div>
+                        <div className="files-card-view-header__name">
+                          <span className="column-name-new">
+                            File Name
+                            <img
+                              src={SortIcon}
+                              alt=""
+                              style={{ cursor: "pointer", marginLeft: 6 }}
+                              onClick={() =>
+                                handleFilterSelect(
+                                  selectedFilter === "By Name(A-Z)"
+                                    ? "name-filter2"
+                                    : "name-filter1"
+                                )
+                              }
+                            />
+                          </span>
+                        </div>
+                      </div>
 
                       <div className="grid-view2">
                         {filedata.length === 0 ? (
@@ -4305,17 +4158,12 @@ const showToast = (status, message) => {
                               }}
                               
                             >
-                              <input
-                                id="check-Atharva"
-                                type="checkbox"
+                              <RowSelectCheckbox
+                                fileName={file.fileName}
+                                isFolder={!!file.isFolder}
+                                disabled={file.fileName === "blackbox" || file.isShared}
                                 className="checkbox-input"
-                                onClick={(event) => event.stopPropagation()} // Stops click from bubbling to parent
-                                onChange={() => handleCheckboxChange(file)}
-                                checked={
-                                  file.isFolder
-                                    ? keys2.includes(file.fileName)
-                                    : keys.includes(file.fileName)
-                                }
+                                onClick={(event) => event.stopPropagation()}
                               />
                               {/* Three Dots Menu */}
 
@@ -4347,11 +4195,6 @@ const showToast = (status, message) => {
                                   </button>
                                   <div
                                     className="dropdown-menu custom-dropdown-menu"
-                                    style={{
-                                      transform:
-                                        "translate3d(-242px, -25px, 0px)",
-                                    }}
-                                    // aria-labelledby="dropdownMenuButton"
                                   >
                                     {/* {file.isFolder === false && (
                                     <a
@@ -4380,19 +4223,20 @@ const showToast = (status, message) => {
                                         />
                                       </div>
                                       <div className="file-details">
-                                        <div className="file-name">
-                                          {file.fileName}
+                                        <div
+                                          className="file-name"
+                                          style={{
+                                            whiteSpace: "nowrap",
+                                            overflow: "hidden",
+                                            textOverflow: "ellipsis",
+                                            maxWidth: "220px",
+                                            display: "block",
+                                          }}
+                                          title={getTextAfterLastSlash(file.fileName)}
+                                        >
+                                          {getTextAfterLastSlash(file.fileName)}
                                         </div>
-                                        <div className="upload-date">
-                                          <p>
-                                            Uploaded on{" "}
-                                            {file.uploadDateTime.substring(
-                                              0,
-                                              file.uploadDateTime.indexOf(",")
-                                            )}
-                                          </p>
-                                          <span>• {file.fileSize}</span>
-                                        </div>
+                                        <div className="file-size">{file.fileSize}</div>
                                       </div>
                                     </a>
                                     {file.isFolder === false && (
@@ -4703,8 +4547,8 @@ const showToast = (status, message) => {
                   source={""}
                   onClose={handleMClose}
                   currentP={currentPage}
-                  files={keys}
-                  folders={keys2}
+                  files={getFileSelectionKeys()}
+                  folders={getFolderSelectionKeys()}
                 />
               )}
 
@@ -4748,7 +4592,7 @@ const showToast = (status, message) => {
                   moveKey={copiedFile}
                   source={""}
                   onClose={handleCClose}
-                  files={keys}
+                  files={getFileSelectionKeys()}
                   onCopySuccess={getFileData}
                   showToast={showToast}
                 />
@@ -4932,9 +4776,10 @@ const showToast = (status, message) => {
                   height: "100px",
                   display: "flex",
                   alignItems: "center",
+                  justifyContent: "center",
                 }}
               >
-                <img src={loaderGif} alt="" style={{ height: "50%" }} />
+                <DualRingMark size={40} />
               </div>
             ) : (
               <div
@@ -5408,6 +5253,7 @@ const showToast = (status, message) => {
                       pattern="[a-zA-Z0-9_\- ]{1,}"
                       required
                       placeholder="Enter Folder Name"
+                      disabled={isCreatingFolder}
                     />
                     {folderFieldError && (
                       <p className="error-message">{folderFieldError}</p>
@@ -5418,6 +5264,7 @@ const showToast = (status, message) => {
                         type="button"
                         className="btn_width_same btn_grey_ripple ripple_effect rename_btn cancel"
                         onClick={handleCloseFileUploadModal}
+                        disabled={isCreatingFolder}
                       >
                         Close
                       </button>
@@ -5425,8 +5272,9 @@ const showToast = (status, message) => {
                       <button
                         type="submit"
                         className=" btn_width_same ripple_effect rename_btn ok"
+                        disabled={isCreatingFolder}
                       >
-                        Create
+                        {isCreatingFolder ? "Creating…" : "Create"}
                       </button>
                     </div>
                   </form>
@@ -5437,51 +5285,18 @@ const showToast = (status, message) => {
         </Modal.Body>
       </Modal>
 
-      {createFolderButton && (
-        <div className="popup-overlay">
-          <div className="create-folder-card">
-            <div
-              className="folder-icon"
-              style={{ display: "flex", justifyContent: "center" }}
-            >
-              <img src={createFolderPopup} alt="Create Folder" height={48} />
-            </div>
-            <h5 className="folder-title">Create Folder</h5>
-
-            <form
-              className="folder-form"
-              onSubmit={createJustFolder}
-              action="javascript:void(0);"
-              method="POST"
-            >
-              <input
-                className="folder-input"
-                type="text"
-                name="fname"
-                id="folname"
-                pattern="[a-zA-Z0-9_\- ]{1,}"
-                required
-                placeholder="Enter Folder Name"
-              />
-              {folderFieldError && (
-                <p className="error-message">{folderFieldError}</p>
-              )}
-
-              <div className="rename_buttons mt-3">
-                <button
-                  className="rename_btn cancel"
-                  onClick={handleCloseCreateFolder}
-                >
-                  Close
-                </button>
-                <button type="submit" className="rename_btn ok">
-                  Create
-                </button>
-              </div>
-            </form>
-          </div>
-        </div>
-      )}
+      <CreateFolderModal
+        isOpen={createFolderButton}
+        onClose={handleCloseCreateFolder}
+        value={newFolderName}
+        onChange={(e) => {
+          setNewFolderName(e.target.value);
+          if (folderFieldError) setFolderFieldError("");
+        }}
+        onSubmit={createJustFolder}
+        error={folderFieldError}
+        isSubmitting={isCreatingFolder}
+      />
 
       <DownloadModal
         isOpen={isDownloadModalOpen}
@@ -5490,36 +5305,11 @@ const showToast = (status, message) => {
         openPathSelectionModal={openPathSelectionModal}
       />
 
-      {showUpgradeModal && (
-        <div className="premium-upgrade-overlay">
-          <div className="premium-upgrade-modal">
-            <h3 className="premium-upgrade-title">Unlock Premium Feature</h3>
-            <p className="premium-upgrade-text">
-              This action is available for premium users only. You can upgrade
-              your Stolity plan by clicking the button below.
-            </p>
-            <div className="premium-upgrade-actions">
-              <button
-                type="button"
-                className="premium-upgrade-cancel"
-                onClick={() => setShowUpgradeModal(false)}
-              >
-                Not now
-              </button>
-              <button
-                type="button"
-                className="premium-upgrade-confirm"
-                onClick={() => {
-                  setShowUpgradeModal(false);
-                  nav("/Payment");
-                }}
-              >
-                Go to Upgrade
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
+      <PremiumUpgradeModal
+        isOpen={showUpgradeModal}
+        onClose={() => setShowUpgradeModal(false)}
+        onUpgrade={() => nav("/Payment")}
+      />
     </>
   );
 };

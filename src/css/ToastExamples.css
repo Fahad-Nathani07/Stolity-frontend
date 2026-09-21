@@ -1,0 +1,434 @@
+.te-page {
+  --te-orange: #ffab49;
+  --te-orange-deep: #e7400c;
+  --te-ink: #0f172a;
+  --te-muted: #64748b;
+  --te-line: #e8edf3;
+
+  position: absolute;
+  right: 0;
+  width: 95%;
+  min-height: 100vh;
+  background:
+    radial-gradient(ellipse 70% 40% at 100% 0%, rgba(255, 171, 73, 0.12), transparent 55%),
+    radial-gradient(ellipse 50% 30% at 0% 20%, rgba(229, 37, 42, 0.05), transparent 50%),
+    #f7f8fb;
+  font-family: "SF Pro", "SFProText", -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  color: var(--te-ink);
+}
+
+.te-breadcrumb {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 20px 28px;
+  background: rgba(255, 255, 255, 0.86);
+  border-bottom: 1px solid var(--te-line);
+  backdrop-filter: blur(10px);
+  font-size: 0.9375rem;
+  color: var(--te-muted);
+}
+
+.te-breadcrumb-sep {
+  color: #cbd5e1;
+}
+
+.te-breadcrumb-current {
+  color: var(--te-ink);
+  font-weight: 650;
+}
+
+.te-shell {
+  max-width: 1180px;
+  margin: 0 auto;
+  padding: 28px 24px 56px;
+}
+
+.te-hero {
+  margin-bottom: 24px;
+  padding: 28px;
+  border-radius: 22px;
+  background: linear-gradient(145deg, #ffffff 0%, #fffaf5 55%, #ffffff 100%);
+  border: 1px solid rgba(255, 171, 73, 0.18);
+  box-shadow:
+    0 1px 0 rgba(255, 255, 255, 0.8) inset,
+    0 18px 40px -24px rgba(15, 23, 42, 0.2);
+}
+
+.te-eyebrow {
+  margin: 0 0 8px;
+  font-size: 0.6875rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--te-orange-deep);
+}
+
+.te-title {
+  margin: 0 0 10px;
+  font-size: clamp(1.6rem, 2.4vw, 2rem);
+  font-weight: 750;
+  letter-spacing: -0.03em;
+}
+
+.te-subtitle {
+  margin: 0;
+  max-width: 70ch;
+  color: var(--te-muted);
+  font-size: 0.975rem;
+  line-height: 1.55;
+}
+
+.te-section-label {
+  margin: 28px 0 12px;
+  font-size: 0.75rem;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--te-muted);
+}
+
+.te-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+  gap: 18px;
+}
+
+.te-card {
+  display: flex;
+  flex-direction: column;
+  background: #fff;
+  border: 1px solid var(--te-line);
+  border-radius: 18px;
+  overflow: hidden;
+  box-shadow: 0 10px 28px -22px rgba(15, 23, 42, 0.35);
+}
+
+.te-stage {
+  min-height: 168px;
+  padding: 20px 16px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background:
+    radial-gradient(circle at 50% 30%, rgba(255, 171, 73, 0.1), transparent 60%),
+    #f8fafc;
+}
+
+.te-card-body {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 16px;
+  border-top: 1px solid var(--te-line);
+}
+
+.te-badge {
+  align-self: flex-start;
+  font-size: 0.625rem;
+  font-weight: 750;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  padding: 3px 8px;
+  border-radius: 999px;
+  background: #f1f5f9;
+  color: #64748b;
+}
+
+.te-badge--new {
+  background: rgba(255, 171, 73, 0.18);
+  color: #b45309;
+}
+
+.te-badge--current {
+  background: #ecfdf5;
+  color: #047857;
+}
+
+.te-card-title {
+  margin: 0;
+  font-size: 0.98rem;
+  font-weight: 700;
+}
+
+.te-card-desc {
+  margin: 0 0 8px;
+  color: var(--te-muted);
+  font-size: 0.8125rem;
+  line-height: 1.45;
+  min-height: 2.4em;
+}
+
+.te-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.te-btn {
+  border: 0;
+  border-radius: 999px;
+  padding: 7px 12px;
+  font-size: 0.75rem;
+  font-weight: 650;
+  cursor: pointer;
+  background: #f1f5f9;
+  color: #334155;
+}
+
+.te-btn:hover {
+  background: #e2e8f0;
+}
+
+.te-btn--primary {
+  background: linear-gradient(90deg, #e7400c 0%, #e5252a 100%);
+  color: #fff;
+}
+
+.te-btn--primary:hover {
+  filter: brightness(1.05);
+}
+
+/* Live preview stack */
+.te-live-stack {
+  position: fixed;
+  top: 20px;
+  right: 20px;
+  z-index: 100000;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  pointer-events: none;
+  max-width: min(420px, calc(100vw - 40px));
+}
+
+.te-live-stack > * {
+  pointer-events: auto;
+  animation: te-slide-in 0.28s cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+@keyframes te-slide-in {
+  from {
+    opacity: 0;
+    transform: translateX(18px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+/* Shared toast base for demos */
+.te-toast {
+  width: 100%;
+  max-width: 360px;
+  box-sizing: border-box;
+  font-family: "SF Pro", "SFProText", -apple-system, BlinkMacSystemFont, sans-serif;
+}
+
+.te-toast-row {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+}
+
+.te-toast-copy {
+  flex: 1;
+  min-width: 0;
+}
+
+.te-toast-title {
+  margin: 0 0 2px;
+  font-size: 14px;
+  font-weight: 650;
+  color: #111827;
+  line-height: 1.3;
+}
+
+.te-toast-msg {
+  margin: 0;
+  font-size: 13px;
+  color: #64748b;
+  line-height: 1.4;
+}
+
+.te-toast-close {
+  appearance: none;
+  border: none;
+  background: transparent;
+  color: #94a3b8;
+  cursor: pointer;
+  padding: 2px 4px;
+  font-size: 14px;
+  line-height: 1;
+}
+
+/* 1. Current — ToastProvider (left bar) */
+.te-style-provider {
+  background: #fff;
+  border-left: 4px solid var(--te-status, #10b981);
+  border-radius: 12px;
+  padding: 14px 16px;
+  box-shadow: 0 8px 25px rgba(0, 0, 0, 0.06);
+}
+
+/* 2. Current — Premium glass */
+.te-style-premium {
+  background: linear-gradient(135deg, rgba(255, 255, 255, 0.85), rgba(255, 255, 255, 0.9));
+  backdrop-filter: blur(20px);
+  border: 2px solid var(--te-status-soft, rgba(16, 185, 129, 0.3));
+  border-radius: 16px;
+  padding: 18px;
+  box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
+}
+
+/* 3. Current — Chakra default look */
+.te-style-chakra {
+  background: #fff;
+  border-radius: 6px;
+  padding: 12px 14px;
+  border: 1px solid #e2e8f0;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.12);
+}
+
+.te-style-chakra .te-toast-status-chip {
+  display: inline-block;
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--te-status, #10b981);
+  margin-bottom: 4px;
+}
+
+/* 4. Soft fill */
+.te-style-soft {
+  background: var(--te-tint, #ecfdf5);
+  border: 1px solid var(--te-status-soft, rgba(16, 185, 129, 0.25));
+  border-radius: 14px;
+  padding: 14px 16px;
+  box-shadow: 0 10px 24px -16px rgba(15, 23, 42, 0.35);
+}
+
+/* 5. Brand accent rail */
+.te-style-brand {
+  background: #fff;
+  border-radius: 14px;
+  padding: 14px 16px 14px 18px;
+  box-shadow: 0 12px 28px -18px rgba(15, 23, 42, 0.4);
+  border: 1px solid #eef2f7;
+  position: relative;
+  overflow: hidden;
+}
+
+.te-style-brand::before {
+  content: "";
+  position: absolute;
+  left: 0;
+  top: 0;
+  bottom: 0;
+  width: 4px;
+  background: linear-gradient(180deg, #ffab49 0%, #e7400c 100%);
+}
+
+/* 6. Compact pill */
+.te-style-pill {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  background: #0f172a;
+  color: #fff;
+  border-radius: 999px;
+  padding: 10px 14px 10px 10px;
+  box-shadow: 0 14px 30px -16px rgba(15, 23, 42, 0.55);
+}
+
+.te-style-pill .te-toast-title {
+  color: #fff;
+  font-size: 13px;
+  margin: 0;
+}
+
+.te-style-pill .te-toast-msg {
+  color: rgba(255, 255, 255, 0.72);
+  font-size: 12px;
+}
+
+.te-style-pill .te-toast-close {
+  color: rgba(255, 255, 255, 0.55);
+}
+
+.te-style-pill-light {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  background: #ffffff;
+  color: #0f172a;
+  border-radius: 999px;
+  padding: 10px 14px 10px 10px;
+  border: 1px solid #e8edf3;
+  box-shadow: 0 12px 28px -16px rgba(15, 23, 42, 0.35);
+}
+
+.te-style-pill-light .te-toast-title {
+  color: #0f172a;
+  font-size: 13px;
+  margin: 0;
+}
+
+.te-style-pill-light .te-toast-msg {
+  color: #64748b;
+  font-size: 12px;
+}
+
+.te-style-pill-light .te-toast-close {
+  color: #94a3b8;
+}
+
+.te-pill-icon {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  display: grid;
+  place-items: center;
+  flex-shrink: 0;
+  background: var(--te-status, #10b981);
+  color: #fff;
+}
+
+/* 7. Top accent line */
+.te-style-top-line {
+  background: #fff;
+  border-radius: 12px;
+  padding: 14px 16px;
+  border: 1px solid #e8edf3;
+  box-shadow: 0 10px 24px -18px rgba(15, 23, 42, 0.35);
+  border-top: 3px solid var(--te-status, #ffab49);
+}
+
+/* 8. Icon badge card */
+.te-style-badge {
+  background: #fff;
+  border-radius: 16px;
+  padding: 14px 16px;
+  border: 1px solid #eef2f7;
+  box-shadow: 0 12px 28px -18px rgba(15, 23, 42, 0.35);
+}
+
+.te-badge-icon {
+  width: 36px;
+  height: 36px;
+  border-radius: 10px;
+  display: grid;
+  place-items: center;
+  flex-shrink: 0;
+  background: var(--te-tint, #ecfdf5);
+  color: var(--te-status, #10b981);
+}
+
+@media (max-width: 900px) {
+  .te-page {
+    width: 100%;
+    position: relative;
+  }
+}

@@ -5,10 +5,10 @@ import {
   FiFolder,
   FiCopy,
   FiMove,
-  FiRotateCcw,
   FiPackage,
   FiDownload,
 } from "react-icons/fi";
+import { History as RotateCcwClock } from "lucide-react";
 import { HiOutlineFolderPlus } from "react-icons/hi2";
 import "./FolderDestinationModal.css";
 
@@ -29,7 +29,7 @@ const VARIANT_META = {
     actionVerb: "move",
   },
   restore: {
-    icon: FiRotateCcw,
+    icon: RotateCcwClock,
     accent: "#FFAB49",
     actionVerb: "restore",
   },

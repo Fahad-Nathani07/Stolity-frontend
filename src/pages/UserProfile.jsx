@@ -1,4 +1,6 @@
 import React, { useEffect, useRef, useState } from "react";
+import AOS from "aos";
+import "aos/dist/aos.css";
 import Logo from "../images/logo.png";
 import SideNav from "../components/SideNav";
 import Footer from "../components/Footer";
@@ -44,15 +46,8 @@ import { setUserProfile, normalizeAvatarUrl } from "../store/userProfileSlice";
 import { usePlayAudio } from "../hooks/usePlayAudio";
 import { useSessionEndCleanup } from "../hooks/useSessionEndCleanup";
 import { isAudioExtension } from "../utils/audioPlayer";
-import { FaCheckCircle } from "react-icons/fa"; //<FaCheckCircle />
-import { BsXCircleFill } from "react-icons/bs"; // <BsXCircleFill />
-import { IoIosInformationCircle } from "react-icons/io"; // <IoIosInformationCircle />
-import { FaExclamationTriangle } from "react-icons/fa"; // <FaExclamationTriangle />
-
 
 import { Progress, Modal } from "antd";
-
-import { ChakraProvider, Stack, useToast } from "@chakra-ui/react";
 
 import {
   Tooltip,
@@ -65,6 +60,7 @@ import {
 } from "rsuite";
 import { Modal as Bigmodal } from "rsuite";
 import Loader2 from "../components/Loader2";
+import { showToast } from "../components/ToastProvider";
 
 const getBase64 = (file) =>
   new Promise((resolve, reject) => {
@@ -127,6 +123,19 @@ const UserProfile = () => {
     return () => clearInterval(id);
   }, [resendTimer]);
 
+  useEffect(() => {
+    AOS.init({
+      duration: 1000,
+      offset: 80,
+      easing: "ease-in-out",
+      once: true,
+    });
+  }, []);
+
+  useEffect(() => {
+    AOS.refresh();
+  }, [name, folderSize, subscription]);
+
   const maskEmail = (value) => {
     if (!value || !value.includes("@")) return value || "";
     const [user, domain] = value.split("@");
@@ -187,7 +196,6 @@ const UserProfile = () => {
 
   }, [name])
 
-
   const userSubscription = useSelector((state) => state.subscription?.subscription?.entitlement_ids[0]);
 
   // Option A – simple & readable (most teams prefer this)
@@ -203,7 +211,6 @@ const UserProfile = () => {
     // unknown / invalid / future plan → fallback
     return "Free";
   })();
-
 
   const validatePasswordChange = () => {
     const errors = {
@@ -251,8 +258,6 @@ const UserProfile = () => {
     return isValid;
   };
 
-
-
   const validatePersonalInfo = () => {
     const errors = {
       firstName: '',
@@ -287,8 +292,6 @@ const UserProfile = () => {
     return isValid;
   };
 
-
-
   useEffect(() => {
     console.log("✅subscription", subscription)
     console.log("✅subscription storage", subscription?.storage)
@@ -296,7 +299,6 @@ const UserProfile = () => {
   useEffect(() => {
     console.log("✅folderSize", folderSize)
   }, [folderSize])
-
 
   // function parseStorageToBytes(storageStr) {
   //     if (!storageStr) return 0;
@@ -310,7 +312,6 @@ const UserProfile = () => {
   // const usedBytes = folderSize ? folderSize.sizeInBytes : 0;
   // const usedGB = usedBytes / 1024 ** 3;
   // const remainingGB = (totalBytes - usedBytes) / 1024 ** 3;
-
 
   //       function parseStorageToBytes(storageStr) {
   //   if (!storageStr) return 0;
@@ -339,7 +340,6 @@ const UserProfile = () => {
     return Math.round(value * multiplier);   // round to avoid floating-point issues
   }
 
-
   const specialUserFlag = useSelector((state) => state.subscription.specialUserFlag);
 
   // Define total storage in bytes using DECIMAL units (matches API / user expectation)
@@ -361,16 +361,12 @@ const UserProfile = () => {
   const remainingDisplay = Math.max(0, remainingGB).toFixed(2) + " GB"; // prevent negative display
   const totalDisplay = (totalBytes / 1_000_000_000).toFixed(0) + " GB";
 
-
-
   useEffect(() => {
     console.log("Storage check - usedBytes:", usedBytes);
     console.log("Storage check - usedGB:", usedGB);
     console.log("Storage check - remainingGB:", remainingGB);
 
   }, [usedBytes, usedGB, remainingGB])
-
-
 
   const [selectedAvatar, setSelectedAvatar] = useState("");
   const [oldPass, setOldPass] = useState("");
@@ -472,11 +468,9 @@ const UserProfile = () => {
     setLastName(userProfile.lastName || "");
   }, [triggerReset, userProfile.firstName, userProfile.lastName, userProfile.name]);
 
-
   const { role, companies: assignedCompanyIds } = useSelector(
     (state) => state.jobPortal
   );
-
 
   const handleChangeFirstName = (e) => {
     setFirstName(e.target.value);
@@ -542,9 +536,7 @@ const UserProfile = () => {
   //   }
   // };
 
-
   // Request OTP
-
 
   const handleChangeInfo = async () => {
     if (!validatePersonalInfo()) {
@@ -612,10 +604,6 @@ const UserProfile = () => {
       return false;
     }
   };
-
-
-
-
 
   const handleRequestOtp = async (e) => {
     e?.preventDefault?.();
@@ -718,9 +706,6 @@ const UserProfile = () => {
       setOtpBusy(false);
     }
   };
-
-
-
 
   // const handlePassWordChange = async () => {
   //   const res = await axios.post(
@@ -847,125 +832,11 @@ const UserProfile = () => {
     }
   };
 
-
-
-
   const handleReset = () => {
     setConfirmPass("");
     setNewPass("");
     setOldPass("");
   };
-
-  const toast = useToast();
-
-  // const showToast = (status, message) => {
-  //   toast({
-  //     title: `${status.charAt(0).toUpperCase() + status.slice(1)}`,
-  //     description: message,
-  //     status: status, // Set this to 'error' for a red-colored pop-up
-  //     duration: 3000,
-  //     isClosable: true,
-  //   });
-  // };
-
-
-  const iconMap = {
-    success: FaCheckCircle,
-    error: BsXCircleFill,
-    info: IoIosInformationCircle,
-    warning: FaExclamationTriangle,
-  };
-
-
-  const getStatusColors = (status) => {
-    return {
-      bg: 'rgba(255, 255, 255, 0.85)',     // Clean white glass
-      border: status === 'success' ? 'rgba(16, 185, 129, 0.3)' :
-        status === 'error' ? 'rgba(239, 68, 68, 0.3)' :
-          status === 'info' ? 'rgba(59, 130, 246, 0.3)' :
-            'rgba(245, 158, 11, 0.3)',        // Status-colored border
-      icon: status === 'success' ? '#10b981' :
-        status === 'error' ? '#ef4444' :
-          status === 'info' ? '#3b82f6' :
-            '#f59e0b'
-    };
-  };
-
-
-
-  const showToast = (status, message) => {
-    const IconComponent = iconMap[status];
-    const colors = getStatusColors(status);
-
-    toast({
-      // position: 'bottom-center',
-      position: 'bottom-right',
-      duration: 4000,
-      isClosable: true,
-      render: () => (
-        <div className="premium-toast" style={{
-          background: `linear-gradient(135deg, ${colors.bg}, rgba(255,255,255,0.9))`,
-          backdropFilter: 'blur(20px)',
-          border: `2px solid ${colors.border}`,
-          borderRadius: '16px',
-          boxShadow: '0 25px 50px -12px rgba(0,0,0,0.25), 0 0 0 1px rgba(255,255,255,0.05)',
-          padding: '20px',
-          maxWidth: '720px',
-          fontFamily: "'SF Pro', 'SFProText', -apple-system, BlinkMacSystemFont, sans-serif",
-          animation: 'toastSlideIn 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
-        }}>
-          <div style={{ display: 'flex', alignItems: 'flex-start', gap: '12px' }}>
-            <IconComponent
-              style={{
-                width: '24px',
-                height: '24px',
-                color: colors.icon,
-                flexShrink: 0,
-                marginTop: '2px'
-              }}
-            />
-            <div style={{ flex: 1, minWidth: 0 }}>
-              <div style={{
-                fontSize: '14px',
-                fontWeight: '600',
-                color: '#1f2937',
-                marginBottom: '4px',
-                lineHeight: '1.3'
-              }}>
-                {status.charAt(0).toUpperCase() + status.slice(1)}
-              </div>
-              <div style={{
-                fontSize: '14px',
-                color: '#6b7280',
-                lineHeight: '1.4'
-              }}>
-                {message}
-              </div>
-            </div>
-            <button
-              style={{
-                background: 'none',
-                border: 'none',
-                padding: '4px',
-                cursor: 'pointer',
-                color: '#9ca3af',
-                borderRadius: '4px',
-                opacity: 0.7,
-                transition: 'all 0.2s'
-              }}
-              onClick={() => toast.closeAll()}
-              onMouseEnter={(e) => e.target.style.opacity = 1}
-              onMouseLeave={(e) => e.target.style.opacity = 0.7}
-            >
-              ✕
-            </button>
-          </div>
-        </div>
-      ),
-    });
-  };
-
-
 
   const [rootSize, setRootSize] = useState("");
 
@@ -1129,7 +1000,6 @@ const UserProfile = () => {
     // getRootFolderSize();
     getAllAvatars();
   }, []);
-
 
   const [files, setFiles] = useState([]);
   const [isLoading, setIsLoading] = useState(true); // ← loading state
@@ -1308,8 +1178,6 @@ const UserProfile = () => {
     setPdfSrc("");
   };
 
-
-
   // Add this helper function at the top of your component file, outside the component
   const getFileIcon = (file) => {
     // First check: if shared, always return sharedIcon
@@ -1366,11 +1234,6 @@ const UserProfile = () => {
     // Default fallback
     return file.icon || svgDoc;
   };
-
-
-
-
-
 
   const handleNext = () => {
     setErrorMessage2("");
@@ -1597,8 +1460,7 @@ const UserProfile = () => {
 
   return (
     <>
-      <ChakraProvider></ChakraProvider>
-      <SideNav />
+<SideNav />
       <div className="container-fluid page-body-wrapper">
         <nav className="navbar p-0 fixed-top d-flex flex-row">
           <div className="navbar-brand-wrapper d-flex d-lg-none align-items-center justify-content-center">
@@ -1618,7 +1480,7 @@ const UserProfile = () => {
         <div className="main-panel">
           <div className="content-wrapper" style={{ padding: "15px" }}>
             <div className="row">
-              <div className="col-lg-6 mt-2">
+              <div className="col-lg-6 mt-2" data-aos="zoom-in">
                 <div className="profile_box">
                   <div className="profile_row">
                     <div className="img_profile">
@@ -1631,7 +1493,6 @@ const UserProfile = () => {
                           e.target.src = AvatarDefault;
                         }}
                       />
-
 
                     </div>
 
@@ -1673,7 +1534,7 @@ const UserProfile = () => {
                 </div>
               </div>
 
-              <div className="col-lg-6 mt-2">
+              <div className="col-lg-6 mt-2" data-aos="zoom-in">
                 <div className="profile_box">
                   <div className="profile_row">
                     <div
@@ -1767,7 +1628,7 @@ const UserProfile = () => {
               </div>
             </div>
 
-            <div className="profile_row">
+            <div className="profile_row" data-aos="zoom-in">
               <div className="profile_table_box">
                 <div className="profile_table_title_row">
                   <h5>Recent Uploads</h5>
@@ -1935,7 +1796,7 @@ const UserProfile = () => {
                 </div>
               </div>
 
-              <div className="profile_stolity_app">
+              <div className="profile_stolity_app" data-aos="zoom-in">
                 <h5>
                   Get the Stolity <br />
                   App today!
@@ -2618,9 +2479,6 @@ const UserProfile = () => {
             </>
           )}
 
-
-
-
           {isGoogleAuth && (
             <div className="profile-section google-otp-section">
               <h5>Google account security</h5>
@@ -2811,15 +2669,6 @@ const UserProfile = () => {
               )}
             </div>
           )}
-
-
-
-
-
-
-
-
-
 
           {/* Password tab actions */}
           <div className="button-group edit-profile-actions">
@@ -3072,9 +2921,6 @@ const UserProfile = () => {
               </button>
             </div>
 
-
-
-
             {/* Footer controls */}
             <div
               style={{
@@ -3138,7 +2984,6 @@ const UserProfile = () => {
           </div>
         </div>
       )}
-
 
     </>
   );

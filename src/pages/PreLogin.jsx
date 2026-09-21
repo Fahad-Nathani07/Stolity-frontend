@@ -1,5 +1,4 @@
 import React, { useEffect, useRef } from "react";
-import LogoImg from "../images/prelogin-img/logo-stolity.svg";
 import heroVideo from "../images/prelogin-img/hero-video.mp4";
 import aboutGift from "../images/prelogin-img/about-gift.gif";
 import upload from "../images/prelogin-img/upload-icon.svg";
@@ -13,16 +12,18 @@ import bannerImg from "../images/prelogin-img/banner-img.png";
 import scanOne from "../images/prelogin-img/scanner-1.jpg";
 import scanTwo from "../images/prelogin-img/scanner-2.jpg";
 import full from "../images/prelogin-img/full.svg";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useLocation } from "react-router-dom";
 import { useDispatch } from "react-redux";
 import AOS from "aos";
 import "aos/dist/aos.css";
 import '../pages/prelogin.css'
 import { setRedirectToPaymentAfterLogin } from "../store/subscriptionSlice";
+import PreloginHeader from "../components/PreloginHeader";
 
 const PreLogin = () => {
   const videoRef = useRef(null);
   const navigate = useNavigate();
+  const location = useLocation();
   const dispatch = useDispatch();
 
   // Login Navigation
@@ -46,6 +47,20 @@ const PreLogin = () => {
       once: true,
     });
   }, []);
+
+  // Scroll to #pricing (and other hashes) after navigate from header
+  useEffect(() => {
+    if (!location.hash) return;
+    const id = location.hash.replace("#", "");
+    const timer = window.setTimeout(() => {
+      const el = document.getElementById(id);
+      if (!el) return;
+      const headerOffset = 112; // fixed header + a little breathing room
+      const top = el.getBoundingClientRect().top + window.scrollY - headerOffset;
+      window.scrollTo({ top: Math.max(0, top), behavior: "smooth" });
+    }, 100);
+    return () => window.clearTimeout(timer);
+  }, [location.hash]);
 
   // Card Scrolling
   const cardContainerRef = useRef(null);
@@ -160,19 +175,13 @@ const PreLogin = () => {
 
   return (
     <div className="prelogin-page">
-      <header data-aos="zoom-out">
-        <div className="header-content content">
-          <a href="/" onClick={(e) => e.preventDefault()}>
-            <img src={LogoImg} alt="Stolity" className="img-fluid" />
-          </a>
-
-          <div className="header-btns">
-            <a href="#" className="get-start-btn" onClick={handleNavigation}>
-              Get Started
-            </a>
-          </div>
-        </div>
-      </header>
+      <PreloginHeader
+        aos
+        links={[
+          { label: "Industries", to: "/Industries" },
+          { label: "Pricing", to: "/#pricing" },
+        ]}
+      />
 
       <main>
         <section className="hero-img" data-aos="zoom-out" style={{paddingBottom:"100px"}}>
@@ -377,7 +386,7 @@ const PreLogin = () => {
         </section>
 
         {/* --- Offers Card Section --- */}
-        <section data-aos="zoom-in" style={{paddingBottom:"100px"}}>
+        <section id="pricing" data-aos="zoom-in" style={{paddingBottom:"100px"}}>
           <div className="content">
             <div className="card-heading">
               <p className="pre-para semibold">Our Portable Pricing System</p>

@@ -24,11 +24,31 @@ import {
   resolveNestedDropTargetPath,
 } from "../utils/movePath";
 import { buildFileStreamUrl, preloadStreamedImage } from "../utils/fileStream";
-import { validateItemName, isRenameNameTaken } from "../utils/validateItemName";
+import {
+  validateItemName,
+  isRenameNameTaken,
+  isCreateFolderNameTaken,
+  getCreateFolderErrorMessage,
+  FOLDER_EXISTS_MESSAGE,
+} from "../utils/validateItemName";
 import { getApiErrorMessage } from "../utils/handleS3CopyError";
-import { streamDownloadResponse, createDownloadWritable, isDownloadCancelledError, scheduleDownloadRemoval } from "../utils/downloadWithProgress";
-import { downloadFolderNoZip } from "../utils/downloadFolderNoZip";
+import { streamDownloadResponse, ensureDownloadWritable, estimateDownloadBytes, isDownloadCancelledError, scheduleDownloadRemoval, toastBatchDownloadSummary } from "../utils/downloadWithProgress";
+import { downloadFolderNoZip, downloadMultipleFoldersToDirectory } from "../utils/downloadFolderNoZip";
+import { downloadFileNativeBrowser, downloadMultipleFilesToDirectory, ensureSaveDirectory } from "../utils/downloadFilePresigned";
 import FileInfoModal from "../components/FileInfoModal";
+import {
+  clearFileSelection,
+  getFileSelectionCount,
+  getFileSelectionKeys,
+  getFolderSelectionKeys,
+  hasFileSelection,
+  toggleFileSelection,
+  subscribeFileSelection,
+  syncSelectionDomClass,
+} from "../components/fileSelectionStore";
+import RowSelectCheckbox from "../components/RowSelectCheckbox";
+import PageSelectAllCheckbox from "../components/PageSelectAllCheckbox";
+import StoreBulkSelectionToolbar from "../components/StoreBulkSelectionToolbar";
 import VisibilityModal from "../components/VisibilityModal";
 import FileShareModal from "../components/FileShareModal";
 import EmptyFilesState from "../components/EmptyFilesState";
@@ -55,11 +75,12 @@ import UploadFolderPanel from "../components/UploadFolderPanel";
 import FilesPaginationFooter from "../components/FilesPaginationFooter";
 import { useStickyListHeader } from "../hooks/useStickyListHeader";
 import {
-  getBulkRowActionToggleProps,
+  BULK_ROW_ACTION_TOAST_MESSAGE,
   closeAllRowDropdowns,
 } from "../utils/bulkSelectionRowActions";
-import BulkSelectionToolbar from "../components/BulkSelectionToolbar";
 import RenameModal from "../components/RenameModal";
+import CreateFolderModal from "../components/CreateFolderModal";
+import PremiumUpgradeModal from "../components/PremiumUpgradeModal";
 import { useSessionEndCleanup } from "../hooks/useSessionEndCleanup";
 import useListPageSize from "../hooks/useListPageSize";
 import useFileSearch from "../hooks/useFileSearch";
@@ -74,7 +95,7 @@ import FileSearchBar from "../components/FileSearchBar";
 import { Prism as SyntaxHighlighter } from "react-syntax-highlighter";
 import { oneLight } from "react-syntax-highlighter/dist/esm/styles/prism";
 import SortHome from "../images/SortHome.svg";
-import FilterHome from "../images/filterHome.svg";
+import { ChevronDown, SlidersHorizontal } from "lucide-react";
 import Logo from "../images/logo.png";
 import fullscreeen from "../images/fullscreen.png";
 import zoomin from "../images/zoomin.png";
@@ -132,20 +153,13 @@ import svgZip from "../images/TypesZip.svg"
 import warningIcon from "../images/warningIcon.svg"
 // import DocViewer, { DocViewerRenderers } from '@cyntler/react-doc-viewer';
 
-import { FaCheckCircle } from "react-icons/fa"; //<FaCheckCircle />
-import { BsXCircleFill } from "react-icons/bs"; // <BsXCircleFill />
-import { IoIosInformationCircle } from "react-icons/io"; // <IoIosInformationCircle />
-import { FaExclamationTriangle } from "react-icons/fa"; // <FaExclamationTriangle />
-
 import { FaLock } from "react-icons/fa";
-
 
 import { fetchUserFolderSize } from "../store/subscriptionSlice";
 import {
   addFavoriteName,
   removeFavoriteName,
 } from "../store/favoritesSlice";
-
 
 import {
   Tooltip,
@@ -164,10 +178,11 @@ import "rsuite/SelectPicker/styles/index.css";
 import "rsuite/dist/rsuite.min.css";
 import SideNav from "../components/SideNav";
 import ToggleNav from "../components/ToggleNav";
+import TruncatedTooltip from "../components/TruncatedTooltip";
 import IconUpload from "../images/iconUpload.svg";
 import CreateFolder from "../images/CreateFolderNavbar.svg";
 import DownloafFromUrl from "../images/Download_Link_Icon_1 1.svg";
-import { ChakraProvider, Stack, useToast } from "@chakra-ui/react";
+
 import { UploadContext } from "./UploadContext";
 import { Modal as BootstrapModal } from "react-bootstrap";
 //LIGHTBOX
@@ -208,6 +223,7 @@ import CustomFileModal from "./CustomFileModal";
 import Loader2 from "../components/Loader2";
 import LoaderRecycleBin from "../components/LoaderRecycleBin";
 import { use } from "react";
+import { showToast } from "../components/ToastProvider";
 
 export const ListIcon = ({ className, onClick, alt, active }) => {
   // Use white color when active, gray when inactive
@@ -307,9 +323,6 @@ const NestedPage = () => {
   const avatarUrl = userProfile.avatar || sessionStorage.getItem("avatar");
   
 
-
-
-
   const handleDownload = async (downloadInfo) => {
   };
   const openPathSelectionModal = () => {
@@ -371,12 +384,11 @@ const NestedPage = () => {
   /** Original zip stream folder download (fallback). */
   const downloadFolderViaZipProxy = useCallback(
     async ({ fileName, signal, onProgress }) => {
-      const writable = await createDownloadWritable({ fileName, isFolder: true });
-      if (!writable) {
-        throw new Error(
-          "Choose a save location to download folders (use Chrome/Edge)."
-        );
-      }
+      const writable = await ensureDownloadWritable({
+        fileName,
+        isFolder: true,
+        required: true,
+      });
       const params = {
         filePath: fileName,
         ...(isSharedValue && filenameRedux ? { shared: filenameRedux } : {}),
@@ -395,6 +407,7 @@ const NestedPage = () => {
         isFolder: true,
         writable,
         onProgress,
+        signal,
       });
     },
     [apiUrl, token, isSharedValue, filenameRedux]
@@ -402,7 +415,7 @@ const NestedPage = () => {
 
   /** Presigned no-zip folder download, falls back to zip proxy on failure. */
   const downloadFolderWithFallback = useCallback(
-    async ({ fileName, signal, onProgress }) => {
+    async ({ fileName, signal, onProgress, dirHandle = null }) => {
       const shared =
         isSharedValue && filenameRedux ? filenameRedux : undefined;
       try {
@@ -413,6 +426,7 @@ const NestedPage = () => {
           shared,
           signal,
           onProgress,
+          dirHandle,
         });
       } catch (err) {
         if (err?.name === "AbortError") throw err;
@@ -431,7 +445,6 @@ const NestedPage = () => {
     Boolean(item?.isShared && item?.isFolder && !isSharedValue);
 
   const [placeholderLoading, setPlaceholderLoading] = useState(true);
-
 
   const selectedItem = select.find((item) => item.id === counter);
   const nav = useNavigate();
@@ -452,6 +465,8 @@ const NestedPage = () => {
   const [modalFile, setModalFile] = useState("");
   const [previewFile, setPreviewFile] = useState(null);
   const [folderFieldError, setFolderFieldError] = useState("");
+  const [isCreatingFolder, setIsCreatingFolder] = useState(false);
+  const [newFolderName, setNewFolderName] = useState("");
   const [selectedFolder, setSelectedFolder] = useState(null);
   const [dragPop, setDragPop] = useState(false);
   const [dragFile, setDragFile] = useState({});
@@ -460,11 +475,9 @@ const NestedPage = () => {
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [showDownloadModal, setShowDownloadModal] = useState(false);
 
-
     // Add these states (probably already have some modal states)
   const [showPrivateWarning, setShowPrivateWarning] = useState(false);
   const [fileToShare, setFileToShare] = useState(null);
-
 
   // Add this:
 const docBlobRef = useRef(null);
@@ -493,17 +506,11 @@ useEffect(() => {
   return () => document.removeEventListener("mousedown", onDocMouseDown);
 }, [showFTPopup]);
 
-
-
-
   useEffect(() => {
     console.log("zxcvb isSharedValue",isSharedValue)
     console.log("zxcvb filenameRedux",filenameRedux)
   }, [isSharedValue, filenameRedux])
   
-
-
-
 
 const [showUpgradeModal, setShowUpgradeModal] = useState(false);
   // Current user's subscription + used storage (loaded once in App.js)
@@ -523,25 +530,17 @@ const [showUpgradeModal, setShowUpgradeModal] = useState(false);
       console.log("folderSize",folderSize)
     }, [folderSize])
 
-
-
-
-
   // console.log("Get Is Shared value :", getIsShared)
-
 
   // File Conversion
 const [showConversionModal, setShowConversionModal] = useState(false);
 const [convertedFiles, setConvertedFiles] = useState([]);
-
-
 
   const handleFilesConverted = (updatedFiles) => {
     setFiles(updatedFiles);
     setConvertedFiles(updatedFiles);
     setShowConversionModal(false);
   };
-
 
   const [fileInfo, setFileInfo] = useState({
     fileName: "",
@@ -619,14 +618,12 @@ const [convertedFiles, setConvertedFiles] = useState([]);
   //   console.log("yyyyy ✅pathhhhhhhh --> calling reload", path);
   // }, [ path]);
 
-
   // useEffect(() => {
   //   console.log("zxcvb Reloading now")
   //   // setTimeout(() => {
   //     reloadAfterTast();
   //   // }, 3000);
   // }, [ breadCrumClickTrigger]);
-
 
   const prevValueRef = useRef();
 
@@ -642,7 +639,6 @@ useEffect(() => {
   
 
   // Fetch all folder files
-
 
 const getFolderFiles = async (foldername, size) => {
   if (!foldername?.fileName) {
@@ -721,7 +717,6 @@ const getFolderFiles = async (foldername, size) => {
   }
 };
 
-
   // Handle pagination — only change page; filedata stays full and is sliced in useEffect
   const goToFirstPage = () => setCurrentPage(1);
 
@@ -738,9 +733,6 @@ const getFileIcon = (file) =>
   resolveFileIconPath(file, {
     // shared folders: keep backend file.icon (unchanged)
   });
-
-
-
 
   const goToLastPage = () => {
     if (currentPage < totalPageCount) setCurrentPage(totalPageCount);
@@ -782,11 +774,31 @@ const getFileIcon = (file) =>
 
   const [sharePopup, setSharepopup] = useState(false);
 
-  const [keys, setKeys] = useState([]);
-  const [keys2, setKeys2] = useState([]);
-  const hasBulkSelection = keys.length > 0 || keys2.length > 0;
-  const { filterBarRef, tableBoxRef, tableBoxClassName } = useStickyListHeader(view, hasBulkSelection);
-  const [selectStatus, setSelectStatus] = useState(false);
+  const { filterBarRef, tableBoxRef, tableBoxClassName } = useStickyListHeader(view, false);
+
+  useEffect(() => {
+    syncSelectionDomClass();
+    const unsubscribe = subscribeFileSelection(() => syncSelectionDomClass());
+    return () => {
+      unsubscribe();
+      clearFileSelection();
+    };
+  }, []);
+
+  useEffect(() => {
+    const onClick = (e) => {
+      if (!hasFileSelection()) return;
+      const toggle = e.target.closest?.(".dropdown-toggle");
+      if (!toggle) return;
+      if (toggle.closest(".bulk-selection-slot, .bulk-selection-float")) return;
+      if (!toggle.closest("#filestable") && !toggle.closest("#dataView")) return;
+      e.preventDefault();
+      e.stopPropagation();
+      showToast("warning", BULK_ROW_ACTION_TOAST_MESSAGE);
+    };
+    document.addEventListener("click", onClick, true);
+    return () => document.removeEventListener("click", onClick, true);
+  }, []);
 
   // console.log("responseData", responseData, isShared);
   // console.log("select", select);
@@ -820,11 +832,9 @@ const getFileIcon = (file) =>
 
   const handleMClose = () => {
     setIsWhisperClicked(false);
-    setKeys([]);
-    setKeys2([]);
+    clearFileSelection();
     dispatch(resetFolderList());
   };
-
 
 // ────────────────────────────────────────────────
 // Returns the full destination path (which targetFolder already is)
@@ -840,11 +850,9 @@ const getFolderNameOnly = (fullPath) => {
   return parts[parts.length - 1] || fullPath;
 };
 
-
-
-
-
   const handleBulkMoveSelection = () => {
+    const keys = getFileSelectionKeys();
+    const keys2 = getFolderSelectionKeys();
     if (keys.length === 0 && keys2.length === 0) {
       showToast("error", "No files or folders selected.");
       return;
@@ -864,6 +872,7 @@ const getFolderNameOnly = (fullPath) => {
 
   const handleMultiCopyClick = () => {
   console.log("lllll: handleMultiCopyClick called");
+  const keys = getFileSelectionKeys();
 
   // Filter out folders and get only files
   const selectedFiles = keys.filter(key => {
@@ -900,7 +909,6 @@ const getFolderNameOnly = (fullPath) => {
   setIsCWhisperClicked(true);
 };
 
-
   const handleMFClick = (name) => {
     closeAllRowDropdowns();
     setMoveFol(true);
@@ -909,9 +917,7 @@ const getFolderNameOnly = (fullPath) => {
   const handleMFClose = () => {
     setMoveFol(false);
     dispatch(resetFolderList());
-    setKeys([]);
-    setKeys2([]);
-    setIsSelectAll(false);
+    clearFileSelection();
   };
 
   // Copy File code
@@ -927,7 +933,7 @@ const getFolderNameOnly = (fullPath) => {
     console.log("ggggg fetchUserFolderSize executed")
     dispatch(resetFolderList());
     setIsCWhisperClicked(false);
-    setKeys([]);
+    clearFileSelection();
     setCopiedFile(null);
   };
 
@@ -943,12 +949,11 @@ function debounce(fn, delay) {
   };
 }
 
-
   // ────────────────────────────────────────────────
   // Debounced copy handler – prevents spam clicks
   // ────────────────────────────────────────────────
   const handleCopyButton = debounce(() => {
-    if (keys2.length > 0) {
+    if (getFolderSelectionKeys().length > 0) {
       showToast("error", "Copy folder is not available!");
       // or more polite: "Copying folders is not supported yet."
     } else {
@@ -956,81 +961,19 @@ function debounce(fn, delay) {
     }
   }, 450);   // 450 ms – feels responsive but blocks spam
 
-
-  
-
-
-  const handleCheckboxChange = (file) => {
-  if (file.isFolder) {
-    // If the file is a folder, update the keys2 list
-    setKeys2((prevKeys2) => {
-      const isChecked = prevKeys2.includes(file.fileName);
-      const newKeys2 = isChecked
-        ? prevKeys2.filter((f) => f !== file.fileName)
-        : [...prevKeys2, file.fileName];
-      console.log("Updated keys2:", newKeys2);
-      return newKeys2;
-    });
-  } else {
-    // If the file is not a folder, update the keys list
-    setKeys((prevKeys) => {
-      const isChecked = prevKeys.includes(file.fileName);
-      const newKeys = isChecked
-        ? prevKeys.filter((f) => f !== file.fileName)
-        : [...prevKeys, file.fileName];
-      console.log("Updated keys:", newKeys);
-      return newKeys;
-    });
-  }
-};
-
   /** When any row is selected, row clicks toggle selection instead of open/navigate */
   const trySelectInsteadOfOpen = (file) => {
-    if (keys.length === 0 && keys2.length === 0) return false;
-    if (file.fileName === "blackbox" || file.isShared) return true;
-    handleCheckboxChange(file);
+    if (!hasFileSelection()) return false;
+    // blackbox + root shared-folder shortcuts only — allow select inside shared view
+    if (file.fileName === "blackbox" || isSharedFolderShortcut(file)) return true;
+    toggleFileSelection(file.fileName, !!file.isFolder);
     return true;
   };
-
 
   // Breadcrumb handlers are defined after `parts` (see below)
 
   const reduksData = useSelector((state) => state.getdata.userdata);
   // console.log("reduksData", reduksData);
-
-  const [isSelectAll, setIsSelectAll] = useState(false);
-  // Handle select/deselect all
-  const handleSelectAllToggle = () => {
-    if (!isSelectAll) {
-      // Select all - preserve existing selections and add all other items
-      const allFiles = paginatedData
-        .filter((file) => !file.isFolder)
-        .map((file) => file.fileName);
-      const allFolders = paginatedData
-        .filter((file) => file.isFolder)
-        .map((file) => file.fileName);
-
-      setKeys((prevKeys) => {
-        const newKeys = [...new Set([...prevKeys, ...allFiles])];
-        return newKeys;
-      });
-
-      setKeys2((prevKeys2) => {
-        const newKeys2 = [...new Set([...prevKeys2, ...allFolders])];
-        return newKeys2;
-      });
-    } else {
-      // Deselect all
-      setKeys([]);
-      setKeys2([]);
-      // console.log("arrays are", keys, keys2);
-    }
-    setIsSelectAll(!isSelectAll);
-  };
-  useEffect(() => {
-    // console.log("Current arrays are:", keys, keys2);
-  }, [keys, keys2]);
-
 
 const handleMulDelete = async () => {
   if (filenameRedux === "blackbox") {
@@ -1040,6 +983,9 @@ const handleMulDelete = async () => {
     );
     return;
   }
+
+  const keys = getFileSelectionKeys();
+  const keys2 = getFolderSelectionKeys();
 
   setLoader_Recycle(true);
   dispatch(setLoader(true));
@@ -1139,11 +1085,8 @@ const handleMulDelete = async () => {
     }
 
     // Refresh lists / storage
-    setIsSelectAll(false);
-    setSelectStatus(false);
     reloadAfterTast();
-    setKeys([]);
-    setKeys2([]);
+    clearFileSelection();
 
     // Update storage in Redux
     dispatch(fetchUserFolderSize({ token, force: true }));
@@ -1161,14 +1104,12 @@ const handleMulDelete = async () => {
   }
 };
 
-
-
-
 const [downloadConcurrency, setDownloadConcurrency] = useState(1);
 // Then this function will pick that value. If you don't add it, the function falls back to 1.
 
-
 const handleMulDownload = async () => {
+  const keys = getFileSelectionKeys();
+  const keys2 = getFolderSelectionKeys();
   if (keys.length === 0 && keys2.length === 0) {
     showToast("error", "No files or folders selected!");
     return;
@@ -1179,123 +1120,225 @@ const handleMulDownload = async () => {
     ...keys2.map((fileName) => ({ fileName, isFolder: true })),
   ];
 
-  const batchId = Date.now() + "-" + Math.random().toString(36).slice(2, 9);
-
-  const concurrency =
-    typeof downloadConcurrency !== "undefined" && Number.isFinite(downloadConcurrency)
-      ? Math.max(1, Number(downloadConcurrency))
-      : 1;
-
+  // One shared controller for the whole batch so Cancel / ✕ aborts remaining
+  // files even after the first few have already finished.
+  const batchAbortController = new AbortController();
   items.forEach((item, i) => {
     const downloadId = Date.now() + Math.random() + i;
-    const abortController = new AbortController();
-    addDownload(downloadId, item.fileName, abortController, item.isFolder);
+    addDownload(
+      downloadId,
+      item.fileName,
+      batchAbortController,
+      item.isFolder
+    );
     item.downloadId = downloadId;
-    item.abortController = abortController;
-    item.endpoint = item.isFolder ? "download-folder" : "download-file";
+    item.abortController = batchAbortController;
   });
 
-  const downloadOne = async (item) => {
-    const { fileName, endpoint, downloadId, abortController } = item;
-    let succeeded = false;
-    try {
-      if (item.isFolder) {
-        await downloadFolderWithFallback({
-          fileName,
-          signal: abortController.signal,
-          onProgress: (percent) => updateDownloadProgress(downloadId, percent),
-        });
-      } else {
-        const params = {
-          filePath: fileName,
-          ...(isSharedValue && filenameRedux ? { shared: filenameRedux } : {}),
-        };
-        const response = await fetch(
-          `${apiUrl}${endpoint}?${new URLSearchParams(params)}`,
-          {
-            headers: {
-              Authorization: `Bearer ${token}`,
-            },
-            signal: abortController.signal,
-          }
-        );
+  const shared =
+    isSharedValue && filenameRedux ? filenameRedux : undefined;
+  const fileItems = items.filter((item) => !item.isFolder);
+  const folderItems = items.filter((item) => item.isFolder);
 
-        if (!response.ok) throw new Error("Network response was not ok");
+  const itemByPath = Object.fromEntries(
+    items.map((item) => [item.fileName, item])
+  );
 
-        await streamDownloadResponse({
-          response,
-          fileName,
-          isFolder: false,
-          writable: null,
-          onProgress: (percent) => updateDownloadProgress(downloadId, percent),
-        });
-      }
-
-      succeeded = true;
-      updateDownloadProgress(downloadId, 100);
-      return { success: true, downloadId };
-    } catch (err) {
-      if (isDownloadCancelledError(err)) {
-        console.warn("Download cancelled", item.fileName);
-        showToast("info", `Download cancelled: ${item.fileName}`);
-      } else {
-        console.error("Download error for", fileName, err);
-        showToast("error", err?.message || `Error downloading ${fileName}.`);
-      }
-      return { success: false, downloadId, error: err };
-    } finally {
-      if (!succeeded) {
-        scheduleDownloadRemoval(removeDownload, downloadId, { delayMs: 0 });
-      }
-    }
-  };
-
-  let cursor = 0;
-  const runWorker = async () => {
-    while (true) {
-      if (cursor >= items.length) break;
-      const myIndex = cursor;
-      cursor += 1;
-      const item = items[myIndex];
-      if (!item) break;
-      await downloadOne(item);
-    }
-  };
-
-  const workers = Array.from({ length: Math.min(concurrency, items.length) }, () => runWorker());
-  try {
-    await Promise.all(workers);
-    showToast("success", "All downloads processed.");
-
-    const cleanupDelay = 600;
+  const cleanupProgress = () => {
     setTimeout(() => {
       items.forEach((it) => {
         try {
           removeDownload(it.downloadId);
         } catch (e) {}
       });
-    }, cleanupDelay);
+    }, 600);
+  };
+
+  try {
+    const batchSignal = batchAbortController.signal;
+    let succeeded = 0;
+    let cancelled = 0;
+    let failed = 0;
+
+    let sharedDirHandle = null;
+    const needsDirectStreamDir =
+      fileItems.length > 1 || folderItems.length > 0;
+    if (needsDirectStreamDir) {
+      try {
+        sharedDirHandle = await ensureSaveDirectory();
+      } catch (err) {
+        if (isDownloadCancelledError(err)) {
+          toastBatchDownloadSummary(showToast, {
+            total: items.length,
+            succeeded: 0,
+            cancelled: items.length,
+            failed: 0,
+          });
+          cleanupProgress();
+          return;
+        }
+        throw err;
+      }
+      if (!sharedDirHandle) {
+        showToast(
+          "error",
+          "Choose a save folder (Chrome/Edge) to download with folder structure."
+        );
+        cleanupProgress();
+        return;
+      }
+    }
+
+    if (fileItems.length === 1) {
+      const item = fileItems[0];
+      try {
+        await downloadFileNativeBrowser({
+          apiUrl,
+          token,
+          filePath: item.fileName,
+          shared,
+          signal: batchSignal,
+          onProgress: (percent) => {
+            updateDownloadProgress(item.downloadId, percent);
+          },
+        });
+        updateDownloadProgress(item.downloadId, 100);
+        succeeded += 1;
+      } catch (err) {
+        if (isDownloadCancelledError(err)) cancelled += 1;
+        else failed += 1;
+        scheduleDownloadRemoval(removeDownload, item.downloadId, {
+          delayMs: 0,
+        });
+      }
+    } else if (fileItems.length > 0) {
+      try {
+        const batch = await downloadMultipleFilesToDirectory({
+          apiUrl,
+          token,
+          filePaths: fileItems.map((item) => item.fileName),
+          shared,
+          signal: batchSignal,
+          dirHandle: sharedDirHandle,
+          estimatedBytesByPath: Object.fromEntries(
+            fileItems.map((item) => [
+              item.fileName,
+              estimateDownloadBytes(
+                filedata?.find?.((f) => f.fileName === item.fileName)
+              ),
+            ])
+          ),
+          onFileProgress: (filePath, percent) => {
+            const item = itemByPath[filePath];
+            if (item) updateDownloadProgress(item.downloadId, percent);
+          },
+        });
+        (batch.results || []).forEach((r) => {
+          const item = itemByPath[r.filePath];
+          if (r.success) {
+            succeeded += 1;
+            if (item) updateDownloadProgress(item.downloadId, 100);
+          } else if (r.cancelled) {
+            cancelled += 1;
+            if (item) {
+              scheduleDownloadRemoval(removeDownload, item.downloadId, {
+                delayMs: 0,
+              });
+            }
+          } else {
+            failed += 1;
+            if (item) {
+              scheduleDownloadRemoval(removeDownload, item.downloadId, {
+                delayMs: 0,
+              });
+            }
+          }
+        });
+      } catch (err) {
+        if (isDownloadCancelledError(err)) {
+          cancelled += fileItems.length;
+        } else {
+          failed += fileItems.length;
+        }
+        fileItems.forEach((item) =>
+          scheduleDownloadRemoval(removeDownload, item.downloadId, {
+            delayMs: 0,
+          })
+        );
+      }
+    }
+
+    if (folderItems.length > 0 && !batchSignal.aborted) {
+      try {
+        const folderBatch = await downloadMultipleFoldersToDirectory({
+          apiUrl,
+          token,
+          folderPaths: folderItems.map((item) => item.fileName),
+          shared,
+          signal: batchSignal,
+          dirHandle: sharedDirHandle,
+          onFolderProgress: (folderPath, percent) => {
+            const item = itemByPath[folderPath];
+            if (item) updateDownloadProgress(item.downloadId, percent);
+          },
+        });
+        (folderBatch.results || []).forEach((r) => {
+          const item = itemByPath[r.folderPath];
+          if (r.success) {
+            succeeded += 1;
+            if (item) updateDownloadProgress(item.downloadId, 100);
+          } else if (r.cancelled) {
+            cancelled += 1;
+            if (item) {
+              scheduleDownloadRemoval(removeDownload, item.downloadId, {
+                delayMs: 0,
+              });
+            }
+          } else {
+            failed += 1;
+            if (item) {
+              scheduleDownloadRemoval(removeDownload, item.downloadId, {
+                delayMs: 0,
+              });
+            }
+          }
+        });
+      } catch (err) {
+        if (isDownloadCancelledError(err)) {
+          cancelled += folderItems.length;
+        } else {
+          failed += folderItems.length;
+        }
+        folderItems.forEach((item) =>
+          scheduleDownloadRemoval(removeDownload, item.downloadId, {
+            delayMs: 0,
+          })
+        );
+      }
+    }
+
+    toastBatchDownloadSummary(showToast, {
+      total: items.length,
+      succeeded,
+      cancelled,
+      failed,
+    });
+    cleanupProgress();
   } catch (err) {
     console.error("Queue error:", err);
-    showToast("error", "One or more downloads failed.");
-
-    const cleanupDelay = 600;
-    setTimeout(() => {
-      items.forEach((it) => {
-        try {
-          removeDownload(it.downloadId);
-        } catch (e) {}
+    if (isDownloadCancelledError(err)) {
+      toastBatchDownloadSummary(showToast, {
+        total: items.length,
+        succeeded: 0,
+        cancelled: items.length,
+        failed: 0,
       });
-    }, cleanupDelay);
+    } else {
+      showToast("error", "One or more downloads failed.");
+    }
+    cleanupProgress();
   }
 };
-
-
-
-
-
-
-
 
 const handleAddToFavorites = async (file) => {
   try {
@@ -1340,7 +1383,6 @@ const handleRemoveFromFavorites = async (file) => {
 const isFileFavorited = (fileName) => {
   return favoriteFiles.includes(fileName);
 };
-
 
   useEffect(() => {
     // console.log("Value of counter is", counter);
@@ -1899,10 +1941,6 @@ const getDocInfo = async (filename) => {
   }
 };
 
-
-
-
-
   // Anurag View Image, Video
   const openFile = async (file) => {
     try {
@@ -2018,11 +2056,11 @@ const getDocInfo = async (filename) => {
       setOpenFileUploadModal(false); // Close the modal
     };
 
-
   const handleOpenCreateFolder = () => setCreateFolderButton(true);
   const handleCloseCreateFolder = () => {
     setCreateFolderButton(false);
     setFolderFieldError("");
+    setNewFolderName("");
   };
 
   const [isLoading, setLoading] = useState(true); // State to manage loading state
@@ -2265,7 +2303,6 @@ const getDocInfo = async (filename) => {
     setDeletepop(false);
   };
 
-
 const handleFileDelete = async (file) => {
   
   handleCloseDeletePopover();
@@ -2382,11 +2419,6 @@ const handleFileDelete = async (file) => {
   }
 };
 
-
-
-
-
-
   //Remove data from redux after back button clicked
   const isRestoringNavRef = useRef(false);
   useEffect(() => {
@@ -2493,7 +2525,6 @@ useEffect(() => {
 
  
 
-
   // console.log("t", t);
 
   const getUcer = (file, counter) => {
@@ -2545,7 +2576,6 @@ useEffect(() => {
 
   const [parts, setParts] = useState([]);
 
-
 //   useEffect(() => {
 //   console.log("yyyyy Reduxxxxx folderName changed: `t`", t);
 // }, [t]);
@@ -2577,8 +2607,7 @@ useEffect(() => {
       breadcrumbNavigatingRef.current = true;
       setBreadcrumbBusy(true);
       setPlaceholderLoading(true);
-      setKeys([]);
-      setKeys2([]);
+      clearFileSelection();
       clearSearchBar();
 
       const targetPath = `${parts.slice(0, targetIndex + 1).join("/")}/`;
@@ -2624,8 +2653,7 @@ useEffect(() => {
       breadcrumbNavigatingRef.current = true;
       setBreadcrumbBusy(true);
       setPlaceholderLoading(true);
-      setKeys([]);
-      setKeys2([]);
+      clearFileSelection();
       clearSearchBar();
 
       const parentPath = `${parts.slice(0, -1).join("/")}/`;
@@ -2676,10 +2704,7 @@ useEffect(() => {
 
   useEffect(() => {
     if (prevFolderPathRef.current !== normalizedFolderPath) {
-      setKeys([]);
-      setKeys2([]);
-      setIsSelectAll(false);
-      setSelectStatus(false);
+      clearFileSelection();
       clearSearchBarRef.current();
       prevFolderPathRef.current = normalizedFolderPath;
     }
@@ -2836,8 +2861,6 @@ useEffect(() => {
   // ================= CONFIG =================
 // ================= CONFIG =================
 
-
-
 // const PART_SIZE = 5 * 1024 * 1024; // 5 MB per part
 // const PART_SIZE = 10 * 1024 * 1024; // 5 MB per part
 // ==========================================
@@ -2851,9 +2874,6 @@ useEffect(() => {
 //   }
 //   return `${base}/aws/${ep}`;
 // };
-
-
-
 
 // const startMultipart = async (fileName, folderPath, isShared, sharedView, currentPath) => {
 //   const url = buildAwsUrl(apiUrl, "start-multipart-upload");
@@ -2917,9 +2937,6 @@ useEffect(() => {
 //   return resp.data; // expects { uploadId, key, bucket }
 // };
 
-
-
-
 // Replace existing uploadPart with this (in NestedPage.jsx)
 // const uploadPart = async ({ partNumber, uploadId, key, chunk, fileType, signal }) => {
 //   const encodedKey = encodeURIComponent(key);
@@ -2943,7 +2960,6 @@ useEffect(() => {
 
 //   return { etag, resp };
 // };
-
 
 // const completeMultipart = async ({ key, uploadId, parts }) => {
 //   const url = buildAwsUrl(apiUrl, "complete-multipart-upload");
@@ -2977,7 +2993,6 @@ useEffect(() => {
 //     console.error("Abort multipart failed", e);
 //   }
 // };
-
 
 // const BATCH_SIZE = 10;
 
@@ -3188,7 +3203,6 @@ useEffect(() => {
 //     setFiles([]);
 //   }
 // };
-
 
 // const handleFileUpload = async () => {
 //   if (files.length === 0) {
@@ -3407,7 +3421,6 @@ useEffect(() => {
 //   }
 // };
 
-
   // ================= CONFIG =================
   // const PART_SIZE = 5 * 1024 * 1024; // 5 MB per part
   // const PART_SIZE = 55 * 1024 * 1024; // 5 MB per part
@@ -3479,7 +3492,6 @@ useEffect(() => {
   return resp.data;
 };
 
-
   /**
    * uploadPart now accepts an optional `signal` (from AbortController).
    * axios supports the `signal` option which will abort the request if controller.abort() is called.
@@ -3513,7 +3525,6 @@ useEffect(() => {
     apiUrl,
     `upload-part?partNumber=${partNumber}&uploadId=${encodeURIComponent(uploadId)}&key=${encodedKey}`
   );
-
 
   try {
     // console.log("bbbbb axios upload START", 
@@ -3558,9 +3569,6 @@ useEffect(() => {
     throw error;
   }
 };
-
-
-
 
   const completeMultipart = async ({ key, uploadId, parts }) => {
     const url = buildAwsUrl(apiUrl, "complete-multipart-upload");
@@ -3982,8 +3990,6 @@ useEffect(() => {
     setFiles([]);
   };
 
-
-
   
   
   // Folder selection logic moved into UploadFolderPanel
@@ -4065,7 +4071,6 @@ useEffect(() => {
     }
   };
 
-
   useEffect(() => {
     // console.log("fileList", fileList);
   }, [fileList]);
@@ -4073,18 +4078,9 @@ useEffect(() => {
   const createJustFolder = async (event) => {
     event?.preventDefault?.();
     event?.stopPropagation?.();
+    if (isCreatingFolder) return;
 
-    const form =
-      event?.target?.tagName === "FORM"
-        ? event.target
-        : event?.target?.closest?.("form");
-    const inputEl = form?.querySelector?.('input[name="fname"]');
-    const folderInput = (
-      inputEl?.value ||
-      document.getElementById("folname-popup")?.value ||
-      document.getElementById("folname")?.value ||
-      ""
-    ).trim();
+    const folderInput = (newFolderName || "").trim();
 
     // Validation: Allow only letters, numbers, underscores, hyphens, and spaces
     const isValid = /^[a-zA-Z0-9_\- ]{1,}$/.test(folderInput);
@@ -4121,6 +4117,12 @@ useEffect(() => {
     // Final cleanup to remove multiple consecutive slashes
     folderName = folderName.replace(/\/+/g, "/");
 
+    if (isCreateFolderNameTaken(filedata, folderInput)) {
+      setFolderFieldError(FOLDER_EXISTS_MESSAGE);
+      return;
+    }
+
+    setIsCreatingFolder(true);
     try {
       // Define API parameters
       let params = {};
@@ -4140,7 +4142,7 @@ useEffect(() => {
         }
       );
 
-      if (inputEl) inputEl.value = "";
+      setNewFolderName("");
       setFolderFieldError("");
       handleCloseCreateFolder();
       setOpenFileUploadModal(false);
@@ -4148,12 +4150,13 @@ useEffect(() => {
       reloadAfterTast();
     } catch (error) {
       console.error(`There's an error at ${error}`);
-      showToast("error", "Failed to create folder. Please try again.");
+      const message = getCreateFolderErrorMessage(error);
+      setFolderFieldError(message);
+      showToast("error", message);
+    } finally {
+      setIsCreatingFolder(false);
     }
   };
-
-
-
 
 //   function parseStorageToBytes(storageStr) {
 //   if (!storageStr) return 0;
@@ -4168,7 +4171,6 @@ useEffect(() => {
 //   : (subscription && subscription.storage ? parseStorageToBytes(subscription.storage) : 5 * 1024 ** 3);
 // const usedBytes = folderSize ? folderSize.sizeInBytes : 0;
 // const remainingBytes = totalBytes - usedBytes;
-
 
   function parseStorageToBytes(storageStr) {
     if (!storageStr) return 0;
@@ -4210,8 +4212,6 @@ useEffect(() => {
     : 0;
 
   const postUploadRemainingBytes = remainingBytes - totalSelectedSize;
-
-
 
   
 
@@ -4415,9 +4415,7 @@ useEffect(() => {
   // eslint-disable-next-line react-hooks/exhaustive-deps
 }, [counter, path, isSharedValue, filenameRedux]);
 
-
    
-
 
   const downloadFile = (file) => {
     // console.log("Started to download...");
@@ -4454,28 +4452,12 @@ useEffect(() => {
           },
         });
       } else {
-        const params = {
+        await downloadFileNativeBrowser({
+          apiUrl,
+          token,
           filePath: fileName,
-          ...(isSharedValue && { shared: filenameRedux }),
-        };
-
-        const response = await fetch(
-          `${apiUrl}download-file?${new URLSearchParams(params)}`,
-          {
-            headers: {
-              Authorization: `Bearer ${token}`,
-            },
-            signal: abortController.signal,
-          }
-        );
-
-        if (!response.ok) throw new Error("Network response was not ok");
-
-        await streamDownloadResponse({
-          response,
-          fileName,
-          isFolder: false,
-          writable: null,
+          shared: isSharedValue ? filenameRedux : undefined,
+          signal: abortController.signal,
           onProgress: (percent) => {
             setProgress(percent);
             updateDownloadProgress(downloadId, percent);
@@ -4511,7 +4493,6 @@ useEffect(() => {
     setProgress(0);
     setDownloadpopup(false);
   };
-
 
     useEffect(() => {
     if (!downloadPopup) {
@@ -4693,7 +4674,6 @@ useEffect(() => {
   //   }
   // }
 
-
   async function processZipFile(file, destinationPath = "") {
     if (!file?.fileName) return;
 
@@ -4777,7 +4757,6 @@ useEffect(() => {
   }
 }
 
-
   const customTruncateFileName = (name, maxLength) => {
     if (name.length > maxLength) {
       return `${name.substring(0, maxLength - 9)} of the ${name.substring(
@@ -4788,112 +4767,12 @@ useEffect(() => {
     return name;
   };
 
-  const toast = useToast();
-
-
-    const iconMap = {
-    success: FaCheckCircle,
-    error: BsXCircleFill,
-    info: IoIosInformationCircle,
-    warning: FaExclamationTriangle,
-  };
-  
-  
-  const getStatusColors = (status) => {
-    return {
-      bg: 'rgba(255, 255, 255, 0.85)',     // Clean white glass
-      border: status === 'success' ? 'rgba(16, 185, 129, 0.3)' :
-              status === 'error' ? 'rgba(239, 68, 68, 0.3)' :
-              status === 'info' ? 'rgba(59, 130, 246, 0.3)' :
-              'rgba(245, 158, 11, 0.3)',        // Status-colored border
-      icon: status === 'success' ? '#10b981' :
-            status === 'error' ? '#ef4444' :
-            status === 'info' ? '#3b82f6' :
-            '#f59e0b'
-    };
-  };
   
   
   
-const showToast = (status, message) => {
-  const IconComponent = iconMap[status];
-  const colors = getStatusColors(status);
-
-  // 👇 create unique id based on content
-  const toastId = `${status}-${message}`;
-
-  // 👇 prevent duplicate toast
-  if (toast.isActive(toastId)) return;
-
-  toast({
-    id: toastId, // ✅ important
-    position: 'bottom-right',
-    duration: 4000,
-    isClosable: true,
-    render: () => (
-      <div className="premium-toast" style={{
-        background: `linear-gradient(135deg, ${colors.bg}, rgba(255,255,255,0.9))`,
-        backdropFilter: 'blur(20px)',
-        border: `2px solid ${colors.border}`,
-        borderRadius: '16px',
-        boxShadow: '0 25px 50px -12px rgba(0,0,0,0.25), 0 0 0 1px rgba(255,255,255,0.05)',
-        padding: '20px',
-        maxWidth: '720px',
-        fontFamily: "'SF Pro', 'SFProText', -apple-system, BlinkMacSystemFont, sans-serif",
-        animation: 'toastSlideIn 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
-      }}>
-        <div style={{ display: 'flex', alignItems: 'flex-start', gap: '12px' }}>
-          <IconComponent 
-            style={{ 
-              width: '24px', 
-              height: '24px', 
-              color: colors.icon,
-              flexShrink: 0,
-              marginTop: '2px'
-            }} 
-          />
-          <div style={{ flex: 1, minWidth: 0 }}>
-            <div style={{
-              fontSize: '14px',
-              fontWeight: '600',
-              color: '#1f2937',
-              marginBottom: '4px',
-              lineHeight: '1.3'
-            }}>
-              {status.charAt(0).toUpperCase() + status.slice(1)}
-            </div>
-            <div style={{
-              fontSize: '14px',
-              color: '#6b7280',
-              lineHeight: '1.4'
-            }}>
-              {message}
-            </div>
-          </div>
-          <button 
-            style={{
-              background: 'none',
-              border: 'none',
-              padding: '4px',
-              cursor: 'pointer',
-              color: '#9ca3af',
-              borderRadius: '4px',
-              opacity: 0.7,
-              transition: 'all 0.2s'
-            }}
-            onClick={() => toast.closeAll()}
-            onMouseEnter={(e) => e.target.style.opacity = 1}
-            onMouseLeave={(e) => e.target.style.opacity = 0.7}
-          >
-            ✕
-          </button>
-        </div>
-      </div>
-    ),
-  });
-};
   
-
+  
+  
 
   //Image slider functionality
   const [isFullscreen, setIsFullscreen] = useState(false);
@@ -4946,8 +4825,6 @@ const showToast = (status, message) => {
     setDeletepop(false);
     setIsFullscreen(false);
   });
-
-
 
 const handleNext = () => {
   console.log("✅handleNext is clicked");
@@ -5036,10 +4913,6 @@ const handleNext = () => {
   });
 };
 
-
-
-
-
    const handlePrev = () => {
   setErrorMessage2("");
   setIsProgressVisible(true);
@@ -5120,9 +4993,6 @@ const handleNext = () => {
   });
 };
 
-
-
-
  const deleteFromModal = async (filename) => {
   const loaderStartedAt = Date.now();
   setLoader_Recycle(true);
@@ -5156,34 +5026,7 @@ const handleNext = () => {
       },
     });
 
-    const freshFiles = await reloadAfterTast();
-    const next = resolvePreviewAfterDelete(
-      freshFiles,
-      filename,
-      deletedIndex,
-      { isSharedValue }
-    );
-
-    if (!next) {
-      handleImageClose();
-    } else {
-      openPreviewFile(next.file, next.index, {
-        handleImageShow,
-        setCurrentImageIndex,
-        setPreviewFile,
-        setModalFile,
-        setErrorMessage2,
-        setIsProgressVisible,
-        setImageSrc,
-        setVideoSrc,
-        setAudioSrc,
-        setPdfSrc,
-        setDocSrc,
-        getImageInfo,
-        getPdfInfo,
-        getDocInfo,
-      });
-    }
+    await advancePreviewAfterRemove(filename, deletedIndex);
 
     afterMinLoaderDisplay(loaderStartedAt, () => {
       setLoader_Recycle(false);
@@ -5195,8 +5038,44 @@ const handleNext = () => {
   }
 };
 
+  const advancePreviewAfterRemove = async (
+    removedFileName,
+    removedIndex = currentImageIndex
+  ) => {
+    const freshFiles = await reloadAfterTast();
+    const next = resolvePreviewAfterDelete(
+      freshFiles,
+      removedFileName,
+      removedIndex,
+      { isSharedValue }
+    );
 
+    if (!next) {
+      handleImageClose();
+      return;
+    }
 
+    openPreviewFile(next.file, next.index, {
+      handleImageShow,
+      setCurrentImageIndex,
+      setPreviewFile,
+      setModalFile,
+      setErrorMessage2,
+      setIsProgressVisible,
+      setImageSrc,
+      setVideoSrc,
+      setAudioSrc,
+      setPdfSrc,
+      setDocSrc,
+      getImageInfo,
+      getPdfInfo,
+      getDocInfo,
+    });
+  };
+
+  const onMoveSuccessFromModal = async (movedFileName) => {
+    await advancePreviewAfterRemove(movedFileName, currentImageIndex);
+  };
 
   useEffect(() => {
     // Function to handle keydown events
@@ -5223,12 +5102,13 @@ const handleNext = () => {
   const [draggedItem, setDraggedItem] = useState(null);
   const [hoveredFolderName, setHoveredFolderName] = useState(null);
 
-
    // Function called when dragging starts
   const handleDragStart = (e, file) => {
     setDraggedItem(file); // Keep track of the currently dragged item
     e.dataTransfer.effectAllowed = "move";
 
+    const keys = getFileSelectionKeys();
+    const keys2 = getFolderSelectionKeys();
     const totalSelectedItems = keys.length + keys2.length;
 
     const dragPreview = document.createElement("div");
@@ -5418,7 +5298,6 @@ const handleDrop = (e) => {
   return;
 }
 
-
   if (!hoveredFolderName) {
     console.warn("No folder was hovered at drop time");
     showToast("warning", "Please drop over a valid folder.");
@@ -5475,20 +5354,16 @@ const handleDrop = (e) => {
   setHoveredFolderName(null);
 };
 
-
 const handleDragEnd = (e) => {
   e.target.classList.remove("dragging");
   setHoveredFolderName(null);           // ← important cleanup
   setDraggedItem(null);                 // optional extra safety
 };
 
-
   // Function called when a draggable item enters a droppable area
   const handleDragEnter = (e) => {
     e.preventDefault();
   };
-
-
 
   const moveDraggedFile = async (filename) => {
     let uploadId = null;
@@ -5633,7 +5508,6 @@ const handleDragEnd = (e) => {
         );
       }
 
-      setKeys([]);
       finishMoveTransfer(updateUploadProgress, removeUpload, uploadId);
       uploadId = null;
       showToast("success", "Files Moved Successfully!");
@@ -5710,7 +5584,6 @@ const handleDragEnd = (e) => {
         }
       );
 
-      setKeys2([]);
       finishMoveTransfer(updateUploadProgress, removeUpload, uploadId);
       uploadId = null;
       showToast("success", "Folders Moved Successfully!");
@@ -5731,6 +5604,8 @@ const handleDragEnd = (e) => {
     setLoader2(true);
 
     try {
+      const keys = getFileSelectionKeys();
+      const keys2 = getFolderSelectionKeys();
       const tasks = [];
       if (dragFile?.fileName) {
         tasks.push(moveDraggedFile(dragFile));
@@ -5742,6 +5617,7 @@ const handleDragEnd = (e) => {
         tasks.push(moveMultipleDrag2(keys2, targetFolder));
       }
       await Promise.all(tasks);
+      clearFileSelection();
       afterLoaderComplete(() => setLoader2(false));
       await refreshFolderListWithSkeleton();
     } catch (error) {
@@ -5847,11 +5723,9 @@ const handleDragEnd = (e) => {
   }
 };
 
-
   return (
     <>
-      <ChakraProvider></ChakraProvider>
-      {codePopup && (
+{codePopup && (
         <div className="code-popup-overlay">
           <div className="code-popup-container">
             <button
@@ -5980,8 +5854,8 @@ const handleDragEnd = (e) => {
       </h2>
 
       <p className="modal-subtitle" style={{marginBottom:"12px"}}>
-        {keys.length + keys2.length > 1
-          ? `${keys.length + keys2.length} items`
+        {getFileSelectionCount() > 1
+          ? `${getFileSelectionCount()} items`
           : "This item"}{" "}
         will be moved to the selected folder. This action cannot be undone.
       </p>
@@ -6009,7 +5883,6 @@ const handleDragEnd = (e) => {
     </div>
   </div>
 )}
-
 
       
       {downloadPopup && (
@@ -6113,7 +5986,6 @@ const handleDragEnd = (e) => {
         </div>
       )}
 
-
       <FileShareModal
         isOpen={sharePopup}
         onClose={closeSharePopup}
@@ -6130,106 +6002,46 @@ const handleDragEnd = (e) => {
 
       <SideNav />
 
-      <div className="container-fluid page-body-wrapper">
+      <div className="container-fluid page-body-wrapper files-layout">
         {/* partial:partials/_navbar.html */}
-        <nav className="navbar p-0 fixed-top d-flex flex-row">
-          <div className="navbar-brand-wrapper d-flex d-lg-none align-items-center justify-content-center">
-            <a className="navbar-brand brand-logo-mini" href="#">
-              <img src={Logo} alt="logo" />
-            </a>
-          </div>
-          <div className="navbar-menu-wrapper flex-grow d-flex align-items-stretch">
-            <ToggleNav />
-            <div className="navbar-nav page_title">
-               <div style={{
-                    display: "flex",
-                    alignItems: "center",
-                    justifyContent: "space-between",
-                    width: "100%",
-              }}>
-                <div style={{
-                  display:"flex",
-                  alignItems:"center"
-                }}>
-                <h1>Recent Uploads</h1>
-                
+        <nav className="navbar p-0 fixed-top d-flex flex-row files-navbar">
+          <div className="navbar-menu-wrapper flex-grow files-navbar__shell">
+            <header className="files-app-header">
+              {/* <div className="files-app-header__menu">
+                <ToggleNav />
+              </div> */}
+
+              <div className="files-app-header__titles">
+                <h1 className="files-app-header__title">All Files</h1>
+                <div className="files-app-header__welcome files-nav-welcome">
+                  <span className="files-nav-welcome__greet">Welcome back</span>
+                  <span className="files-nav-welcome__name">
+                    {userProfile.name || userData?.userData?.name || userData?.name || name}
+                  </span>
+                </div>
               </div>
 
-
-              <div style={{
-                display:'flex',
-                alignItems:"center",
-                gap:"10px"
-
-              }}>
-                
-                <div style={{
-                  color: "#494949",
-                  fontWeight:"510"
-                }}>
-                  <div style={{fontSize:"12px"}}>Welcome, Back!</div>
-                  <div style={{fontSize:"16px"}}>{userProfile.name || userData?.userData?.name || userData?.name || name}</div>
-                </div>
-
-
-
-                <div
-                  role="button"
-                  tabIndex={0}
-                  title="Edit profile"
-                  aria-label="Open profile"
-                  onClick={() => navigate("/UserProfile")}
-                  onKeyDown={(e) => {
-                    if (e.key === "Enter" || e.key === " ") {
-                      e.preventDefault();
-                      navigate("/UserProfile");
-                    }
-                  }}
-                  style={{
-                  height: "45px",
-                  width: "45px",
-                  borderRadius: "100px",
-                  overflow: "hidden",
-                  cursor: "pointer",
-                  flexShrink: 0,
-                }}>
-                  <img 
-                  src={avatarUrl || AvatarDefault} 
-                  alt="Profile"
-                  style={{ width: "100%", height: "100%", objectFit: "cover" }}
+              <button
+                type="button"
+                className="files-app-header__profile"
+                title="Edit profile"
+                aria-label="Open profile"
+                onClick={() => navigate("/UserProfile")}
+              >
+                <img
+                  src={avatarUrl || AvatarDefault}
+                  alt=""
                   onError={(e) => {
                     e.target.onerror = null;
                     e.target.src = AvatarDefault;
-                }} />
-                </div>
-                </div>
-              </div>
-
-             
-
-
-
-
-
-
-              {/* <div className="breadcrumb">
-            {<Link to="/Files">← Back</Link>} &gt;&nbsp;
-            {parts.map((part, index) => (
-            <span key={index}>
-            <a href="#" onClick={(event) => handleBreadClick(event, part, index, parts.length)}>
-             
-             {part}
-            </a>
-            {index < parts.length - 1 && <span> &gt; </span>}
-            </span>
-            ))}
-
-            </div> */}
-            </div>
+                  }}
+                />
+              </button>
+            </header>
           </div>
         </nav>
         {/* partial */}
-        <div className="main-panel">
+        <div className="main-panel files-page">
           <div className="content-wrapper">
             <div className={tableBoxClassName} ref={tableBoxRef}>
               <div className="filerbar_row" ref={filterBarRef}>
@@ -6283,14 +6095,22 @@ const handleDragEnd = (e) => {
                       </div>
 
                       <div
-                        className="files-toolbar__filetype"
+                        className={`files-toolbar__filetype${
+                          selectedFileTypes.length > 0 ? " is-active" : ""
+                        }${showFTPopup ? " is-open" : ""}`}
                         ref={fileTypeDropdownRef}
                       >
-                      <Dropdown
-                        onSelect={handleFTypeSelect}
-                        title={
+                        <Dropdown
+                          noCaret
+                          onSelect={handleFTypeSelect}
+                          title={
                           <span className="sort-filter-span">
-                            <img src={FilterHome} alt="" />
+                            <SlidersHorizontal
+                              className="sort-filter-lucide"
+                              size={15}
+                              strokeWidth={2}
+                              aria-hidden
+                            />
                             <span className="sort-filter-label">
                               {selectedFileTypes.length > 0
                                 ? `File Type (${selectedFileTypes.length})`
@@ -6303,15 +6123,24 @@ const handleDragEnd = (e) => {
                                 className="sort-filter-crown"
                               />
                             )}
+                            <ChevronDown
+                              className={`filetype-chevron${
+                                showFTPopup ? " is-open" : ""
+                              }`}
+                              size={14}
+                              strokeWidth={2.4}
+                              aria-hidden
+                            />
                           </span>
                         }
                         className="filter_dropdown"
                         onClick={() => {
                           if (!isPremium) {
-                              setShowUpgradeModal(true);   // or showUpgradeToast()
+                              setShowUpgradeModal(true);
                               return;
                             }
-                            setShowFTPopup(true)}} // Show the modal when dropdown is clicked
+                            setShowFTPopup((open) => !open);
+                        }}
                       >
                         {/* You can remove the Dropdown.Item since it’s not needed anymore */}
                       </Dropdown>
@@ -6433,7 +6262,7 @@ const handleDragEnd = (e) => {
                   </div>
 
                   <div className="files-toolbar__actions">
-                  <Whisper placement="top" trigger="hover" speaker={<Tooltip>Create Folder</Tooltip>}>
+                  <Whisper placement="top" trigger="hover" speaker={<Tooltip className="bulk-selection-toolbar__tooltip">Create Folder</Tooltip>}>
                   <button
                     onClick={handleOpenCreateFolder}
                     className="download-btn2"
@@ -6443,7 +6272,7 @@ const handleDragEnd = (e) => {
                   </button>
                   </Whisper>
 
-                  <Whisper placement="top" trigger="hover" speaker={<Tooltip>Download from URL </Tooltip>}>
+                  <Whisper placement="top" trigger="hover" speaker={<Tooltip className="bulk-selection-toolbar__tooltip">Download from URL </Tooltip>}>
                   <button
                     // onClick={() => setIsDownloadModalOpen(true)}
                        onClick={() => {
@@ -6459,7 +6288,7 @@ const handleDragEnd = (e) => {
                   </button>
                   </Whisper>
 
-                  <Whisper placement="top" trigger="hover" speaker={<Tooltip>Upload</Tooltip>}>
+                  <Whisper placement="top" trigger="hover" speaker={<Tooltip className="bulk-selection-toolbar__tooltip">Upload</Tooltip>}>
                   <button
                     onClick={handleOpenFileUploadModal}
                     className="btn__upload__file_modal"
@@ -6471,7 +6300,6 @@ const handleDragEnd = (e) => {
                   </div>
                 </div>
               </div>
-
 
               <div className="np-breadcrumb-bar">
                 <button
@@ -6579,14 +6407,12 @@ const handleDragEnd = (e) => {
                 </div>
               )}
 
-              <BulkSelectionToolbar
-                selectedCount={keys.length + keys2.length}
-                isSelectAll={isSelectAll}
-                onSelectAllToggle={handleSelectAllToggle}
+              <StoreBulkSelectionToolbar
+                pageItems={paginatedData}
                 variant="files"
-                showCopy={keys2.length === 0}
+                showCopy={true}
                 onDownload={() => {
-                  if (keys.length === 0 && keys2.length === 0) {
+                  if (!hasFileSelection()) {
                     showToast("error", "No files or folders selected!");
                   } else {
                     setShowDownloadModal(true);
@@ -6625,19 +6451,13 @@ const handleDragEnd = (e) => {
                             </th> */}
                             {filenameRedux !== "blackbox" && (
                               <th style={{ width: "40px", textAlign: "center" }}>
-                                <input
-                                  id="check-Atharva"
-                                  type="checkbox"
-                                  onChange={handleSelectAllToggle}
-                                  checked={isSelectAll}
-                                />
+                                <PageSelectAllCheckbox pageItems={paginatedData} />
                               </th>
                             )}
 
-
                             <th
                               style={{
-                                width: "60%",
+                                width: "40%",
                                 fontWeight: 600,
                                 color: "#181818",
                                 paddingLeft: filenameRedux === "blackbox" ? "35px" : 0,
@@ -6665,7 +6485,7 @@ const handleDragEnd = (e) => {
 
                             <th
                               style={{
-                                width: "15%",
+                                width: "20%",
                                 fontWeight: 600,
                                 color: "#181818",
                                 justifyContent: "center",
@@ -6696,7 +6516,7 @@ const handleDragEnd = (e) => {
 
                             <th
                               style={{
-                                width: "15%",
+                                width: "25%",
                                 fontWeight: 600,
                                 color: "#181818",
                                 justifyContent: "center",
@@ -6750,7 +6570,6 @@ const handleDragEnd = (e) => {
 
                           </tr>
                         </thead>
-
 
                           {/* <Placeholder.Grid
                   rows={10}
@@ -6825,27 +6644,24 @@ const handleDragEnd = (e) => {
                                       }
                                       checked={
                                         file.isFolder
-                                          ? keys2.includes(file.fileName)
-                                          : keys.includes(file.fileName)
+                                          ? keys2Set.has(file.fileName)
+                                          : keysSet.has(file.fileName)
                                       }
                                     ></input>
                                   </td> */}
                                   {/* Checkbox */}
                                   {filenameRedux !== "blackbox" && (
                                     <td>
-                                      <input
-                                        id="check-Atharva"
-                                        type="checkbox"
-                                        onChange={() => handleCheckboxChange(file)}
-                                        checked={
-                                          file.isFolder
-                                            ? keys2.includes(file.fileName)
-                                            : keys.includes(file.fileName)
+                                      <RowSelectCheckbox
+                                        fileName={file.fileName}
+                                        isFolder={!!file.isFolder}
+                                        disabled={
+                                          file.fileName === "blackbox" ||
+                                          isSharedFolderShortcut(file)
                                         }
                                       />
                                     </td>
                                   )}
-
 
                                  {/* Icon & FileName */}
                                   <td
@@ -6970,21 +6786,21 @@ const handleDragEnd = (e) => {
                                     </span>
 
                                     <div className="file-item">
-                                      <span
-                                        title={getTextAfterLastSlash(file.fileName)}
-                                        className="file-name filename_link"
+                                      <TruncatedTooltip
+                                        label={getTextAfterLastSlash(file.fileName)}
+                                        textClassName="file-name filename_link"
                                         style={{ cursor: "pointer" }}
                                       >
                                         {getTextAfterLastSlash(
                                           customTruncateFileName(file.fileName, 55)
                                         )}
-                                      </span>
-                                      <span
+                                      </TruncatedTooltip>
+                                      {/* <span
                                         className="file-path"
                                         title={getTextBeforeLastSlash(file.fileName).replace(/>/g, "/")}
                                       >
                                         {getTextBeforeLastSlash(file.fileName).replace(/>/g, "/")}
-                                      </span>
+                                      </span> */}
                                     </div>
                                   </td>
 
@@ -7001,7 +6817,6 @@ const handleDragEnd = (e) => {
                                       {file.fileSize}
                                     </span>
                                   </td>
-
 
                                     {/* Modified on */}
                                   <td
@@ -7024,7 +6839,6 @@ const handleDragEnd = (e) => {
                                     </span>
                                   </td>
 
-
                                         {/* Action */}
                                 {filenameRedux !== "blackbox" && (
                                     <td style={{ textAlign: "center" }}>
@@ -7032,9 +6846,10 @@ const handleDragEnd = (e) => {
                                         <button
                                           type="button"
                                           id="dropdownMenuButton"
+                                          className="dropdown-toggle"
+                                          data-toggle="dropdown"
                                           aria-haspopup="true"
                                           aria-expanded="false"
-                                          {...getBulkRowActionToggleProps(hasBulkSelection, showToast)}
                                         >
                                           <svg
                                             width="24"
@@ -7062,11 +6877,6 @@ const handleDragEnd = (e) => {
                                         </button>
                                         <div
                                           className="dropdown-menu custom-dropdown-menu"
-                                          style={{
-                                            transform:
-                                              "translate3d(-321px, -25px, 0px)",
-                                          }}
-                                          // aria-labelledby="dropdownMenuButton"
                                         >
                                           
                                           <a className="file-container">
@@ -7084,56 +6894,20 @@ const handleDragEnd = (e) => {
                                               />
                                             </div>
                                             <div className="file-details">
-                                              {/* <div className="file-name">
-                                                {customTruncateFileName(
-                                                  removeSlash(file.fileName),
-                                                  55
-                                                )}
-                                              </div> */}
                                               <div
                                                 className="file-name"
                                                 style={{
-                                                  whiteSpace: 'nowrap',
-                                                  overflow: 'hidden',
-                                                  textOverflow: 'ellipsis',
-                                                  maxWidth: '220px',
-                                                  display: 'block',
+                                                  whiteSpace: "nowrap",
+                                                  overflow: "hidden",
+                                                  textOverflow: "ellipsis",
+                                                  maxWidth: "220px",
+                                                  display: "block",
                                                 }}
                                                 title={getTextAfterLastSlash(file.fileName)}
                                               >
                                                 {getTextAfterLastSlash(file.fileName)}
                                               </div>
-                                              {getTextBeforeLastSlash(file.fileName) && (
-                                                <div
-                                                  className="file-path"
-                                                  style={{
-                                                    whiteSpace: 'nowrap',
-                                                    overflow: 'hidden',
-                                                    textOverflow: 'ellipsis',
-                                                    maxWidth: '220px',
-                                                  }}
-                                                  title={getTextBeforeLastSlash(
-                                                    file.fileName
-                                                  ).replace(/>/g, "/")}
-                                                >
-                                                  {getTextBeforeLastSlash(file.fileName).replace(
-                                                    />/g,
-                                                    "/"
-                                                  )}
-                                                </div>
-                                              )}
-                                              <div className="upload-date">
-                                                <p>
-                                                  Uploaded on{" "}
-                                                  {file.uploadDateTime.substring(
-                                                    0,
-                                                    file.uploadDateTime.indexOf(
-                                                      ","
-                                                    )
-                                                  )}
-                                                </p>
-                                                <span>• {file.fileSize}</span>
-                                              </div>
+                                              <div className="file-size">{file.fileSize}</div>
                                             </div>
                                           </a>
 
@@ -7321,8 +7095,6 @@ const handleDragEnd = (e) => {
                                               </a>
                                             )}
 
-
-
                                              {/* {file.fileName.includes(".zip") ? (
                                               <a
                                                 className={`dropdown-item dropdown-item-custom ${isSharedFolderShortcut(file)
@@ -7485,7 +7257,6 @@ const handleDragEnd = (e) => {
                                               </span>}
                                                             </a>
                                                           )}
-
 
                                             
                                           {file.isFolder === false && (
@@ -7703,45 +7474,30 @@ const handleDragEnd = (e) => {
                   ) : (
                     <>
                       {(placeholderLoading || paginatedData.length > 0) && (
-                        <>
-                      <th style={{ width: "40px", textAlign: "center" }}>
-                       {filenameRedux !== "blackbox" && (
-                         <input
-                          id="check-Atharva"
-                          type="checkbox"
-                          onChange={handleSelectAllToggle}
-                          checked={isSelectAll}
-                        />
-                       )}
-                      </th>
-
-                      <th
-                        style={{
-                          width: "60%",
-                          fontWeight: 600,
-                          color: "#181818",
-                        }}
-                      >
-                        <span
-                          className="column-name-new"
-                          style={{ alignItems: "center" }}
-                        >
-                          File Name
-                          <img
-                            src={SortIcon}
-                            alt=""
-                            style={{ cursor: "pointer", marginLeft: 6 }}
-                            onClick={() =>
-                              handleFilterSelect(
-                                selectedFilter === "By Name(A-Z)"
-                                  ? "name-filter2"
-                                  : "name-filter1"
-                              )
-                            }
-                          />
-                        </span>
-                      </th>
-                        </>
+                        <div className="files-card-view-header">
+                          <div className="files-card-view-header__check">
+                            {filenameRedux !== "blackbox" && (
+                              <PageSelectAllCheckbox pageItems={paginatedData} />
+                            )}
+                          </div>
+                          <div className="files-card-view-header__name">
+                            <span className="column-name-new">
+                              File Name
+                              <img
+                                src={SortIcon}
+                                alt=""
+                                style={{ cursor: "pointer", marginLeft: 6 }}
+                                onClick={() =>
+                                  handleFilterSelect(
+                                    selectedFilter === "By Name(A-Z)"
+                                      ? "name-filter2"
+                                      : "name-filter1"
+                                  )
+                                }
+                              />
+                            </span>
+                          </div>
+                        </div>
                       )}
                       <div className="grid-view2">
                         {placeholderLoading || searchLoading ? (
@@ -7964,20 +7720,15 @@ const handleDragEnd = (e) => {
                               }}
                             >
                               {filenameRedux !== "blackbox" && (
-                              <input
-                                id="check-Atharva"
-                                type="checkbox"
-                                style={{
-                                position: "absolute", top: "8px", left: "8px"
-                              }}
-                                className="checkbox-input"
-                                onClick={(event) => event.stopPropagation()} // Stops click from bubbling to parent
-                                onChange={() => handleCheckboxChange(file)}
-                                checked={
-                                  file.isFolder
-                                    ? keys2.includes(file.fileName)
-                                    : keys.includes(file.fileName)
+                              <RowSelectCheckbox
+                                fileName={file.fileName}
+                                isFolder={!!file.isFolder}
+                                disabled={
+                                  file.fileName === "blackbox" ||
+                                  isSharedFolderShortcut(file)
                                 }
+                                className="checkbox-input"
+                                onClick={(event) => event.stopPropagation()}
                               />
                               )}
                               {/* Three Dots Menu */}
@@ -7988,9 +7739,10 @@ const handleDragEnd = (e) => {
                                   <button
                                     type="button"
                                     id="dropdownMenuButton"
+                                    className="dropdown-toggle"
+                                    data-toggle="dropdown"
                                     aria-haspopup="true"
                                     aria-expanded="false"
-                                    {...getBulkRowActionToggleProps(hasBulkSelection, showToast)}
                                   >
                                     <svg
                                       width="24"
@@ -8010,11 +7762,6 @@ const handleDragEnd = (e) => {
                                   </button>
                                   <div
                                     className="dropdown-menu custom-dropdown-menu"
-                                    style={{
-                                      transform:
-                                        "translate3d(-242px, -25px, 0px)",
-                                    }}
-                                    // aria-labelledby="dropdownMenuButton"
                                   >
                                   
                                     <a className="file-container">
@@ -8032,54 +7779,20 @@ const handleDragEnd = (e) => {
                                         />
                                       </div>
                                       <div className="file-details">
-                                        {/* <div className="file-name">
-                                          {customTruncateFileName(
-                                            removeSlash(file.fileName),
-                                            55
-                                          )}
-                                        </div> */}
                                         <div
-                                                className="file-name"
-                                                style={{
-                                                  whiteSpace: 'nowrap',
-                                                  overflow: 'hidden',
-                                                  textOverflow: 'ellipsis',
-                                                  maxWidth: '220px',
-                                                  display: 'block',
-                                                }}
-                                                title={getTextAfterLastSlash(file.fileName)}
-                                              >
-                                                {getTextAfterLastSlash(file.fileName)}
-                                              </div>
-                                        {getTextBeforeLastSlash(file.fileName) && (
-                                          <div
-                                            className="file-path"
-                                            style={{
-                                              whiteSpace: 'nowrap',
-                                              overflow: 'hidden',
-                                              textOverflow: 'ellipsis',
-                                              maxWidth: '220px',
-                                            }}
-                                            title={getTextBeforeLastSlash(
-                                              file.fileName
-                                            ).replace(/>/g, "/")}
-                                          >
-                                            {getTextBeforeLastSlash(file.fileName).replace(
-                                              />/g,
-                                              "/"
-                                            )}
-                                          </div>
-                                        )}
-                                        <div className="upload-date">
-                                          <p>
-                                            Uploaded on{" "}
-                                            {file.uploadDateTime.substring(
-                                              0,
-                                              file.uploadDateTime.indexOf(",")
-                                            )}
-                                          </p>
-                                          <span>• {file.fileSize}</span>
+                                          className="file-name"
+                                          style={{
+                                            whiteSpace: "nowrap",
+                                            overflow: "hidden",
+                                            textOverflow: "ellipsis",
+                                            maxWidth: "220px",
+                                            display: "block",
+                                          }}
+                                          title={getTextAfterLastSlash(file.fileName)}
+                                        >
+                                          {getTextAfterLastSlash(file.fileName)}
                                         </div>
+                                        <div className="file-size">{file.fileSize}</div>
                                       </div>
                                     </a>
 
@@ -8109,8 +7822,6 @@ const handleDragEnd = (e) => {
                                             Remove from Favorites
                                             </span>
 
-
-
                                              {!isPremium && <span className="context-menu-icon">
                                           <img src={svgCrown} alt="" style={{ height: "20px" }}  />
                                           </span>}
@@ -8138,7 +7849,6 @@ const handleDragEnd = (e) => {
                                             />
                                             Add to Favorites
                                             </span>
-
 
                                               {!isPremium && <span className="context-menu-icon">
                                           <img src={svgCrown} alt="" style={{ height: "20px" }}  />
@@ -8203,7 +7913,6 @@ const handleDragEnd = (e) => {
                                               </a>
                                             )}
 
-
 {file.fileName.includes(".zip") ? (
                                         <a
                                           className={`dropdown-item dropdown-item-custom ${isSharedFolderShortcut(file)
@@ -8242,7 +7951,6 @@ const handleDragEnd = (e) => {
             <img src={svgCrown} alt="" style={{ height: "20px" }}  />
             </span>}
 
-
                                         </a>
                                       ) : (
                                         <a
@@ -8279,7 +7987,6 @@ const handleDragEnd = (e) => {
                                           Zip
                                           </span>
 
-
                                           {!isPremium && <span className="context-menu-icon">
             <img src={svgCrown} alt="" style={{ height: "20px" }}  />
             </span>}
@@ -8304,8 +8011,6 @@ const handleDragEnd = (e) => {
                                         Change Visibility
                                       </a>
                                     )}
-
-
 
                                     {/* {file.fileName.includes(".zip") ? (
                                       <a
@@ -8438,7 +8143,6 @@ const handleDragEnd = (e) => {
                                       </a>
                                     )}
 
-
                                      {file.isFolder === false && (
                                             <a
                                               className="dropdown-item dropdown-item-custom"
@@ -8486,17 +8190,9 @@ const handleDragEnd = (e) => {
                                 getIcon={getFileIcon}
                               />
 
-                              <div style={{padding:"18px"}}>
-                                {/* File Name */}
+                              <div className="files-grid-card-body">
                                 <div
-                                  className="file-name2"
-                                  style={{
-                                    cursor: "pointer",
-                                    whiteSpace: "nowrap", // Prevents text wrapping
-                                    overflow: "hidden", // Hides overflow
-                                    textOverflow: "ellipsis", // Adds "..."
-                                    maxWidth: "100%", // Ensures it stays within the container
-                                  }}
+                                  className="files-grid-card-name"
                                   title={getTextAfterLastSlash(file.fileName)}
                                 >
                                   {customTruncateFileName(
@@ -8504,39 +8200,29 @@ const handleDragEnd = (e) => {
                                     55
                                   )}
                                 </div>
-                                {getTextBeforeLastSlash(file.fileName) && (
+                                {getTextBeforeLastSlash(file.fileName) ? (
                                   <div
-                                    className="file-path"
-                                    style={{
-                                      whiteSpace: "nowrap",
-                                      overflow: "hidden",
-                                      textOverflow: "ellipsis",
-                                      maxWidth: "100%",
-                                    }}
-                                    title={getTextBeforeLastSlash(
-                                      file.fileName
-                                    ).replace(/>/g, "/")}
+                                    className="files-grid-card-path"
+                                    title={getTextBeforeLastSlash(file.fileName).replace(
+                                      />/g,
+                                      "/"
+                                    )}
                                   >
                                     {getTextBeforeLastSlash(file.fileName).replace(
                                       />/g,
                                       "/"
                                     )}
                                   </div>
-                                )}
-
-                                {/* Date & Items */}
-                                <div
-                                  className="file-info2"
-                                  style={{ textAlign: "left" }}
-                                >
-                                  <span className="file-date2">
-                                    {file.uploadDateTime.substring(
+                                ) : null}
+                                <div className="files-grid-card-meta">
+                                  <span className="files-grid-card-date">
+                                    {file.uploadDateTime?.substring(
                                       0,
                                       file.uploadDateTime.indexOf(",")
                                     )}
                                   </span>
-                                  <span className="file-items2">
-                                    • {file.fileSize}
+                                  <span className="files-grid-card-size">
+                                    {file.fileSize}
                                   </span>
                                 </div>
                               </div>
@@ -8548,8 +8234,6 @@ const handleDragEnd = (e) => {
                   )}
                 </div>
 
-
-
         
 
               {isWhisperClicked && (
@@ -8557,8 +8241,8 @@ const handleDragEnd = (e) => {
                   moveKey={movedFile}
                   source={query.trim() ? "" : path}
                   onClose={handleMClose}
-                  files={keys}
-                  folders={keys2}
+                  files={getFileSelectionKeys()}
+                  folders={getFolderSelectionKeys()}
                   reloadAfterTast={refreshFolderListWithSkeleton}
                   showToast={showToast}
                 />
@@ -8569,8 +8253,8 @@ const handleDragEnd = (e) => {
                   moveKey={movedFol}
                   source={query.trim() ? "" : path}
                   onClose={handleMFClose}
-                  files={keys}
-                  folders={keys2}
+                  files={getFileSelectionKeys()}
+                  folders={getFolderSelectionKeys()}
                    reloadAfterTast={handleMClose}
                   onRenameSuccess={refreshFolderListWithSkeleton}
                   showToast={showToast}
@@ -8610,14 +8294,14 @@ const handleDragEnd = (e) => {
                   moveKey={copiedFile}
                   source={query.trim() ? "" : path}
                   onClose={handleCClose}
-                  files={keys}
+                  // Selection from external store (not React keys state)
+                  files={getFileSelectionKeys()}
                   fileSize={copiedFileSize}
                   setTriggerUpdate={setTriggerUpdate}
                   onCopySuccess={reloadAfterTast}
                   showToast={showToast}
                 />
               )}
-
 
             </div>
           </div>
@@ -8646,7 +8330,6 @@ const handleDragEnd = (e) => {
               audioSrc={audioSrc}
               errorMessage2={errorMessage2}
               isProgressVisible={isProgressVisible}
-              loaderGif={loaderGif}
               apiUrl={apiUrl}
               token={token}
               toggleFullscreen={toggleFullscreen}
@@ -8667,6 +8350,7 @@ const handleDragEnd = (e) => {
         setModalFile={setModalFile}
         // onRenameSuccess={() => getFolderFiles(selectedFolder)}
         onRenameSuccess={() => reloadAfterTast()}
+        onMoveSuccess={onMoveSuccessFromModal}
         previewFile={previewFile}
         
             />
@@ -8746,8 +8430,6 @@ const handleDragEnd = (e) => {
                     <p className="visibility-label">Set Visibility:</p>
                   </div>
                 )}
-
-
 
                 <ul className="radio_checkbox_list mt-0">
                   <li>
@@ -8892,6 +8574,7 @@ const handleDragEnd = (e) => {
                       pattern="[a-zA-Z0-9_\- ]{1,}"
                       required
                       placeholder="Enter Folder Name"
+                      disabled={isCreatingFolder}
                     />
 
                     {folderFieldError && (
@@ -8903,6 +8586,7 @@ const handleDragEnd = (e) => {
                         type="button"
                         className="btn_width_same btn_grey_ripple ripple_effect rename_btn cancel"
                         onClick={handleCloseFileUploadModal}
+                        disabled={isCreatingFolder}
                       >
                         Close
                       </button>
@@ -8910,8 +8594,9 @@ const handleDragEnd = (e) => {
                       <button
                         type="submit"
                         className=" btn_width_same ripple_effect rename_btn ok"
+                        disabled={isCreatingFolder}
                       >
-                        Create
+                        {isCreatingFolder ? "Creating…" : "Create"}
                       </button>
                     </div>
                   </form>
@@ -8922,71 +8607,18 @@ const handleDragEnd = (e) => {
         </Modal.Body>
       </Modal>
 
-      {createFolderButton && (
-        <div
-          className="popup-overlay"
-          onClick={handleCloseCreateFolder}
-          role="presentation"
-        >
-          <div
-            className="create-folder-card"
-            onClick={(e) => e.stopPropagation()}
-            role="dialog"
-            aria-modal="true"
-            aria-label="Create Folder"
-          >
-            <div
-              className="folder-icon"
-              style={{ display: "flex", justifyContent: "center" }}
-            >
-              <img src={createFolderPopup} alt="Create Folder" height={48} />
-            </div>
-            <h5 className="folder-title">Create Folder</h5>
-
-            <form
-              className="folder-form"
-              onSubmit={(e) => {
-                e.preventDefault();
-                createJustFolder(e);
-              }}
-            >
-              <input
-                className="folder-input"
-                type="text"
-                name="fname"
-                id="folname-popup"
-                pattern="[a-zA-Z0-9_\- ]{1,}"
-                required
-                placeholder="Enter Folder Name"
-                autoFocus
-                onKeyDown={(e) => {
-                  if (e.key === "Enter") {
-                    e.preventDefault();
-                    e.stopPropagation();
-                    createJustFolder(e);
-                  }
-                }}
-              />
-              {folderFieldError && (
-                <p className="error-message">{folderFieldError}</p>
-              )}
-
-              <div className="rename_buttons mt-4">
-                <button
-                  type="button"
-                  className="rename_btn cancel"
-                  onClick={handleCloseCreateFolder}
-                >
-                  Close
-                </button>
-                <button type="submit" className="rename_btn ok">
-                  Create
-                </button>
-              </div>
-            </form>
-          </div>
-        </div>
-      )}
+      <CreateFolderModal
+        isOpen={createFolderButton}
+        onClose={handleCloseCreateFolder}
+        value={newFolderName}
+        onChange={(e) => {
+          setNewFolderName(e.target.value);
+          if (folderFieldError) setFolderFieldError("");
+        }}
+        onSubmit={createJustFolder}
+        error={folderFieldError}
+        isSubmitting={isCreatingFolder}
+      />
       <DownloadModal
         isOpen={isDownloadModalOpen}
         onClose={() => setIsDownloadModalOpen(false)}
@@ -8996,37 +8628,11 @@ const handleDragEnd = (e) => {
         reloadAfterTast={reloadAfterTast}
       />
 
-{/* Upgrade Plan */}
-     {showUpgradeModal && (
-  <div className="premium-upgrade-overlay">
-    <div className="premium-upgrade-modal">
-      <h3 className="premium-upgrade-title">Unlock Premium Feature</h3>
-      <p className="premium-upgrade-text">
-        This action is available for premium users only. You can upgrade
-        your Stolity plan by clicking the button below.
-      </p>
-      <div className="premium-upgrade-actions">
-        <button
-          type="button"
-          className="premium-upgrade-cancel"
-          onClick={() => setShowUpgradeModal(false)}
-        >
-          Not now
-        </button>
-        <button
-          type="button"
-          className="premium-upgrade-confirm"
-          onClick={() => {
-            setShowUpgradeModal(false);
-            navigate("/Payment");
-          }}
-        >
-          Go to Upgrade
-        </button>
-      </div>
-    </div>
-  </div>
-)}
+      <PremiumUpgradeModal
+        isOpen={showUpgradeModal}
+        onClose={() => setShowUpgradeModal(false)}
+        onUpgrade={() => navigate("/Payment")}
+      />
 
 {showPrivateWarning && fileToShare && (
   <div
@@ -9164,8 +8770,6 @@ const handleDragEnd = (e) => {
   </div>
 )}
 
-
-
       {/* File Conversion Modal */}
       {showConversionModal && (
         <FileConversionModal
@@ -9175,7 +8779,6 @@ const handleDragEnd = (e) => {
           onFilesUpdated={handleFilesConverted}
         />
       )}
-
 
       {loader2 && (<Loader2/>)}
 

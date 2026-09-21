@@ -34,6 +34,7 @@ const InactivityHandler = () => {
     '/ForgotPassword',
     '/careers',
     '/reset-password',
+    '/Industries',
     '/',
   ];
 
@@ -41,7 +42,8 @@ const InactivityHandler = () => {
 //   const isProtectedRoute = !publicPaths.includes(location.pathname);
 const isProtectedRoute = !publicPaths.includes(location.pathname) && 
                          !location.pathname.endsWith('/careers') &&
-                         !location.pathname.endsWith('/careers/');
+                         !location.pathname.endsWith('/careers/') &&
+                         !location.pathname.startsWith('/Industries');
 
   // ────────────────────────────────────────────────
   // All hooks run unconditionally — ESLint happy

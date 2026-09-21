@@ -2,10 +2,6 @@ import React, { useContext, useState, useEffect } from "react";
 import { UploadContext } from "./UploadContext";
 import { useNavigate } from "react-router-dom";
 import { useSelector, useDispatch } from "react-redux";
-import { FaCheckCircle } from "react-icons/fa"; //<FaCheckCircle />
-import { BsXCircleFill } from "react-icons/bs"; // <BsXCircleFill />
-import { IoIosInformationCircle } from "react-icons/io"; // <IoIosInformationCircle />
-import { FaExclamationTriangle } from "react-icons/fa"; // <FaExclamationTriangle />
 import { handleS3CopyError } from "../utils/handleS3CopyError";
 import {
   startMoveTransfer,
@@ -21,8 +17,6 @@ import {
   resolveSourceFolderAndKeys,
 } from "../utils/movePath";
 
-
-
 import {
   addFolder,
   incrementCounter,
@@ -33,8 +27,8 @@ import {
   resetFCounter,
 } from "../store/fileSlicer";
 import axios from "axios";
-import { ChakraProvider, Stack, useToast } from "@chakra-ui/react";
-import Loader2 from "../components/Loader2";
+
+import LoaderDualRing from "../components/LoaderDualRing";
 import FolderPickerListPanel from "../components/FolderPickerListPanel";
 import FolderDestinationModal, {
   formatModalItemSummary,
@@ -44,6 +38,7 @@ import {
   parseFolderListingItems,
 } from "../utils/getFolderParams";
 import { fetchFolderListing } from "../utils/fetchFolderListing";
+import { showToast as globalShowToast } from "../components/ToastProvider";
 
 const MoveFilePopup = ({
   moveKey,
@@ -85,7 +80,13 @@ const MoveFilePopup = ({
   const [newFolderName, setNewFolderName] = useState("");
 const [creatingFolder, setCreatingFolder] = useState(false);
 
-
+  const showToast = (status, message, title) => {
+    if (typeof showToastProp === "function") {
+      showToastProp(status, message, title);
+      return;
+    }
+    globalShowToast(status, message, title);
+  };
 
   useEffect(() => {
     dispatch(resetFCounter());
@@ -114,9 +115,6 @@ const fetchFolders = async (folderPath = "", signal) => {
     setLoadingFolders(false);
   }
 };
-
-
-
 
   function getTextAfterSlashes(text, counter) {
     const parts = text.split("/");
@@ -148,8 +146,6 @@ const fetchFolders = async (folderPath = "", signal) => {
   };
 
   const lastSegments = (Array.isArray(files) ? files : []).map(getLastSegment);
-
-
 
 // const handleItemClick = async (path) => {
 //   console.log(path);
@@ -184,7 +180,6 @@ const fetchFolders = async (folderPath = "", signal) => {
 //   }
 // };
 
-
 const handleItemClick = async (path) => {
   setLoadingFolders(true);
   try {
@@ -218,9 +213,6 @@ const handleItemClick = async (path) => {
     setLoadingFolders(false);
   }
 };
-
-
-
 
 const [progress, setProgress] = useState(0);
 
@@ -301,7 +293,6 @@ const [progress, setProgress] = useState(0);
 //     onClose();
 //   }
 // };
-
 
 const movePathOptions = {
   isShared: isSharedValue,
@@ -431,9 +422,6 @@ const handleMove = async () => {
   }
 };
 
-
-
-
 const handleCreateFolder = async () => {
   if (!newFolderName.trim()) {
     showToast("warning", "Please enter folder name");
@@ -480,8 +468,6 @@ const handleCreateFolder = async () => {
   }
 };
 
-
-
   const handleBack = () => {
   console.log("Back Button Clicked");
 
@@ -507,112 +493,12 @@ const handleCreateFolder = async () => {
   fetchFolders(parentPath);
 };
 
-
-  const toast = useToast();
-
- 
- const iconMap = {
-   success: FaCheckCircle,
-   error: BsXCircleFill,
-   info: IoIosInformationCircle,
-   warning: FaExclamationTriangle,
- };
- 
- 
- const getStatusColors = (status) => {
-   return {
-     bg: 'rgba(255, 255, 255, 0.85)',     // Clean white glass
-     border: status === 'success' ? 'rgba(16, 185, 129, 0.3)' :
-             status === 'error' ? 'rgba(239, 68, 68, 0.3)' :
-             status === 'info' ? 'rgba(59, 130, 246, 0.3)' :
-             'rgba(245, 158, 11, 0.3)',        // Status-colored border
-     icon: status === 'success' ? '#10b981' :
-           status === 'error' ? '#ef4444' :
-           status === 'info' ? '#3b82f6' :
-           '#f59e0b'
-   };
- };
  
  
  
- const showToast = (status, message) => {
-   if (typeof showToastProp === "function") {
-     showToastProp(status, message);
-     return;
-   }
-
-   const IconComponent = iconMap[status];
-   const colors = getStatusColors(status);
-   
-   toast({
-     // position: 'bottom-center',
-     position: 'bottom-right',
-     duration: 4000,
-     isClosable: true,
-     render: () => (
-       <div className="premium-toast" style={{
-         background: `linear-gradient(135deg, ${colors.bg}, rgba(255,255,255,0.9))`,
-         backdropFilter: 'blur(20px)',
-         border: `2px solid ${colors.border}`,
-         borderRadius: '16px',
-         boxShadow: '0 25px 50px -12px rgba(0,0,0,0.25), 0 0 0 1px rgba(255,255,255,0.05)',
-         padding: '20px',
-         maxWidth: '720px',
-         fontFamily: "'SF Pro', 'SFProText', -apple-system, BlinkMacSystemFont, sans-serif",
-         animation: 'toastSlideIn 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
-       }}>
-         <div style={{ display: 'flex', alignItems: 'flex-start', gap: '12px' }}>
-           <IconComponent 
-             style={{ 
-               width: '24px', 
-               height: '24px', 
-               color: colors.icon,
-               flexShrink: 0,
-               marginTop: '2px'
-             }} 
-           />
-           <div style={{ flex: 1, minWidth: 0 }}>
-             <div style={{
-               fontSize: '14px',
-               fontWeight: '600',
-               color: '#1f2937',
-               marginBottom: '4px',
-               lineHeight: '1.3'
-             }}>
-               {status.charAt(0).toUpperCase() + status.slice(1)}
-             </div>
-             <div style={{
-               fontSize: '14px',
-               color: '#6b7280',
-               lineHeight: '1.4'
-             }}>
-               {message}
-             </div>
-           </div>
-           <button 
-             style={{
-               background: 'none',
-               border: 'none',
-               padding: '4px',
-               cursor: 'pointer',
-               color: '#9ca3af',
-               borderRadius: '4px',
-               opacity: 0.7,
-               transition: 'all 0.2s'
-             }}
-             onClick={() => toast.closeAll()}
-             onMouseEnter={(e) => e.target.style.opacity = 1}
-             onMouseLeave={(e) => e.target.style.opacity = 0.7}
-           >
-             ✕
-           </button>
-         </div>
-       </div>
-     ),
-   });
- };
  
-
+ 
+ 
 
   const handleClose = () => {
     dispatch(resetFCounter()); // Reset folderCounter to 0
@@ -654,7 +540,7 @@ const handleCreateFolder = async () => {
         />
       </FolderDestinationModal>
 
-      {loading2 && <Loader2 />}
+      {loading2 && <LoaderDualRing />}
     </>
   );
 };

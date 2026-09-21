@@ -29,15 +29,29 @@ import "../css/FolderDestModalViewport.css";
 import CardFilePreview from "../components/CardFilePreview";
 import FilesPaginationFooter from "../components/FilesPaginationFooter";
 import { useStickyListHeader } from "../hooks/useStickyListHeader";
-import { getBulkRowActionToggleProps } from "../utils/bulkSelectionRowActions";
-import BulkSelectionToolbar from "../components/BulkSelectionToolbar";
+import {
+  clearFileSelection,
+  getFileSelectionKeys,
+  getFolderSelectionKeys,
+  hasFileSelection,
+  toggleFileSelection,
+  subscribeFileSelection,
+  syncSelectionDomClass,
+} from "../components/fileSelectionStore";
+import RowSelectCheckbox from "../components/RowSelectCheckbox";
+import PageSelectAllCheckbox from "../components/PageSelectAllCheckbox";
+import StoreBulkSelectionToolbar from "../components/StoreBulkSelectionToolbar";
+import { BULK_ROW_ACTION_TOAST_MESSAGE } from "../utils/bulkSelectionRowActions";
 import FolderDestinationModal, {
   formatModalItemSummary,
 } from "../components/FolderDestinationModal";
 import FolderPickerListPanel from "../components/FolderPickerListPanel";
+import RestoreChoiceModal from "../components/RestoreChoiceModal";
+import AccessRestrictedModal from "../components/AccessRestrictedModal";
+import PremiumUpgradeModal from "../components/PremiumUpgradeModal";
 import { useSessionEndCleanup } from "../hooks/useSessionEndCleanup";
 import useListPageSize from "../hooks/useListPageSize";
-import useFileSearch from "../hooks/useFileSearch";
+import FileSearchBar from "../components/FileSearchBar";
 import fullscreeen from "../images/mediaPlayer/fullscreen.svg";
 import zoomin from "../images/mediaPlayer/add-button.svg";
 import zoomout from "../images/mediaPlayer/subtracting-button.svg";
@@ -50,29 +64,19 @@ import IconHomeW from "../images/GridWhite.svg";
 import IconListW from "../images/listWhite.svg";
 import DeletePopup from "../images/deletePopup.svg";
 import SortHome from "../images/SortHome.svg";
-import FilterHome from "../images/filterHome.svg";
+import { ChevronDown, History as RotateCcwClock, SlidersHorizontal } from "lucide-react";
 import SortIcon from "../images/sort-style-1.svg";
 import { Tab, Tabs, TabList, TabPanel } from "react-tabs";
 import deleteIcon2 from "../images/DropdownIcons/deleteIcon.svg";
 import loaderGif from "../images/Loaders/Animation4.gif";
+import { DualRingMark } from "../components/brandLoaders";
 import Dropzone from "react-dropzone";
 import createFolderPopup from "../images/createFolderPopup.svg";
 import StarIcon from "@mui/icons-material/Star"; // Filled star
-import restoreIcon from "../images/DropdownIcons/MoveIcon.svg"; // Temporary - replace with actual restore icon later
 import { fetchUserFolderSize } from "../store/subscriptionSlice";
 import svgDoc from "../images/TypesDoc.svg"
 import svgFolder from "../images/TypesFolder.svg"
 
-
-
-import { FaCheckCircle } from "react-icons/fa"; //<FaCheckCircle />
-import { BsXCircleFill } from "react-icons/bs"; // <BsXCircleFill />
-import { IoIosInformationCircle } from "react-icons/io"; // <IoIosInformationCircle />
-import { FaExclamationTriangle } from "react-icons/fa"; // <FaExclamationTriangle />
-
-
-
-import SearchIcon from "../images/SearchIcon.svg";
 import {
   Tooltip,
   Whisper,
@@ -89,12 +93,13 @@ import "rsuite/dist/rsuite.min.css";
 import { useDropzone } from "react-dropzone";
 import { UploadContext } from "./UploadContext";
 import { Modal as BootstrapModal } from "react-bootstrap";
-import { ChakraProvider, Stack, useToast } from "@chakra-ui/react";
+
 import VideoPlayer from "../components/VideoPlayer";
 import { buildVideoStreamUrl } from "../utils/videoPlayer";
 import SideNav from "../components/SideNav";
 import Footer from "../components/Footer";
 import ToggleNav from "../components/ToggleNav";
+import TruncatedTooltip from "../components/TruncatedTooltip";
 
 //LIGHTBOX
 import { Lightbox } from "yet-another-react-lightbox";
@@ -134,12 +139,11 @@ import SelectFolderModal from "./DownloadModal/SelectFolderModal";
 import FileConversionModal from "../components/FileConversionModal";
 import LoaderRestore from "../components/LoaderRestore";
 import LoaderPermanentDelete from "../components/LoaderPermanentDelete";
+import { showToast } from "../components/ToastProvider";
 
 let c = 1;
 
 //Anurag Imports
-
-
 
 const RecycleBin = () => {
   const [isDownloadModalOpen, setIsDownloadModalOpen] = useState(false);
@@ -153,7 +157,6 @@ const RecycleBin = () => {
   const [newFolderName, setNewFolderName] = useState("");
 const [creatingFolder, setCreatingFolder] = useState(false);
 
-
   const [showUpgradeModal, setShowUpgradeModal] = useState(false);
 
    const subscription = useSelector((state) => state.subscription.subscription);
@@ -165,8 +168,6 @@ const [creatingFolder, setCreatingFolder] = useState(false);
       subscription.entitlement_ids.length > 0;
 
   
-
-
 
   // const { addUpload, updateUploadProgress, removeUpload } = useContext(UploadContext);
   // const { addUpload, updateUploadProgress, updateUploadMeta, removeUpload, abortUpload } = useContext(UploadContext);
@@ -183,9 +184,6 @@ const [creatingFolder, setCreatingFolder] = useState(false);
   getUpload,
   isPausing, // <-- new
 } = useContext(UploadContext);
-
-
-
 
   //Anurag Declaration
   const token = sessionStorage.getItem("number");
@@ -216,14 +214,11 @@ const [creatingFolder, setCreatingFolder] = useState(false);
 
   const [modalKeys, setModalKeys] = useState([]);
 
-
   // Access denied modal state
 const [showAccessDeniedModal, setShowAccessDeniedModal] = useState(false);
 const [fileToAccess, setFileToAccess] = useState(null);
 
 const [showMultiRestoreModal, setShowMultiRestoreModal] = useState(false);
-
-
 
   const [isVideo, setisVideo] = useState(false);
   const [audioSrc, setAudioSrc] = useState("");
@@ -271,10 +266,7 @@ const [showMultiRestoreModal, setShowMultiRestoreModal] = useState(false);
   const [downloadLink, setDownloadLink] = useState(null);
   const [modalFile, setModalFile] = useState("");
 
-
   const [openingFolder, setOpeningFolder] = useState(null);
-
-
 
   const [sharePopup, setSharepopup] = useState(false);
   const [shareLink, setShareLink] = useState("");
@@ -325,14 +317,23 @@ const [showMultiRestoreModal, setShowMultiRestoreModal] = useState(false);
   const [currentPage, setCurrentPage] = useState(1);
   const [itemsPerPage, setItemsPerPage] = useListPageSize();
   const [totalEntries, setTotalEntries] = useState(0);
+  const [query, setQuery] = useState("");
 
+  const clearSearchBar = () => setQuery("");
+  const clearSearch = () => {
+    setQuery("");
+    setCurrentPage(1);
+  };
+  const handleSearchChange = (e) => {
+    setQuery(e.target.value);
+    setCurrentPage(1);
+  };
 
     const email = sessionStorage.getItem("email");
     const { role, companies: assignedCompanyIds } = useSelector(
         (state) => state.jobPortal
       );
   
-
 
   // Restore modal states
 // Restore modal states
@@ -343,27 +344,20 @@ const [selectedDestination, setSelectedDestination] = useState("");
 const [loadingFolders, setLoadingFolders] = useState(false);
 const [folderNavigationPath, setFolderNavigationPath] = useState([]); // Breadcrumb path
 
-
 const [showRestoreFolderModal, setShowRestoreFolderModal] = useState(false);
 const [showMultiRestoreConfirm, setShowMultiRestoreConfirm] = useState(false);
+const [showRestoreChoiceModal, setShowRestoreChoiceModal] = useState(false);
+const [restoreChoiceIsMulti, setRestoreChoiceIsMulti] = useState(false);
+const [modalFolderKeys, setModalFolderKeys] = useState([]);
 
 const [folderToRestore, setFolderToRestore] = useState(null);
 
-
-
-
-
-
   const [sortedData, setSortedData] = useState([]); // Stores sorted results
-
-
-
 
   // *************** File Conversion *************** // 
   
   const [showConversionModal, setShowConversionModal] = useState(false);
   const [convertedFiles, setConvertedFiles] = useState([]);
-
 
   const handleFilesConverted = (updatedFiles) => {
     setFiles(updatedFiles);
@@ -371,16 +365,10 @@ const [folderToRestore, setFolderToRestore] = useState(null);
     setShowConversionModal(false);
   };
 
-
-
-
-
   const totalPages = Math.ceil(totalEntries / itemsPerPage);
   const startItem = (currentPage - 1) * itemsPerPage + 1;
   const endItem = Math.min(currentPage * itemsPerPage, totalEntries);
   const isNextPage = currentPage < totalPages;
-
-
 
   
 
@@ -389,7 +377,6 @@ const [folderToRestore, setFolderToRestore] = useState(null);
   //   // console.log("On root page!!!!!!!");
   //   dispatch(setIsSharedFalse());
   // }, []);
-
 
   useEffect(() => {
   const fetchData = async () => {
@@ -409,7 +396,6 @@ const [folderToRestore, setFolderToRestore] = useState(null);
 
   fetchData();
 }, []);
-
 
   // useEffect(() => {
   //   // Whenever currentPage or itemsPerPage changes, update displayed data
@@ -446,14 +432,25 @@ useEffect(() => {
       ? sortedData
       : allEntries;
 
+  const q = query.trim().toLowerCase();
+  const filtered = !q
+    ? dataSource
+    : dataSource.filter((file) => {
+        const full = String(file.fileName || "").toLowerCase();
+        const base = full.includes("/")
+          ? full.slice(full.lastIndexOf("/") + 1)
+          : full;
+        const original = String(file.originalPath || "").toLowerCase();
+        return full.includes(q) || base.includes(q) || original.includes(q);
+      });
+
+  setTotalEntries(filtered.length);
+
   const startIndex = (currentPage - 1) * itemsPerPage;
   const endIndex = startIndex + itemsPerPage;
 
-  const slicedData = dataSource.slice(startIndex, endIndex);
-  setFileData(slicedData);
-}, [currentPage, itemsPerPage, allEntries, sortedData, selectedFileTypes]);
-
-
+  setFileData(filtered.slice(startIndex, endIndex));
+}, [currentPage, itemsPerPage, allEntries, sortedData, selectedFileTypes, query]);
 
   
   const handleImageClose = () => {
@@ -478,14 +475,34 @@ useEffect(() => {
   const [selectStatus2, setSelectStatus2] = useState(false);
   const [checkedFiles, setCheckedFiles] = useState([]);
   const [selectedFiles, setSelectedFiles] = useState([]);
-  const [keys, setKeys] = useState([]);
-  const [keys2, setKeys2] = useState([]);
-  const hasBulkSelection = keys.length > 0 || keys2.length > 0;
-
   const [moveFol, setMoveFol] = useState(false);
 
   const [view, setView] = useState(localStorage.getItem("view") || "list");
-  const { filterBarRef, tableBoxRef, tableBoxClassName } = useStickyListHeader(view, hasBulkSelection);
+  const { filterBarRef, tableBoxRef, tableBoxClassName } = useStickyListHeader(view, false);
+
+  useEffect(() => {
+    syncSelectionDomClass();
+    const unsubscribe = subscribeFileSelection(() => syncSelectionDomClass());
+    return () => {
+      unsubscribe();
+      clearFileSelection();
+    };
+  }, []);
+
+  useEffect(() => {
+    const onClick = (e) => {
+      if (!hasFileSelection()) return;
+      const toggle = e.target.closest?.(".dropdown-toggle");
+      if (!toggle) return;
+      if (toggle.closest(".bulk-selection-slot, .bulk-selection-float")) return;
+      if (!toggle.closest("#filestable") && !toggle.closest("#dataView")) return;
+      e.preventDefault();
+      e.stopPropagation();
+      showToast("warning", BULK_ROW_ACTION_TOAST_MESSAGE);
+    };
+    document.addEventListener("click", onClick, true);
+    return () => document.removeEventListener("click", onClick, true);
+  }, []);
 
   const toggleView = (selectedView) => {
     setView(selectedView);
@@ -502,97 +519,22 @@ useEffect(() => {
   const handleCClose = () => {
     dispatch(resetFolderList());
     setIsCWhisperClicked(false);
-    setKeys([]);
+    clearFileSelection();
   };
-
-
-  //Checkbox code
-  const [isSelectAll, setIsSelectAll] = useState(false);
-
-const handleCheckboxChange = (file) => {
-  // console.log("ggggg handleCheckboxChange called with file:", file);
-
-  if (file.isFolder) {
-    // If the file is a folder, update the keys2 list
-    setKeys2((prevKeys2) => {
-      const isChecked = prevKeys2.includes(file.fileName);
-      const newKeys2 = isChecked
-        ? prevKeys2.filter((f) => f !== file.fileName)
-        : [...prevKeys2, file.fileName];
-
-      // console.log("ggggg (folder) prevKeys2:", prevKeys2);
-      // console.log("ggggg (folder) isChecked:", isChecked);
-      console.log("ggggg (folder) newKeys2:", newKeys2);
-
-      return newKeys2;
-    });
-  } else {
-    // If the file is not a folder, update the keys list
-    setKeys((prevKeys) => {
-      const isChecked = prevKeys.includes(file.fileName);
-      const newKeys = isChecked
-        ? prevKeys.filter((f) => f !== file.fileName)
-        : [...prevKeys, file.fileName];
-
-      console.log("ggggg (file) newKeys:", newKeys);
-
-      return newKeys;
-    });
-  }
-};
 
   /** When any row is selected, row clicks toggle selection instead of open */
   const trySelectInsteadOfOpen = (file) => {
-    if (keys.length === 0 && keys2.length === 0) return false;
+    if (!hasFileSelection()) return false;
     if (file.fileName === "blackbox" || file.isShared) return true;
-    handleCheckboxChange(file);
+    toggleFileSelection(file.fileName, !!file.isFolder);
     return true;
   };
-
-
-  const handleSelectAllToggle = () => {
-    if (!isSelectAll) {
-      // Select all - preserve existing selections and add all other items
-      const allFiles = filedata
-        .filter((file) => !file.isFolder)
-        .map((file) => file.fileName);
-      const allFolders = filedata
-        .filter((file) => file.isFolder)
-        .map((file) => file.fileName);
-
-      setKeys((prevKeys) => [...new Set([...prevKeys, ...allFiles])]);
-      setKeys2((prevKeys2) => [...new Set([...prevKeys2, ...allFolders])]);
-    } else {
-      // Deselect all
-      setKeys([]);
-      setKeys2([]);
-    }
-    setIsSelectAll(!isSelectAll);
-  };
-
-  useEffect(() => {
-    // Check if all files and folders are selected
-    const allFiles = filedata
-      .filter((file) => !file.isFolder)
-      .map((file) => file.fileName);
-    const allFolders = filedata
-      .filter((file) => file.isFolder)
-      .map((file) => file.fileName);
-
-    const areAllFilesSelected = allFiles.every((file) => keys.includes(file));
-    const areAllFoldersSelected = allFolders.every((folder) =>
-      keys2.includes(folder)
-    );
-
-    // Update the isSelectAll state
-    setIsSelectAll(areAllFilesSelected && areAllFoldersSelected);
-  }, [keys, keys2, filedata]);
-
-
 
 const handleMulDelete = async () => {
   const loaderStartedAt = Date.now();
   setLoader_Permanent_Delete(true); // ← start global permanent delete loader
+  const keys = getFileSelectionKeys();
+  const keys2 = getFolderSelectionKeys();
 
   try {
     // Optional: keep this guard if you still want to block shared folder permanent delete
@@ -631,7 +573,7 @@ const handleMulDelete = async () => {
       // Assuming your backend now expects the same format as single delete
       await axios.delete(`${apiUrl}delete-folder`, { ...LONG_RUNNING_AWS_REQUEST_OPTIONS, 
         data: {
-          folderName: keys2.map(checkLastHash), // ← apply same transformation as single delete
+          folderName: keys2.map((name) => resolveRecycleFolderKey(name)),
           fromRecycleBin: true,
         },
         headers: {
@@ -652,13 +594,11 @@ const handleMulDelete = async () => {
 
     // Refresh everything
     getLatestFolderList();
-    setIsSelectAll(false);
     setSelectStatus(false);
     getFileData(1);
     setCurrentPage(1);
     getRootFolderSize();
-    setKeys([]);
-    setKeys2([]);
+    clearFileSelection();
 
     // Delayed stop loader + toast (matching your single delete UX)
     afterMinLoaderDisplay(loaderStartedAt, () => {
@@ -680,14 +620,12 @@ const handleMulDelete = async () => {
   }
 };
 
-
 // function parseStorageToBytes(storageStr) {
 //   if (!storageStr) return 0;
 //   const [value, unit] = storageStr.split(" ");
 //   const units = { KB: 1024, MB: 1024 ** 2, GB: 1024 ** 3, TB: 1024 ** 4 };
 //   return parseFloat(value) * (units[unit] || 1);
 // }
-
 
 // const totalBytes = subscription && subscription.storage
 //   ? parseStorageToBytes(subscription.storage)
@@ -766,10 +704,6 @@ const fileSizeDisplay = fileSizeValue.toFixed(
   fileSizeUnit === 'MB' ? 1 :
   0   // KB usually whole numbers or 1 decimal
 ) + ' ' + fileSizeUnit;
-
-
-
-
 
   useEffect(() => {
     if (token) {
@@ -925,9 +859,6 @@ const handleFTypeSelect = (eventKey) => {
   }
 };
 
-
-
-
 const getFilePathOnly = (fullName) => {
   const parts = fullName.split("/");
   if (parts.length > 1) {
@@ -936,7 +867,6 @@ const getFilePathOnly = (fullName) => {
   }
   return "/";
 };
-
 
   const handleFilterSelect = (eventKey) => {
     if (
@@ -1018,7 +948,6 @@ const handleCreateFolder = async () => {
   }
 };
 
-
 function formatStorageSize(bytes) {
   if (bytes <= 0) {
     return `${(bytes / 1_000_000_000).toFixed(2)} GB`; // allow negative for over-limit cases
@@ -1032,10 +961,6 @@ function formatStorageSize(bytes) {
   if (mb >= 1) return `${mb.toFixed(1)} MB`;
   return `${Math.round(kb)} KB`;
 }
-
-
-
-
 
 // Helper function to convert file size string to bytes for sorting
 const parseSizeToBytes = (sizeStr) => {
@@ -1077,8 +1002,6 @@ const dateFilter2 = () => {
   applyTypeAndSort(selectedFileTypes, "By Date(Newest)");
 };
 
-
-
   const closePopup = () => {
   setSelectedFileTypes([]);
   setCustomExtInput("");
@@ -1088,8 +1011,6 @@ const dateFilter2 = () => {
   getFileData(); // Reload favorites
   setShowFTPopup(false);
 };
-
-
 
   const [isNextNextPage, setIsNextNextPage] = useState(false);
   const [showGoogleAuthPopup, setShowGoogleAuthPopup] = useState(false);
@@ -1117,29 +1038,6 @@ const getFileData = async () => {
     showToast("error", "Failed to load recycle bin files");
   }
 };
-
-  const {
-    query,
-    searchLoading,
-    handleSearchChange,
-    clearSearch,
-    resetSearchBar,
-  } = useFileSearch({
-    apiUrl,
-    token,
-    onResults: (list) => {
-      setAllEntries(list);
-      setTotalEntries(list.length);
-      setCurrentPage(1);
-    },
-    onSearchClear: () => {
-      setAllEntries([]);
-      setTotalEntries(0);
-    },
-    reloadList: () => getFileData(),
-  });
-
-  const clearSearchBar = resetSearchBar;
 
   // Pagination control handlers (no API calls now)
   const goToFirstPage = () => setCurrentPage(1);
@@ -1269,7 +1167,7 @@ const getFileData = async () => {
     return str.substring(0, index);
   };
 
-  //Anurag Search file — see useFileSearch hook
+  // Frontend search filters allEntries / sortedData locally (see query + pagination effect)
 
   //Image getting function
   const getImageInfo = async (filename) => {
@@ -1463,8 +1361,6 @@ const getFileData = async () => {
   const [extension, setExtension] = useState("");
  
 
-
-
   const handlePChange = (e) => {
     // console.log("public private", e.target.value);
     setPubPri(e.target.value);
@@ -1478,11 +1374,71 @@ const getFileData = async () => {
     return name;
   };
 
+  /** Prefer exact S3 recycle key (may include ∕) so restore/delete hit the real object. */
+  const resolveRecycleFolderKey = (fileOrName) => {
+    if (fileOrName && typeof fileOrName === "object") {
+      return checkLastHash(
+        fileOrName.recycleStorageName || fileOrName.fileName || ""
+      );
+    }
+    const name = checkLastHash(String(fileOrName || ""));
+    const match = (allEntries || []).find((f) => {
+      if (!f?.isFolder && f?.fileType !== "Folder") return false;
+      return (
+        checkLastHash(f.fileName) === name ||
+        checkLastHash(f.recycleStorageName || "") === name
+      );
+    });
+    return checkLastHash(match?.recycleStorageName || name);
+  };
+
+  const resolveRecycleFileKey = (fileOrName) => {
+    if (fileOrName && typeof fileOrName === "object") {
+      return checkLastHash(
+        fileOrName.recycleStorageName || fileOrName.fileName || ""
+      );
+    }
+    const name = checkLastHash(String(fileOrName || ""));
+    const match = (allEntries || []).find((f) => {
+      if (f?.isFolder || f?.fileType === "Folder") return false;
+      return (
+        checkLastHash(f.fileName) === name ||
+        checkLastHash(f.recycleStorageName || "") === name
+      );
+    });
+    return checkLastHash(match?.recycleStorageName || name);
+  };
+
+  const getRecycleOriginalPath = (item) => {
+    if (!item) return null;
+    const fromMeta = String(item.originalPath || "").trim();
+    if (fromMeta) return fromMeta;
+    // Folders can always reconstruct path from listing name
+    if (item.isFolder || item.fileType === "Folder") {
+      const name = String(item.fileName || "").trim();
+      return name || null;
+    }
+    // Encoded recycle key (∕) encodes nested original path when metadata is missing
+    const storage = String(item.recycleStorageName || "").trim();
+    if (storage.includes("\u2215")) {
+      return storage.split("\u2215").join("/");
+    }
+    return null;
+  };
+
+  const canRestoreToOriginal = (item) => Boolean(getRecycleOriginalPath(item));
+
+  const findRecycleEntryByName = (name) => {
+    const key = checkLastHash(String(name || ""));
+    return (allEntries || []).find(
+      (f) =>
+        checkLastHash(f?.fileName) === key ||
+        checkLastHash(f?.recycleStorageName || "") === key
+    );
+  };
+
   //Rename Api call
   const [isRenaming, setIsRenaming] = useState(false);
-
-
-
 
   // DELETE POPOVER
   const [activeDeleteRow, setActiveDeleteRow] = useState(null);
@@ -1511,7 +1467,6 @@ const getFileData = async () => {
 
   
 
-
 const handleFileDelete = async (file) => {
   const loaderStartedAt = Date.now();
   setLoader_Permanent_Delete(true); // Start permanent delete loader
@@ -1520,7 +1475,7 @@ const handleFileDelete = async (file) => {
     // Permanent folder delete
     try {
       const res = await axios.delete(`${apiUrl}delete-folder`, { ...LONG_RUNNING_AWS_REQUEST_OPTIONS, 
-        data: { folderName: [checkLastHash(file.fileName)], fromRecycleBin: true },
+        data: { folderName: [resolveRecycleFolderKey(file)], fromRecycleBin: true },
         headers: {
           Authorization: `Bearer ${token}`,
           "Content-Type": "application/json",
@@ -1541,7 +1496,7 @@ const handleFileDelete = async (file) => {
     }
   } else {
     // Permanent file delete from recycle bin
-    const deleteKey = file.fileName;
+    const deleteKey = resolveRecycleFileKey(file);
 
     const dataToSend = {
       keys: [deleteKey],
@@ -1570,74 +1525,136 @@ const handleFileDelete = async (file) => {
   }
 };
 
-
-
 // Fetch all folders recursively for restore modal
 
-const handleRestore = async (file) => {
+const openRestorePicker = () => {
+  setShowRestoreChoiceModal(false);
+  setShowRestoreFolderModal(false);
+  setShowMultiRestoreConfirm(false);
+  setShowRestoreModal(true);
+  setSelectedDestination("");
+  setFolderNavigationPath([]);
+  fetchFoldersAtLevel("");
+};
+
+const openMultiRestorePicker = () => {
+  setShowRestoreChoiceModal(false);
+  setShowMultiRestoreConfirm(false);
+  setShowMultiRestoreModal(true);
+  setSelectedDestination("");
+  setFolderNavigationPath([]);
+  fetchFoldersAtLevel("");
+};
+
+const handleRestore = (file) => {
   setFileToRestore(file);
-  if (file?.isFolder) {
-    setShowRestoreFolderModal(true);
+  setRestoreChoiceIsMulti(false);
+  setModalKeys([]);
+  setModalFolderKeys([]);
+  if (canRestoreToOriginal(file)) {
+    setShowRestoreChoiceModal(true);
   } else {
-    setShowRestoreModal(true);
-    setSelectedDestination(""); // Start with root for files
-    setFolderNavigationPath([]);
-    fetchFoldersAtLevel("");
+    // Legacy file without originalPath — picker only
+    openRestorePicker();
   }
 };
 
+const prepareMultiRestoreChoice = () => {
+  const fileKeys = getFileSelectionKeys();
+  const folderKeys = getFolderSelectionKeys();
+  const uniqueFolders = Array.from(new Set(folderKeys));
 
+  const hasSharedFolders = uniqueFolders.some((folder) => {
+    const file = findRecycleEntryByName(folder);
+    return file && file.isShared;
+  });
+  if (hasSharedFolders) {
+    showToast("error", "Shared folders cannot be restored.");
+    return;
+  }
 
+  if (fileKeys.length === 0 && uniqueFolders.length === 0) {
+    showToast("error", "No items selected to restore.");
+    return;
+  }
 
-const handleMulRestore = async () => {
+  setModalKeys(fileKeys);
+  setModalFolderKeys(uniqueFolders);
+  setRestoreChoiceIsMulti(true);
+  setFileToRestore(null);
+
+  const selectedItems = [
+    ...fileKeys.map((name) => findRecycleEntryByName(name)).filter(Boolean),
+    ...uniqueFolders.map((name) => findRecycleEntryByName(name)).filter(Boolean),
+  ];
+  const allCanOriginal =
+    selectedItems.length > 0 && selectedItems.every(canRestoreToOriginal);
+
+  if (allCanOriginal) {
+    setShowRestoreChoiceModal(true);
+  } else {
+    openMultiRestorePicker();
+  }
+};
+
+const handleMulRestore = async ({ useOriginalPath = false, destinationFolder } = {}) => {
+  // Close choice / picker modals immediately so they don't stay on screen
+  // during (or after) restore — including when restore fails.
+  setShowRestoreChoiceModal(false);
+  setShowMultiRestoreConfirm(false);
+  setShowMultiRestoreModal(false);
+  setShowRestoreModal(false);
+  setShowRestoreFolderModal(false);
+
   try {
-    // Check if any shared folders in selection
-    const selectedFolders = [];
-    const selectedFiles = [];
+    const fileKeys = modalKeys.length ? modalKeys : getFileSelectionKeys();
+    const uniqueFolders = modalFolderKeys.length
+      ? modalFolderKeys
+      : Array.from(new Set(getFolderSelectionKeys()));
 
-    keys.forEach((key) => {
-      const file = filedata.find((f) => f.fileName === key);
-      if (file) {
-        if (file.isFolder) {
-          selectedFolders.push(key);
-        } else {
-          selectedFiles.push(key);
-        }
-      }
-    });
+    const hasFolders = uniqueFolders.length > 0;
+    const hasFiles = fileKeys.length > 0;
+    const mixedRestore = hasFolders && hasFiles;
+    let folderPartial = false;
 
-    keys2.forEach((folderName) => {
-      const file = filedata.find((f) => f.fileName === folderName);
-      if (file && file.isFolder) {
-        selectedFolders.push(folderName);
-      }
-    });
-
-    // Remove duplicate folders if any
-    const uniqueFolders = Array.from(new Set(selectedFolders));
-
-    const hasSharedFolders = uniqueFolders.some((folder) => {
-      const file = filedata.find((f) => f.fileName === folder);
-      return file && file.isShared;
-    });
-    if (hasSharedFolders) {
-      showToast("error", "Shared folders cannot be restored.");
-      return;
+    if (hasFolders) {
+      const folderResult = await performFolderMultiRestore(uniqueFolders, {
+        useOriginalPath,
+        destinationFolder,
+        suppressSuccessToast: mixedRestore,
+      });
+      folderPartial = Boolean(folderResult?.partial);
     }
 
-    // Restore folders immediately if any
-    if (uniqueFolders.length > 0) {
-      await performFolderMultiRestore(uniqueFolders);
+    if (hasFiles) {
+      if (useOriginalPath) {
+        await confirmMultiFileRestore(undefined, fileKeys, {
+          useOriginalPath: true,
+          suppressSuccessToast: mixedRestore,
+        });
+      } else {
+        await confirmMultiFileRestore(
+          destinationFolder ?? folderNavigationPath.join("/"),
+          fileKeys,
+          { useOriginalPath: false, suppressSuccessToast: mixedRestore }
+        );
+      }
     }
 
-    // Show modal for files if any
-    if (selectedFiles.length > 0) {
-      setKeys(selectedFiles); // update keys for files to restore
-       setModalKeys(selectedFiles); // store snapshot for modal usage
-      setShowMultiRestoreModal(true);
-      setSelectedDestination("");
-      setFolderNavigationPath([]);
-      fetchFoldersAtLevel("");
+    if (mixedRestore) {
+      if (folderPartial) {
+        showToast(
+          "warning",
+          "Items restored; some folders were missing from the recycle bin."
+        );
+      } else {
+        showToast(
+          "success",
+          useOriginalPath
+            ? "Items restored to original location!"
+            : "Items restored successfully!"
+        );
+      }
     }
   } catch (error) {
     console.error("Error during multi-restore:", error);
@@ -1646,13 +1663,20 @@ const handleMulRestore = async () => {
 };
 
 // Modify performFolderMultiRestore to accept folders argument
-const performFolderMultiRestore = async (folders) => {
+const performFolderMultiRestore = async (
+  folders,
+  {
+    useOriginalPath = true,
+    destinationFolder,
+    suppressSuccessToast = false,
+  } = {}
+) => {
   console.log("ggggg performFolderMultiRestore called with folders:", folders);
 
   if (!Array.isArray(folders) || folders.length === 0) {
     console.log("ggggg No folders passed to performFolderMultiRestore, aborting.");
     showToast("error", "No folders selected to restore.");
-    return;
+    return { ok: false, partial: false };
   }
 
   // Start loaders
@@ -1692,18 +1716,28 @@ const performFolderMultiRestore = async (folders) => {
     );
     setLoader_Restore(false);
     dispatch(setLoader(false));
-    return;
+    return { ok: false, partial: false };
   }
 
   try {
+    const payload = {
+      folders: folders.map((name) => resolveRecycleFolderKey(name)),
+    };
+    if (!useOriginalPath) {
+      payload.destinationFolder =
+        destinationFolder != null
+          ? destinationFolder
+          : folderNavigationPath.join("/");
+    }
+
     console.log("ggggg Preparing restore-folders API call");
     console.log("ggggg API URL:", `${apiUrl}restore-folders`);
-    console.log("ggggg Payload:", { folders });
+    console.log("ggggg Payload:", payload);
     console.log("ggggg Auth token present:", !!token);
 
     const response = await axios.post(
       `${apiUrl}restore-folders`,
-      { folders },
+      payload,
       {
         ...LONG_RUNNING_AWS_REQUEST_OPTIONS,
         headers: {
@@ -1716,37 +1750,72 @@ const performFolderMultiRestore = async (folders) => {
     console.log("ggggg restore-folders response status:", response.status);
     console.log("ggggg restore-folders response data:", response.data);
 
+    const restoreResults = response?.data?.results;
+    const failedRestores = Array.isArray(restoreResults)
+      ? restoreResults.filter((r) => r.status === "error")
+      : [];
+    if (
+      failedRestores.length > 0 &&
+      !restoreResults.some((r) => r.status === "restored")
+    ) {
+      throw Object.assign(new Error(failedRestores[0]?.message || "Folder not found"), {
+        response: { data: response.data, status: response.status },
+      });
+    }
+
     // Refresh storage info
     dispatch(fetchUserFolderSize({ token, force: true }));
 
     console.log("ggggg Calling resetSelectionAndRefresh()");
     resetSelectionAndRefresh();
 
+    const partial = failedRestores.length > 0;
+
     afterMinLoaderDisplay(loaderStartedAt, () => {
       setLoader_Restore(false);
-      showToast("success", "Folders restored successfully!");
+      if (suppressSuccessToast) return;
+      if (partial) {
+        showToast(
+          "warning",
+          "Some folders could not be restored (missing from recycle bin)."
+        );
+      } else {
+        showToast("success", "Folders restored successfully!");
+      }
     });
+
+    return { ok: true, partial };
   } catch (error) {
     console.error("ggggg Error restoring folders:", error);
     console.error("ggggg Error response:", error.response?.data);
-    showToast("error", "Error restoring folders");
+    showToast(
+      "error",
+      error.response?.data?.error ||
+        error.response?.data?.message ||
+        error.message ||
+        "Error restoring folders"
+    );
 
     afterMinLoaderDisplay(loaderStartedAt, () => {
       setLoader_Restore(false);
     });
+    getFileData?.(currentPage);
+    return { ok: false, partial: false };
   } finally {
     dispatch(setLoader(false));
   }
 };
 
-
-
-
-// confirmMultiFileRestore remains same (uses updated keys state)
-const confirmMultiFileRestore = async (selectedDestination) => {
+const confirmMultiFileRestore = async (
+  selectedDestination,
+  fileKeys,
+  { useOriginalPath = false, suppressSuccessToast = false } = {}
+) => {
+  const keys = fileKeys?.length ? fileKeys : getFileSelectionKeys();
   console.log("ggggg confirmMultiFileRestore called with:", {
     selectedDestination,
     keys,
+    useOriginalPath,
   });
 
   if (!Array.isArray(keys) || keys.length === 0) {
@@ -1756,6 +1825,7 @@ const confirmMultiFileRestore = async (selectedDestination) => {
   }
 
   setShowMultiRestoreModal(false);
+  setShowRestoreChoiceModal(false);
 
   // Start loaders
   const loaderStartedAt = Date.now();
@@ -1798,7 +1868,13 @@ const confirmMultiFileRestore = async (selectedDestination) => {
   }
 
   try {
-    const payload = { keys, destinationFolder: selectedDestination };
+    const payload = {
+      keys: keys.map((name) => resolveRecycleFileKey(name)),
+    };
+    if (!useOriginalPath) {
+      payload.destinationFolder =
+        selectedDestination != null ? selectedDestination : "";
+    }
     console.log("ggggg Preparing restore-objects API call");
     console.log("ggggg API URL:", `${apiUrl}restore-objects`);
     console.log("ggggg Payload:", payload);
@@ -1817,12 +1893,23 @@ const confirmMultiFileRestore = async (selectedDestination) => {
 
     afterMinLoaderDisplay(loaderStartedAt, () => {
       setLoader_Restore(false);
-      showToast("success", "Files restored successfully!");
+      if (suppressSuccessToast) return;
+      showToast(
+        "success",
+        useOriginalPath
+          ? "Files restored to original location!"
+          : "Files restored successfully!"
+      );
     });
   } catch (error) {
     console.error("ggggg Error restoring files:", error);
     console.error("ggggg Error response:", error.response?.data);
-    showToast("error", "Error restoring files!");
+    showToast(
+      "error",
+      error.response?.data?.error ||
+        error.response?.data?.message ||
+        "Error restoring files!"
+    );
 
     afterMinLoaderDisplay(loaderStartedAt, () => {
       setLoader_Restore(false);
@@ -1832,24 +1919,12 @@ const confirmMultiFileRestore = async (selectedDestination) => {
   }
 };
 
-
-
 const resetSelectionAndRefresh = () => {
-  setIsSelectAll(false);
   setSelectStatus(false);
-  setKeys([]);
-  setKeys2([]);
+  clearFileSelection();
   getFileData(currentPage);
   getRootFolderSize();
 };
-
-
-
-
-
-
-
-
 
 // const navigateIntoFolder = (folder) => {
 //   console.log("=== Navigate Into Folder Debug ===");
@@ -1877,8 +1952,6 @@ const resetSelectionAndRefresh = () => {
   
 //   fetchFoldersAtLevel(newPath);
 // };
-
-
 
 // Navigate back to parent folder
 
@@ -1922,8 +1995,6 @@ const navigateIntoFolder = async (folder) => {
   }
 };
 
-
-
 const navigateBack = () => {
   const newPath = [...folderNavigationPath];
   newPath.pop();
@@ -1936,6 +2007,7 @@ const navigateBack = () => {
 const closeRestoreDestinationModal = () => {
   setShowRestoreModal(false);
   setFileToRestore(null);
+  setShowRestoreChoiceModal(false);
   setSelectedDestination("");
   setFolderNavigationPath([]);
   setNewFolderName("");
@@ -1960,9 +2032,11 @@ const getRestoreFolderLabel = (fileName) => {
 };
 
   
-const performRestore = async () => {
+const performRestore = async ({ useOriginalPath = false } = {}) => {
   // don't start loader if there's nothing to do
   setShowRestoreModal(false);
+  setShowRestoreChoiceModal(false);
+  setShowRestoreFolderModal(false);
   if (!fileToRestore) return;
 
   setLoader_Restore(true); // Start restore loader
@@ -1990,15 +2064,38 @@ const performRestore = async () => {
     const destination = folderNavigationPath.join("/");
 
     if (fileToRestore.isFolder) {
-      const payload = { folders: [fileToRestore.fileName] };
-      await axios.post(`${apiUrl}restore-folders`, payload, { ...LONG_RUNNING_AWS_REQUEST_OPTIONS, 
+      const payload = {
+        folders: [resolveRecycleFolderKey(fileToRestore)],
+      };
+      if (!useOriginalPath) {
+        payload.destinationFolder = destination;
+      }
+      const response = await axios.post(`${apiUrl}restore-folders`, payload, { ...LONG_RUNNING_AWS_REQUEST_OPTIONS, 
         headers: {
           Authorization: `Bearer ${token}`,
           "Content-Type": "application/json",
         },
       });
 
-      const locationMsg = destination === "" ? "Root Folder" : destination;
+      const restoreResults = response?.data?.results;
+      if (
+        Array.isArray(restoreResults) &&
+        restoreResults.length > 0 &&
+        !restoreResults.some((r) => r.status === "restored")
+      ) {
+        throw Object.assign(
+          new Error(
+            restoreResults[0]?.message || "Folder not found in recycle bin."
+          ),
+          { response: { data: response.data, status: response.status } }
+        );
+      }
+
+      const locationMsg = useOriginalPath
+        ? getRecycleOriginalPath(fileToRestore) || "original location"
+        : destination === ""
+          ? "Root Folder"
+          : destination;
       dispatch(setLoader(false));
 
       // Refresh storage after successful folder restore
@@ -2010,18 +2107,26 @@ const performRestore = async () => {
       });
     } else {
       const dataToSend = {
-        keys: [fileToRestore.fileName],
-        destinationFolder: destination,
+        keys: [resolveRecycleFileKey(fileToRestore)],
       };
+      if (!useOriginalPath) {
+        dataToSend.destinationFolder = destination;
+      }
 
-      await axios.post(`${apiUrl}restore-objects`, dataToSend, {
+      const response = await axios.post(`${apiUrl}restore-objects`, dataToSend, {
         headers: {
           Authorization: `Bearer ${token}`,
           "Content-Type": "application/json",
         },
       });
 
-      const locationMsg = destination === "" ? "Root Folder" : destination;
+      const restoredTo =
+        response?.data?.results?.[0]?.restoredTo ||
+        (useOriginalPath
+          ? getRecycleOriginalPath(fileToRestore)
+          : destination === ""
+            ? "Root Folder"
+            : destination);
       dispatch(setLoader(false));
 
       // Refresh storage after successful file restore
@@ -2029,7 +2134,7 @@ const performRestore = async () => {
 
       afterMinLoaderDisplay(loaderStartedAt, () => {
         setLoader_Restore(false);
-        showToast("success", `File restored to ${locationMsg} successfully`);
+        showToast("success", `File restored to ${restoredTo} successfully`);
       });
     }
 
@@ -2043,22 +2148,20 @@ const performRestore = async () => {
     getRootFolderSize();
   } catch (error) {
     console.error("Error restoring item:", error);
-    showToast("error", "There's an error while restoring item!");
+    showToast(
+      "error",
+      error.response?.data?.error ||
+        error.response?.data?.message ||
+        error.message ||
+        "Error restoring item"
+    );
+    getFileData(currentPage);
     dispatch(setLoader(false));
     afterMinLoaderDisplay(loaderStartedAt, () => setLoader_Restore(false));
   } finally {
     // Loader stop handled in branches
   }
 };
-
-
-
-
-
-
-
-
-
 
 // Fetch folders for current level (not recursive anymore)
 const fetchFoldersAtLevel = async (folderPath = "") => {
@@ -2118,14 +2221,6 @@ const fetchFoldersAtLevel = async (folderPath = "") => {
     setLoadingFolders(false);
   }
 };
-
-
-
-
-
-
-
-
 
   const [openPDFModal, setOpenPDFModal] = useState(false);
   const handleOpenPDFModal = () => setOpenPDFModal(true);
@@ -2196,8 +2291,6 @@ const fetchFoldersAtLevel = async (folderPath = "") => {
     }
   };
 
-
-
   const getLatestFolderList = async () => {
     try {
       // console.log("Folders are loading...");
@@ -2225,22 +2318,13 @@ const fetchFoldersAtLevel = async (folderPath = "") => {
     c++;
   }
 
-
   
-
-
-
-
 
   const [isLoading1, setIsLoading1] = useState(false);
   const [codeChunks, setCodeChunks] = useState([]); // chunks of lines
   const [fullLines, setFullLines] = useState([]); // entire line array
   const [chunkSize] = useState(500); // lines per chunk
   const [hasMoreChunks, setHasMoreChunks] = useState(false);
-
-
-
-
 
   async function processZipFile(file, destinationPath = "") {
     const apiUrl1 = `${apiUrl}zip-object`;
@@ -2313,7 +2397,6 @@ const fetchFoldersAtLevel = async (folderPath = "") => {
     return name;
   };
 
-
   function getFileNameWithoutExtension(fileName) {
     const lastDotIndex = fileName.lastIndexOf(".");
 
@@ -2325,8 +2408,6 @@ const fetchFoldersAtLevel = async (folderPath = "") => {
       return fileName;
     }
   }
-
-
 
 function getTextAfterLastSlash(text) {
   if (text.includes("/")) {
@@ -2347,9 +2428,6 @@ function getModifiedRecentFolderText(input) {
     return "";
   }
 }
-
-
-
 
   const handleFolderChange = (event) => {
     // console.log("Event", event);
@@ -2920,109 +2998,6 @@ const handleFileUpload = async () => {
   setFiles([]);
 };
 
-
-
-
-
-
-  const toast = useToast();
-
-  const iconMap = {
-  success: FaCheckCircle,
-  error: BsXCircleFill,
-  info: IoIosInformationCircle,
-  warning: FaExclamationTriangle,
-};
-
-
-const getStatusColors = (status) => {
-  return {
-    bg: 'rgba(255, 255, 255, 0.85)',     // Clean white glass
-    border: status === 'success' ? 'rgba(16, 185, 129, 0.3)' :
-            status === 'error' ? 'rgba(239, 68, 68, 0.3)' :
-            status === 'info' ? 'rgba(59, 130, 246, 0.3)' :
-            'rgba(245, 158, 11, 0.3)',        // Status-colored border
-    icon: status === 'success' ? '#10b981' :
-          status === 'error' ? '#ef4444' :
-          status === 'info' ? '#3b82f6' :
-          '#f59e0b'
-  };
-};
-
-
-
-const showToast = (status, message) => {
-  const IconComponent = iconMap[status];
-  const colors = getStatusColors(status);
-  
-  toast({
-    // position: 'bottom-center',
-    position: 'bottom-right',
-    duration: 4000,
-    isClosable: true,
-    render: () => (
-      <div className="premium-toast" style={{
-        background: `linear-gradient(135deg, ${colors.bg}, rgba(255,255,255,0.9))`,
-        backdropFilter: 'blur(20px)',
-        border: `2px solid ${colors.border}`,
-        borderRadius: '16px',
-        boxShadow: '0 25px 50px -12px rgba(0,0,0,0.25), 0 0 0 1px rgba(255,255,255,0.05)',
-        padding: '20px',
-        maxWidth: '720px',
-        fontFamily: "'SF Pro', 'SFProText', -apple-system, BlinkMacSystemFont, sans-serif",
-        animation: 'toastSlideIn 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
-      }}>
-        <div style={{ display: 'flex', alignItems: 'flex-start', gap: '12px' }}>
-          <IconComponent 
-            style={{ 
-              width: '24px', 
-              height: '24px', 
-              color: colors.icon,
-              flexShrink: 0,
-              marginTop: '2px'
-            }} 
-          />
-          <div style={{ flex: 1, minWidth: 0 }}>
-            <div style={{
-              fontSize: '14px',
-              fontWeight: '600',
-              color: '#1f2937',
-              marginBottom: '4px',
-              lineHeight: '1.3'
-            }}>
-              {status.charAt(0).toUpperCase() + status.slice(1)}
-            </div>
-            <div style={{
-              fontSize: '14px',
-              color: '#6b7280',
-              lineHeight: '1.4'
-            }}>
-              {message}
-            </div>
-          </div>
-          <button 
-            style={{
-              background: 'none',
-              border: 'none',
-              padding: '4px',
-              cursor: 'pointer',
-              color: '#9ca3af',
-              borderRadius: '4px',
-              opacity: 0.7,
-              transition: 'all 0.2s'
-            }}
-            onClick={() => toast.closeAll()}
-            onMouseEnter={(e) => e.target.style.opacity = 1}
-            onMouseLeave={(e) => e.target.style.opacity = 0.7}
-          >
-            ✕
-          </button>
-        </div>
-      </div>
-    ),
-  });
-};
-
 // Build name -> size map from allEntries
 const sizeByName = useMemo(() => {
   const map = {};
@@ -3033,18 +3008,16 @@ const sizeByName = useMemo(() => {
   return map;
 }, [allEntries]);
 
-// Total size of selected files (keys) in bytes
+// Total size of selected files for restore modal in bytes
 const selectedTotalBytes = useMemo(() => {
-  return (keys || []).reduce((sum, name) => {
+  return (modalKeys || []).reduce((sum, name) => {
     const sizeStr = sizeByName[name];
     return sum + (sizeStr ? parseStorageToBytes(sizeStr) : 0);
   }, 0);
-}, [keys, sizeByName]);
+}, [modalKeys, sizeByName]);
 
 const selectedTotalGB = (selectedTotalBytes / 1024 ** 3).toFixed(2);
 const isMultiSizeExceeded = selectedTotalBytes > remainingBytes;
-
-
 
   //Image slider functionality
   const [isFullscreen, setIsFullscreen] = useState(false);
@@ -3295,7 +3268,6 @@ const isMultiSizeExceeded = selectedTotalBytes > remainingBytes;
     }
   };
 
-
   //Handle prev by arrow
   useEffect(() => {
     // Function to handle keydown events
@@ -3337,9 +3309,6 @@ const isMultiSizeExceeded = selectedTotalBytes > remainingBytes;
 
   //Drag to move
   const [draggedItem, setDraggedItem] = useState(null);
-
-
-
 
   const [folders, setFolders] = useState([]);
 
@@ -3422,13 +3391,7 @@ const isMultiSizeExceeded = selectedTotalBytes > remainingBytes;
 
   return (
     <>
-      <ChakraProvider></ChakraProvider>
-
-
-    
-    
-
-      {deletePop && (
+{deletePop && (
         <div className="rename_popup_wrapper">
           <div className="rename_modal">
             <div
@@ -3461,13 +3424,9 @@ const isMultiSizeExceeded = selectedTotalBytes > remainingBytes;
         
       )}
 
-
-
    
 
       {/* // Modal component */}
-
-
 
       <SideNav />
       <div className="container-fluid page-body-wrapper">
@@ -3545,7 +3504,13 @@ const isMultiSizeExceeded = selectedTotalBytes > remainingBytes;
             <div className={tableBoxClassName} ref={tableBoxRef}>
               <div className="filerbar_row" ref={filterBarRef}>
                 <div className="show_entries_row">
-                 
+                  <FileSearchBar
+                    value={query}
+                    onChange={handleSearchChange}
+                    onClear={clearSearch}
+                    isPremium={isPremium}
+                    onPremiumGate={() => setShowUpgradeModal(true)}
+                  />
                 </div>
 
                 <div className="files-toolbar filter-row-new">
@@ -3589,14 +3554,22 @@ const isMultiSizeExceeded = selectedTotalBytes > remainingBytes;
                       </div>
 
                       <div
-                        className="files-toolbar__filetype"
+                        className={`files-toolbar__filetype${
+                          selectedFileTypes.length > 0 ? " is-active" : ""
+                        }${showFTPopup ? " is-open" : ""}`}
                         ref={fileTypeDropdownRef}
                       >
                       <Dropdown
+                        noCaret
                         onSelect={handleFTypeSelect}
                         title={
                           <span className="sort-filter-span">
-                            <img src={FilterHome} alt="" />
+                            <SlidersHorizontal
+                              className="sort-filter-lucide"
+                              size={15}
+                              strokeWidth={2}
+                              aria-hidden
+                            />
                             <span className="sort-filter-label">
                               {selectedFileTypes.length > 0
                                 ? `File Type (${selectedFileTypes.length})`
@@ -3609,6 +3582,14 @@ const isMultiSizeExceeded = selectedTotalBytes > remainingBytes;
                                 className="sort-filter-crown"
                               />
                             )}
+                            <ChevronDown
+                              className={`filetype-chevron${
+                                showFTPopup ? " is-open" : ""
+                              }`}
+                              size={14}
+                              strokeWidth={2.4}
+                              aria-hidden
+                            />
                           </span>
                         }
                         className="filter_dropdown"
@@ -3617,7 +3598,8 @@ const isMultiSizeExceeded = selectedTotalBytes > remainingBytes;
                               setShowUpgradeModal(true);
                               return;
                             }
-                            setShowFTPopup(true)}}
+                            setShowFTPopup((open) => !open);
+                        }}
                       >
                       </Dropdown>
 
@@ -3740,20 +3722,18 @@ const isMultiSizeExceeded = selectedTotalBytes > remainingBytes;
                 </div>
               </div>
 
-              <BulkSelectionToolbar
-                selectedCount={keys.length + keys2.length}
-                isSelectAll={isSelectAll}
-                onSelectAllToggle={handleSelectAllToggle}
+              <StoreBulkSelectionToolbar
+                pageItems={filedata}
                 variant="recycleBin"
                 onRestore={() => {
-                  if ((keys?.length || 0) === 0 && (keys2?.length || 0) === 0) {
+                  if (!hasFileSelection()) {
                     showToast("error", "No items selected to restore.");
                     return;
                   }
-                  setShowMultiRestoreConfirm(true);
+                  prepareMultiRestoreChoice();
                 }}
                 onDelete={() => {
-                  if (keys.length === 0 && keys2.length === 0) {
+                  if (!hasFileSelection()) {
                     showToast("error", "No items selected to delete");
                   } else {
                     setShowDeleteModal(true);
@@ -3765,10 +3745,8 @@ const isMultiSizeExceeded = selectedTotalBytes > remainingBytes;
               
                 <div id="dataView">
 
-
-
                   {view === "list" ? (
-                    placeholderLoading || searchLoading ? (
+                    placeholderLoading ? (
                       <div
                         className="table-responsive"
                         id="listViewContent"
@@ -3801,18 +3779,13 @@ const isMultiSizeExceeded = selectedTotalBytes > remainingBytes;
                         <thead>
                           <tr>
                             <th style={{ width: "40px", textAlign: "center" }} className="files-col-check">
-                              <input
-                                id="check-Atharva"
-                                type="checkbox"
-                                onChange={handleSelectAllToggle}
-                                checked={isSelectAll}
-                              />
+                              <PageSelectAllCheckbox pageItems={filedata} />
                             </th>
 
                          <th
   className="files-col-name"
   style={{
-    width: "60%",
+    width: "40%",
     fontWeight: 600,
     color: "#181818",
   }}
@@ -3844,11 +3817,10 @@ const isMultiSizeExceeded = selectedTotalBytes > remainingBytes;
   </div>
 </th>
 
-
                             <th
                               className="files-col-size"
                               style={{
-                                width: "15%",
+                                width: "20%",
                                 fontWeight: 600,
                                 color: "#181818",
                                 justifyContent: "center",
@@ -3880,7 +3852,7 @@ const isMultiSizeExceeded = selectedTotalBytes > remainingBytes;
                             <th
                               className="files-col-date"
                               style={{
-                                width: "15%",
+                                width: "25%",
                                 fontWeight: 600,
                                 color: "#181818",
                                 justifyContent: "center",
@@ -3923,7 +3895,6 @@ const isMultiSizeExceeded = selectedTotalBytes > remainingBytes;
                           </tr>
                         </thead>
 
-
  
 
                       {filedata.map((file, index) => {
@@ -3936,17 +3907,10 @@ const isMultiSizeExceeded = selectedTotalBytes > remainingBytes;
                                 
                                 >
                                   <td>
-                                    <input
-                                      id="check-Atharva"
-                                      type="checkbox"
-                                      onChange={() =>
-                                        handleCheckboxChange(file)
-                                      }
-                                      checked={
-                                        file.isFolder
-                                          ? keys2.includes(file.fileName)
-                                          : keys.includes(file.fileName)
-                                      }
+                                    <RowSelectCheckbox
+                                      fileName={file.fileName}
+                                      isFolder={!!file.isFolder}
+                                      disabled={file.fileName === "blackbox" || file.isShared}
                                     />
                                   </td>
                                   <td
@@ -3973,10 +3937,10 @@ const isMultiSizeExceeded = selectedTotalBytes > remainingBytes;
                                     </span>
                                     <div className="file-item">
                                     
-                                     <span
-                                        title={getTextAfterLastSlash(file.fileName)}
-                                        className="file-name filename_link"
-                                        style={{ cursor: "pointer" }} // Keep pointer to indicate it's clickable
+                                     <TruncatedTooltip
+                                        label={getTextAfterLastSlash(file.fileName)}
+                                        textClassName="file-name filename_link"
+                                        style={{ cursor: "pointer" }}
                                         onClick={(e) => {
                                           e.preventDefault();
                                           if (trySelectInsteadOfOpen(file)) return;
@@ -3988,8 +3952,7 @@ const isMultiSizeExceeded = selectedTotalBytes > remainingBytes;
                                         {getTextAfterLastSlash(
                                           customTruncateFileName(file.fileName, 55)
                                         )}
-                                      </span>
-
+                                      </TruncatedTooltip>
 
                                     
                                     </div>
@@ -4034,7 +3997,8 @@ const isMultiSizeExceeded = selectedTotalBytes > remainingBytes;
                                         id="dropdownMenuButton"
                                         aria-haspopup="true"
                                         aria-expanded="false"
-                                        {...getBulkRowActionToggleProps(hasBulkSelection, showToast)}
+                                        className="dropdown-toggle"
+          data-toggle="dropdown"
                                       >
                                         <svg
                                           width="24"
@@ -4062,11 +4026,6 @@ const isMultiSizeExceeded = selectedTotalBytes > remainingBytes;
                                       </button>
                                       <div
                                         className="dropdown-menu custom-dropdown-menu"
-                                        style={{
-                                          transform:
-                                            "translate3d(-242px, -25px, 0px)",
-                                        }}
-                                        // aria-labelledby="dropdownMenuButton"
                                       >
                                         <a className="file-container">
                                           <div className="file-icon">
@@ -4080,27 +4039,23 @@ const isMultiSizeExceeded = selectedTotalBytes > remainingBytes;
                                             />
                                           </div>
                                           <div className="file-details">
-                                            <div className="file-name">
-                                              {file.fileName}
+                                            <div
+                                              className="file-name"
+                                              style={{
+                                                whiteSpace: "nowrap",
+                                                overflow: "hidden",
+                                                textOverflow: "ellipsis",
+                                                maxWidth: "220px",
+                                                display: "block",
+                                              }}
+                                              title={getTextAfterLastSlash(file.fileName)}
+                                            >
+                                              {getTextAfterLastSlash(file.fileName)}
                                             </div>
-                                            <div className="upload-date">
-                                              <p>
-                                                Uploaded on{" "}
-                                                {file.uploadDateTime.substring(
-                                                  0,
-                                                  file.uploadDateTime.indexOf(
-                                                    ","
-                                                  )
-                                                )}
-                                              </p>
-                                              <span>• {file.fileSize}</span>
-                                            </div>
+                                            <div className="file-size">{file.fileSize}</div>
                                           </div>
                                         </a>
                                       
-
-
-
 
                                        {/* Restore option */}
                                         <a
@@ -4108,10 +4063,10 @@ const isMultiSizeExceeded = selectedTotalBytes > remainingBytes;
                                           href="#"
                                           onClick={() => handleRestore(file)}
                                         >
-                                          <img
-                                            src={restoreIcon}
-                                            alt="Restore"
+                                          <RotateCcwClock
                                             className="dropdown-icon-list"
+                                            aria-hidden="true"
+                                            strokeWidth={2}
                                           />
                                           Restore
                                         </a>
@@ -4143,7 +4098,7 @@ const isMultiSizeExceeded = selectedTotalBytes > remainingBytes;
                   ) : (
                     <>
                       <div className="grid-view2">
-                        {placeholderLoading || searchLoading ? (
+                        {placeholderLoading ? (
                                                  <div className="file-grid-placeholder" id="cardPlaceHolder" style={{width:"100%"}}>
                                                    <Placeholder.Grid
                                                      rows={2}
@@ -4184,22 +4139,17 @@ const isMultiSizeExceeded = selectedTotalBytes > remainingBytes;
       setShowAccessDeniedModal(true);
     }}
   >
-    <input
-      id="check-Atharva"
-      type="checkbox"
+    <RowSelectCheckbox
+      fileName={file.fileName}
+      isFolder={!!file.isFolder}
+      disabled={file.fileName === "blackbox" || file.isShared}
       className="checkbox-input"
       style={{
         position: "absolute",
         top: "8px",
         left: "8px",
       }}
-      onClick={(event) => event.stopPropagation()} // Stops click from bubbling to parent
-      onChange={() => handleCheckboxChange(file)}
-      checked={
-        file.isFolder
-          ? keys2.includes(file.fileName)
-          : keys.includes(file.fileName)
-      }
+      onClick={(event) => event.stopPropagation()}
     />
 
     {/* Three Dots Menu */}
@@ -4210,7 +4160,8 @@ const isMultiSizeExceeded = selectedTotalBytes > remainingBytes;
           id="dropdownMenuButton"
           aria-haspopup="true"
           aria-expanded="false"
-          {...getBulkRowActionToggleProps(hasBulkSelection, showToast)}
+          className="dropdown-toggle"
+          data-toggle="dropdown"
         >
           <svg
             width="24"
@@ -4230,9 +4181,6 @@ const isMultiSizeExceeded = selectedTotalBytes > remainingBytes;
         </button>
         <div
           className="dropdown-menu custom-dropdown-menu"
-          style={{
-            transform: "translate3d(-242px, -25px, 0px)",
-          }}
         >
           <a className="file-container">
             <div className="file-icon">
@@ -4247,17 +4195,20 @@ const isMultiSizeExceeded = selectedTotalBytes > remainingBytes;
               />
             </div>
             <div className="file-details">
-              <div className="file-name">{file.fileName}</div>
-              <div className="upload-date">
-                <p>
-                  Uploaded on{" "}
-                  {file.uploadDateTime.substring(
-                    0,
-                    file.uploadDateTime.indexOf(",")
-                  )}
-                </p>
-                <span>• {file.fileSize}</span>
+              <div
+                className="file-name"
+                style={{
+                  whiteSpace: "nowrap",
+                  overflow: "hidden",
+                  textOverflow: "ellipsis",
+                  maxWidth: "220px",
+                  display: "block",
+                }}
+                title={getTextAfterLastSlash(file.fileName)}
+              >
+                {getTextAfterLastSlash(file.fileName)}
               </div>
+              <div className="file-size">{file.fileSize}</div>
             </div>
           </a>
 
@@ -4267,10 +4218,10 @@ const isMultiSizeExceeded = selectedTotalBytes > remainingBytes;
             href="#"
             onClick={() => handleRestore(file)}
           >
-            <img
-              src={restoreIcon}
-              alt="Restore"
+            <RotateCcwClock
               className="dropdown-icon-list"
+              aria-hidden="true"
+              strokeWidth={2}
             />
             Restore
           </a>
@@ -4350,10 +4301,6 @@ const isMultiSizeExceeded = selectedTotalBytes > remainingBytes;
                   )}
                 </div>
            
-
-
-
-
 
            
 
@@ -4479,9 +4426,10 @@ const isMultiSizeExceeded = selectedTotalBytes > remainingBytes;
                   height: "100px",
                   display: "flex",
                   alignItems: "center",
+                  justifyContent: "center",
                 }}
               >
-                <img src={loaderGif} alt="" style={{ height: "50%" }} />
+                <DualRingMark size={40} />
               </div>
             ) : (
               <div
@@ -4747,11 +4695,61 @@ const isMultiSizeExceeded = selectedTotalBytes > remainingBytes;
 
      
 
+{/* Restore choice: original path vs pick location */}
+{showRestoreChoiceModal && (
+  <RestoreChoiceModal
+    isOpen={showRestoreChoiceModal}
+    onClose={() => {
+      setShowRestoreChoiceModal(false);
+      if (!restoreChoiceIsMulti) setFileToRestore(null);
+    }}
+    title={restoreChoiceIsMulti ? "Restore items" : "Restore"}
+    itemLabel={
+      restoreChoiceIsMulti
+        ? `${modalKeys.length + modalFolderKeys.length} selected item(s)`
+        : fileToRestore?.isFolder
+          ? "this folder"
+          : "this file"
+    }
+    showOriginal={
+      restoreChoiceIsMulti
+        ? (() => {
+            const items = [
+              ...modalKeys.map((n) => findRecycleEntryByName(n)).filter(Boolean),
+              ...modalFolderKeys
+                .map((n) => findRecycleEntryByName(n))
+                .filter(Boolean),
+            ];
+            return (
+              items.length > 0 && items.every((item) => canRestoreToOriginal(item))
+            );
+          })()
+        : canRestoreToOriginal(fileToRestore)
+    }
+    originalPath={
+      restoreChoiceIsMulti
+        ? "Each item returns to where it was deleted from"
+        : getRecycleOriginalPath(fileToRestore) || ""
+    }
+    isBusy={loader_Restore}
+    onRestoreOriginal={() => {
+      if (restoreChoiceIsMulti) {
+        handleMulRestore({ useOriginalPath: true });
+      } else {
+        performRestore({ useOriginalPath: true });
+      }
+    }}
+    onChooseLocation={() => {
+      if (restoreChoiceIsMulti) {
+        openMultiRestorePicker();
+      } else {
+        openRestorePicker();
+      }
+    }}
+  />
+)}
 
-
-
-
-{/* Restore Folder Picker Modal */}
+{/* Restore destination picker (single file/folder) */}
 {showRestoreModal && (
   <FolderDestinationModal
     variant="restore"
@@ -4762,7 +4760,7 @@ const isMultiSizeExceeded = selectedTotalBytes > remainingBytes;
     onConfirm={() => {
       const destination = folderNavigationPath.join("/");
       setSelectedDestination(destination);
-      performRestore();
+      performRestore({ useOriginalPath: false });
     }}
     confirmLabel="Restore here"
     locationPath={folderNavigationPath.join(" / ")}
@@ -4806,166 +4804,25 @@ const isMultiSizeExceeded = selectedTotalBytes > remainingBytes;
   </FolderDestinationModal>
 )}
 
-
-
-
-
-{/* Access Denied Modal – Spacious Premium Version */}
 {showAccessDeniedModal && (
-  <div
-    className="modal fade show"
-    style={{
-      display: "block",
-      backgroundColor: "rgba(0,0,0,0.7)",
-      backdropFilter: "blur(6px)",
-    }}
-    onClick={() => {
+  <AccessRestrictedModal
+    isOpen={showAccessDeniedModal}
+    itemName={fileToAccess?.fileName || ""}
+    isFolder={Boolean(fileToAccess?.isFolder)}
+    onClose={() => {
       setShowAccessDeniedModal(false);
       setFileToAccess(null);
     }}
-  >
-    <div
-      className="modal-dialog modal-dialog-centered"
-      onClick={(e) => e.stopPropagation()}
-      style={{ maxWidth: "420px" }}  // slightly wider for better proportions with more padding
-    >
-      <div
-        style={{
-          background: "#ffffff",
-          borderRadius: "20px",
-          overflow: "hidden",
-          boxShadow: "0 30px 70px -20px rgba(0,0,0,0.4)",
-          border: "1px solid rgba(0,0,0,0.08)",
-        }}
-      >
-        {/* Icon + Title Section – more vertical space */}
-        <div
-          style={{
-            padding: "48px 32px 32px",   // ← increased top/bottom
-            textAlign: "center",
-            background: "linear-gradient(to bottom, #fffaf0, #ffffff)",
-          }}
-        >
-          <div
-            style={{
-              width: "72px",
-              height: "72px",
-              margin: "0 auto 24px",      // more space below icon
-              background: "rgba(255, 171, 73, 0.15)",
-              borderRadius: "50%",
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "center",
-              color: "#FFAB49",
-              fontSize: "36px",
-              boxShadow: "0 6px 16px rgba(255, 171, 73, 0.25)",
-            }}
-          >
-            <svg width="44" height="44" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
-              <rect x="3" y="11" width="18" height="11" rx="2" ry="2" />
-              <path d="M7 11V7a5 5 0 0 1 9.9-1" />
-              <circle cx="12" cy="15" r="1" />
-            </svg>
-          </div>
-
-          <h5
-            style={{
-              margin: "0 0 12px",
-              fontSize: "22px",
-              fontWeight: 700,
-              color: "#111",
-            }}
-          >
-            Access Restricted
-          </h5>
-
-          <p
-            style={{
-              margin: 0,
-              fontSize: "15px",
-              color: "#555",
-              lineHeight: 1.6,
-            }}
-          >
-            This {fileToAccess?.isFolder ? "folder" : "file"} is in the Recycle Bin.
-          </p>
-        </div>
-
-        {/* File Name Highlight – more padding around */}
-        <div
-          style={{
-            padding: "0 40px 32px",   // ← increased horizontal & bottom padding
-            textAlign: "center",
-            fontSize: "15.5px",
-            color: "#222",
-            lineHeight: 1.5,
-          }}
-        >
-          <strong style={{ color: "#000" }}>{fileToAccess?.fileName}</strong><br />
-          needs to be restored before you can access it.
-        </div>
-
-        {/* Actions – more generous padding + taller buttons */}
-        <div
-          style={{
-            padding: "32px 40px 40px",   // ← significantly increased
-            display: "flex",
-            gap: "16px",
-            borderTop: "1px solid #eee",
-            background: "#fafafa",
-          }}
-        >
-          <button
-            onClick={() => {
-              setShowAccessDeniedModal(false);
-              setFileToAccess(null);
-            }}
-            style={{
-              flex: 1,
-              padding: "14px 0",          // taller buttons
-              borderRadius: "12px",
-              border: "1px solid #ddd",
-              background: "white",
-              color: "#444",
-              fontWeight: 600,
-              fontSize: "15.5px",
-              cursor: "pointer",
-              transition: "all 0.2s",
-            }}
-          >
-            Cancel
-          </button>
-
-          <button
-            onClick={() => {
-              setShowAccessDeniedModal(false);
-              handleRestore(fileToAccess);
-              setFileToAccess(null);
-            }}
-            style={{
-              flex: 1,
-              padding: "14px 0",
-              borderRadius: "12px",
-              border: "none",
-              background: "linear-gradient(135deg, #FFAB49, #ff9a2e)",
-              color: "white",
-              fontWeight: 600,
-              fontSize: "15.5px",
-              boxShadow: "0 5px 16px rgba(255, 171, 73, 0.35)",
-              cursor: "pointer",
-              transition: "all 0.2s",
-            }}
-          >
-            Restore Now
-          </button>
-        </div>
-      </div>
-    </div>
-  </div>
+    onRestore={() => {
+      setShowAccessDeniedModal(false);
+      handleRestore(fileToAccess);
+      setFileToAccess(null);
+    }}
+  />
 )}
 
-
-{showRestoreFolderModal && (
+{/* Legacy folder-only confirm replaced by RestoreChoiceModal */}
+{false && showRestoreFolderModal && (
   <div
     style={{
       position: "fixed",
@@ -5119,7 +4976,7 @@ const isMultiSizeExceeded = selectedTotalBytes > remainingBytes;
       return;
     }
 
-    const folderName = fileToRestore.fileName;
+    const folderName = resolveRecycleFolderKey(fileToRestore);
     setShowRestoreFolderModal(false);
     setFileToRestore(null);
 
@@ -5129,13 +4986,27 @@ const isMultiSizeExceeded = selectedTotalBytes > remainingBytes;
 
     try {
       const apiEndpoint = `${apiUrl}restore-folders`;
-      await axios.post(apiEndpoint, { folders: [folderName] }, { ...LONG_RUNNING_AWS_REQUEST_OPTIONS, 
+      const response = await axios.post(apiEndpoint, { folders: [folderName] }, { ...LONG_RUNNING_AWS_REQUEST_OPTIONS, 
           headers: {
             Authorization: `Bearer ${token}`,
             "Content-Type": "application/json",
           },
         }
       );
+
+      const restoreResults = response?.data?.results;
+      if (
+        Array.isArray(restoreResults) &&
+        restoreResults.length > 0 &&
+        !restoreResults.some((r) => r.status === "restored")
+      ) {
+        throw Object.assign(
+          new Error(
+            restoreResults[0]?.message || "Folder not found in recycle bin."
+          ),
+          { response: { data: response.data, status: response.status } }
+        );
+      }
 
       dispatch(fetchUserFolderSize({ token, force: true }));
       getFileData(currentPage);
@@ -5147,7 +5018,14 @@ const isMultiSizeExceeded = selectedTotalBytes > remainingBytes;
       });
     } catch (error) {
       console.error("Error restoring folder:", error);
-      showToast("error", "Error restoring folder");
+      showToast(
+        "error",
+        error.response?.data?.error ||
+          error.response?.data?.message ||
+          error.message ||
+          "Error restoring folder"
+      );
+      getFileData(currentPage);
 
       afterMinLoaderDisplay(loaderStartedAt, () => {
         setLoader_Restore(false);
@@ -5190,8 +5068,8 @@ const isMultiSizeExceeded = selectedTotalBytes > remainingBytes;
   </div>
 )}
 
-
-{showMultiRestoreConfirm && (
+{/* Legacy multi confirm replaced by RestoreChoiceModal */}
+{false && showMultiRestoreConfirm && (
   <div
     style={{
       position: "fixed",
@@ -5276,7 +5154,6 @@ const isMultiSizeExceeded = selectedTotalBytes > remainingBytes;
   </ul>
 </div>
 
-
       {/* Footer */}
       <div
         style={{
@@ -5342,25 +5219,26 @@ const isMultiSizeExceeded = selectedTotalBytes > remainingBytes;
   </div>
 )}
 
-
-
-
-
-
-
-
 {/* Multi-File Restore Modal - Folder Picker */}
 {showMultiRestoreModal && (
   <FolderDestinationModal
     variant="restore"
     title="Restore to"
-    itemSummary={formatModalItemSummary(modalKeys.length ? modalKeys : keys)}
+    itemSummary={formatModalItemSummary(
+      [
+        ...(modalFolderKeys || []),
+        ...(modalKeys.length ? modalKeys : getFileSelectionKeys()),
+      ].filter(Boolean)
+    )}
     selectedPath={folderNavigationPath.join("/")}
     onClose={closeMultiRestoreDestinationModal}
     onConfirm={() => {
       if (isMultiSizeExceeded) return;
       const destination = folderNavigationPath.join("/");
-      confirmMultiFileRestore(destination, modalKeys);
+      handleMulRestore({
+        useOriginalPath: false,
+        destinationFolder: destination,
+      });
     }}
     confirmLabel="Restore here"
     confirmDisabled={isMultiSizeExceeded}
@@ -5406,37 +5284,11 @@ const isMultiSizeExceeded = selectedTotalBytes > remainingBytes;
 )}
 
 {/* Upgrade Plan */}
-     {showUpgradeModal && (
-        <div className="premium-upgrade-overlay">
-          <div className="premium-upgrade-modal">
-            <h3 className="premium-upgrade-title">Unlock Premium Feature</h3>
-            <p className="premium-upgrade-text">
-              This action is available for premium users only. You can upgrade
-              your Stolity plan by clicking the button below.
-            </p>
-            <div className="premium-upgrade-actions">
-              <button
-                type="button"
-                className="premium-upgrade-cancel"
-                onClick={() => setShowUpgradeModal(false)}
-              >
-                Not now
-              </button>
-              <button
-                type="button"
-                className="premium-upgrade-confirm"
-                onClick={() => {
-                  setShowUpgradeModal(false);
-                  nav("/Payment");
-                }}
-              >
-                Go to Upgrade
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
-
+      <PremiumUpgradeModal
+        isOpen={showUpgradeModal}
+        onClose={() => setShowUpgradeModal(false)}
+        onUpgrade={() => nav("/Payment")}
+      />
 
       {showDeleteModal && (
        <>
@@ -5480,8 +5332,6 @@ const isMultiSizeExceeded = selectedTotalBytes > remainingBytes;
 
 {loader_Restore && (<LoaderRestore/>)}
 {loader_Permanent_Delete && (<LoaderPermanentDelete/>)}
-
-
 
     </>
   );

@@ -8,7 +8,42 @@
   background: #ffffff;
   border-top: 1px solid rgba(15, 23, 42, 0.08);
   box-shadow: 0 -6px 18px rgba(15, 23, 42, 0.04);
-  z-index: 20;
+  z-index: 30;
+  position: relative;
+}
+
+/*
+  Keep pagination footer always visible (any Rows-per-page).
+  List/grid scrolls inside .content-wrapper; footer stays pinned
+  at the bottom of .main-panel.
+*/
+.page-body-wrapper:has(> .main-panel > .files-pagination-footer) {
+  height: 100vh;
+  max-height: 100vh;
+  min-height: 0 !important;
+  overflow: hidden;
+}
+
+.main-panel:has(> .files-pagination-footer) {
+  height: 100vh !important;
+  max-height: 100vh !important;
+  min-height: 0 !important;
+  overflow: hidden !important;
+  box-sizing: border-box !important;
+  display: flex !important;
+  flex-direction: column !important;
+}
+
+.main-panel:has(> .files-pagination-footer) > .content-wrapper {
+  flex: 1 1 auto !important;
+  min-height: 0 !important;
+  overflow-x: hidden !important;
+  overflow-y: auto !important;
+  -webkit-overflow-scrolling: touch;
+}
+
+.main-panel:has(> .files-pagination-footer) > .files-pagination-footer {
+  flex: 0 0 auto !important;
 }
 
 .fp-bar {
@@ -42,15 +77,20 @@
 }
 
 .fp-size-control {
+  position: relative;
   display: inline-flex;
   align-items: stretch;
   height: 36px;
-  min-width: 76px;
-  border: 1px solid rgba(15, 23, 42, 0.12);
-  border-radius: 10px;
-  background: #f8fafc;
-  overflow: hidden;
-  transition: border-color 0.15s ease, box-shadow 0.15s ease, background-color 0.15s ease;
+  min-width: 84px;
+  border: 1px solid rgba(28, 25, 23, 0.1) !important;
+  box-shadow: 0 1px 2px rgba(15, 23, 42, 0.04);
+  border-radius: 100px;
+  background: #ffffff;
+  overflow: visible;
+  transition:
+    border-color 0.15s ease,
+    box-shadow 0.15s ease,
+    background-color 0.15s ease;
 }
 
 .fp-size-control:hover {
@@ -59,30 +99,129 @@
 }
 
 .fp-size-control:focus-within,
-.fp-size-control.is-editing {
+.fp-size-control.is-editing,
+.fp-size-control.is-open {
   background: #fff;
   border-color: #ffab49;
   box-shadow: 0 0 0 3px rgba(255, 171, 73, 0.2);
 }
 
-.fp-size-select {
-  appearance: none;
-  -webkit-appearance: none;
+.fp-size-trigger {
+  display: inline-flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
   width: 100%;
-  min-width: 76px;
+  min-width: 84px;
   height: 100%;
-  padding: 0 30px 0 12px;
+  padding: 0 10px 0 12px;
   border: none;
-  border-radius: 0;
-  background-color: transparent;
-  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%2364748b' stroke-width='2.5' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'/%3E%3C/svg%3E");
-  background-repeat: no-repeat;
-  background-position: right 10px center;
+  border-radius: 100px;
+  background: transparent;
   color: #0f172a;
   font-size: 13px;
   font-weight: 600;
+  font-variant-numeric: tabular-nums;
   cursor: pointer;
   outline: none;
+}
+
+.fp-size-trigger-value {
+  line-height: 1;
+}
+
+.fp-size-chevron {
+  flex-shrink: 0;
+  color: #64748b;
+  transition: transform 0.18s ease, color 0.15s ease;
+}
+
+.fp-size-chevron.is-open {
+  transform: rotate(180deg);
+  color: #c46a12;
+}
+
+.fp-size-menu {
+  position: absolute;
+  left: 0;
+  bottom: calc(100% + 8px);
+  z-index: 40;
+  min-width: 168px;
+  padding: 8px;
+  border-radius: 14px;
+  border: 1px solid rgba(15, 23, 42, 0.08);
+  background: #ffffff;
+  box-shadow:
+    0 4px 6px rgba(15, 23, 42, 0.04),
+    0 18px 40px rgba(15, 23, 42, 0.14);
+  animation: fp-menu-in 0.16s ease;
+}
+
+@keyframes fp-menu-in {
+  from {
+    opacity: 0;
+    transform: translateY(4px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.fp-size-menu-title {
+  padding: 6px 10px 8px;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: #94a3b8;
+}
+
+.fp-size-option {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  width: 100%;
+  margin: 2px 0;
+  padding: 9px 10px;
+  border: none;
+  border-radius: 9px;
+  background: transparent;
+  color: #1e293b;
+  font-size: 13.5px;
+  font-weight: 500;
+  font-variant-numeric: tabular-nums;
+  text-align: left;
+  cursor: pointer;
+  transition: background-color 0.12s ease, color 0.12s ease;
+}
+
+.fp-size-option:hover {
+  background: #fff7ed;
+}
+
+.fp-size-option.is-selected {
+  background: #fff4ea;
+  color: #c2410c;
+  font-weight: 600;
+}
+
+.fp-size-option--custom {
+  margin-top: 4px;
+  border-top: 1px solid #f1f5f9;
+  border-radius: 0 0 9px 9px;
+  color: #64748b;
+  font-weight: 600;
+}
+
+.fp-size-option--custom:hover {
+  color: #c2410c;
+}
+
+.fp-size-check {
+  flex-shrink: 0;
+  color: #ea580c;
 }
 
 .fp-custom-input {
@@ -143,8 +282,9 @@
   align-items: center;
   gap: 4px;
   padding: 4px;
-  border-radius: 35px;
-  background: #f1f5f9;
+  border-radius: 100px;
+  background: #ffffff;
+    border: 1px solid #e7e7e7;
 }
 
 .fp-btn {
@@ -218,5 +358,10 @@
 
   .fp-nav {
     margin-left: auto;
+  }
+
+  .fp-size-menu {
+    left: auto;
+    right: 0;
   }
 }

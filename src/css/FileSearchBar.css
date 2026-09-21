@@ -3,9 +3,9 @@
 .file-search-bar {
   --fsb-accent: #ffab49;
   --fsb-accent-soft: rgba(255, 171, 73, 0.16);
-  --fsb-border: #e8e0d8;
-  --fsb-text: #44403c;
-  --fsb-muted: #a8a29e;
+  --fsb-border: rgba(28, 25, 23, 0.1);
+  --fsb-text: #1e293b;
+  --fsb-muted: #94a3b8;
   --fsb-height: 42px;
   --fsb-trailing: 10px;
 
@@ -21,12 +21,13 @@
   border-radius: 999px;
   border: 1px solid var(--fsb-border);
   background: #ffffff;
-  box-shadow: 0 1px 2px rgba(28, 25, 23, 0.04);
+  box-shadow: 0 1px 2px rgba(15, 23, 42, 0.04);
   box-sizing: border-box;
   transition:
     border-color 0.22s ease,
     box-shadow 0.28s ease,
-    padding 0.22s ease;
+    padding 0.22s ease,
+    background 0.2s ease;
 }
 
 .file-search-bar--focused {

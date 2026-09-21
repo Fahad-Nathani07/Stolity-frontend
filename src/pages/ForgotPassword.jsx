@@ -24,18 +24,8 @@ import { ReactComponent as PasswordHide } from "../images/icon-eye-hide.svg";
 import axios from "axios";
 import protectionIcon from "../images/protectionIcon.svg";
 
-import { FaCheckCircle, FaArrowLeft } from "react-icons/fa"; //<FaCheckCircle />
-import { BsXCircleFill } from "react-icons/bs"; // <BsXCircleFill />
-import { IoIosInformationCircle } from "react-icons/io"; // <IoIosInformationCircle />
-import { FaExclamationTriangle } from "react-icons/fa"; // <FaExclamationTriangle />
-
-import {
-  background,
-  ChakraProvider,
-  position,
-  Stack,
-  useToast,
-} from "@chakra-ui/react";
+import { FaArrowLeft } from "react-icons/fa";
+import { showToast } from "../components/ToastProvider";
 
 const ForgotPassword = () => {
   const apiUrl = process.env.REACT_APP_API_ENDPOINT;
@@ -53,9 +43,7 @@ const ForgotPassword = () => {
   const [isLoading, setIsLoading] = useState(false);
 
   const navigate = useNavigate();
-  const toast = useToast();
-
-  // animation states (kept same as Signup)
+// animation states (kept same as Signup)
   const [buttonClicked, setButtonClicked] = useState(false);
   const [spanExpanded, setSpanExpanded] = useState(false);
   const [resendTimer, setResendTimer] = useState(0); // in seconds
@@ -131,101 +119,14 @@ const ForgotPassword = () => {
   };
 
  
- const iconMap = {
-   success: FaCheckCircle,
-   error: BsXCircleFill,
-   info: IoIosInformationCircle,
-   warning: FaExclamationTriangle,
- };
+
  
  
- const getStatusColors = (status) => {
-   return {
-     bg: 'rgba(255, 255, 255, 0.85)',     // Clean white glass
-     border: status === 'success' ? 'rgba(16, 185, 129, 0.3)' :
-             status === 'error' ? 'rgba(239, 68, 68, 0.3)' :
-             status === 'info' ? 'rgba(59, 130, 246, 0.3)' :
-             'rgba(245, 158, 11, 0.3)',        // Status-colored border
-     icon: status === 'success' ? '#10b981' :
-           status === 'error' ? '#ef4444' :
-           status === 'info' ? '#3b82f6' :
-           '#f59e0b'
-   };
- };
+
  
  
  
- const showToast = (status, message) => {
-   const IconComponent = iconMap[status];
-   const colors = getStatusColors(status);
-   
-   toast({
-     // position: 'bottom-center',
-     position: 'bottom-right',
-     duration: 4000,
-     isClosable: true,
-     render: () => (
-       <div className="premium-toast" style={{
-         background: `linear-gradient(135deg, ${colors.bg}, rgba(255,255,255,0.9))`,
-         backdropFilter: 'blur(20px)',
-         border: `2px solid ${colors.border}`,
-         borderRadius: '16px',
-         boxShadow: '0 25px 50px -12px rgba(0,0,0,0.25), 0 0 0 1px rgba(255,255,255,0.05)',
-         padding: '20px',
-         maxWidth: '720px',
-         fontFamily: "'SF Pro', 'SFProText', -apple-system, BlinkMacSystemFont, sans-serif",
-         animation: 'toastSlideIn 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
-       }}>
-         <div style={{ display: 'flex', alignItems: 'flex-start', gap: '12px' }}>
-           <IconComponent 
-             style={{ 
-               width: '24px', 
-               height: '24px', 
-               color: colors.icon,
-               flexShrink: 0,
-               marginTop: '2px'
-             }} 
-           />
-           <div style={{ flex: 1, minWidth: 0 }}>
-             <div style={{
-               fontSize: '14px',
-               fontWeight: '600',
-               color: '#1f2937',
-               marginBottom: '4px',
-               lineHeight: '1.3'
-             }}>
-               {status.charAt(0).toUpperCase() + status.slice(1)}
-             </div>
-             <div style={{
-               fontSize: '14px',
-               color: '#6b7280',
-               lineHeight: '1.4'
-             }}>
-               {message}
-             </div>
-           </div>
-           <button 
-             style={{
-               background: 'none',
-               border: 'none',
-               padding: '4px',
-               cursor: 'pointer',
-               color: '#9ca3af',
-               borderRadius: '4px',
-               opacity: 0.7,
-               transition: 'all 0.2s'
-             }}
-             onClick={() => toast.closeAll()}
-             onMouseEnter={(e) => e.target.style.opacity = 1}
-             onMouseLeave={(e) => e.target.style.opacity = 0.7}
-           >
-             ✕
-           </button>
-         </div>
-       </div>
-     ),
-   });
- };
+
 
   // STEP 1: Request OTP
   const handleRequestOtp = async (e) => {
@@ -874,8 +775,7 @@ if (step === 3) {
 
   return (
     <>
-      <ChakraProvider />
-      <div className="form_container">
+<div className="form_container">
         <button
           type="button"
           className="login-back-btn"

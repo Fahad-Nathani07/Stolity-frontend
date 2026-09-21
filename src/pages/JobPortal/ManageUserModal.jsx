@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { createPortal } from "react-dom";
 import { useSelector } from "react-redux";
 import { doc, updateDoc } from "firebase/firestore";
 import { db } from "../../firebase";
@@ -9,6 +10,7 @@ import slugify from "slugify";
 import { fetchCompanies } from "../../store/companyMasterSlice";
 import { toaster, Notification } from "rsuite";
 import { showToast } from "../../components/ToastProvider";
+import "./ManageUserModal.css";
 
 
 
@@ -547,416 +549,298 @@ const handleCreateCompany = async () => {
 
   if (!user) return null;
 
-  return (
-    <div style={overlayStyle}>
-      <div style={modalStyle}>
-        {/* Header */}
-        <div style={headerStyle}>
-          <div>
-            <div style={{ fontSize: 18, fontWeight: 600 }}>Manage User</div>
-            <div style={{ fontSize: 13, color: "#777" }}>{user.email}</div>
+  const tabs = [
+    { id: "ASSIGN", label: "Assign Role & Company" },
+    { id: "PLAN", label: "Upgrade Plan" },
+    { id: "SOFT_BAN", label: "Soft Ban" },
+    { id: "SHARED_FOLDERS", label: "Shared Folder" },
+  ];
+
+  return createPortal(
+    <div className="mum-overlay" onClick={onClose}>
+      <div className="mum-dialog" onClick={(e) => e.stopPropagation()}>
+        <div className="mum-header">
+          <div className="mum-header-main">
+            <div className="mum-icon-wrap" aria-hidden="true">
+              {(user?.name || user?.email || "U").charAt(0).toUpperCase()}
+            </div>
+            <div className="mum-header-text">
+              <span className="mum-badge">Admin</span>
+              <h2 className="mum-title">Manage User</h2>
+              <p className="mum-subtitle">{user.email}</p>
+            </div>
           </div>
-          <button onClick={onClose} style={closeBtnStyle}>✕</button>
-        </div>
-
-        {/* Tabs */}
-        <div style={tabBarStyle}>
-          <button
-            onClick={() => setActiveTab("ASSIGN")}
-            style={tabBtnStyle(activeTab === "ASSIGN")}
-          >
-            Assign Role & Company
-          </button>
-
-          <button
-            onClick={() => setActiveTab("PLAN")}
-            style={tabBtnStyle(activeTab === "PLAN")}
-          >
-            Upgrade Plan
-          </button>
-
-          <button
-            onClick={() => setActiveTab("SOFT_BAN")}
-            style={tabBtnStyle(activeTab === "SOFT_BAN")}
-          >
-            Soft Ban
-          </button>
-
-          <button
-            onClick={() => setActiveTab("SHARED_FOLDERS")}
-            style={tabBtnStyle(activeTab === "SHARED_FOLDERS")}
-          >
-            Shared Folder
+          <button type="button" className="mum-close" onClick={onClose} aria-label="Close">
+            ✕
           </button>
         </div>
 
-        {/* Content */}
-        <div style={contentStyle}>
-        {activeTab === "ASSIGN" && (
-        <div style={{ display: "flex", flexDirection: "column", gap: 24 }}>
-            
-            {/* Role */}
-            <div>
-            <div style={labelStyle}>Role</div>
-            <select
-                value={role}
-                onChange={(e) => setRole(e.target.value)}
-                style={selectStyle}
+        <div className="mum-tabs" role="tablist">
+          {tabs.map((tab) => (
+            <button
+              key={tab.id}
+              type="button"
+              role="tab"
+              aria-selected={activeTab === tab.id}
+              className={`mum-tab${activeTab === tab.id ? " is-active" : ""}`}
+              onClick={() => setActiveTab(tab.id)}
             >
-                <option value="">Select role</option>
-                <option value="SUPER_ADMIN">SUPER_ADMIN</option>
-                <option value="ADMIN">ADMIN</option>
-                <option value="JOB_PORTAL_MANAGER">JOB_PORTAL_MANAGER</option>
-            </select>
-            </div>
-
-            {/* Companies */}
-            <div>
-            <div style={labelStyle}>Company Access</div>
-
-            <div style={companyListStyle}>
-                {companies.map((c) => (
-                <label key={c.id} style={companyRowStyle}>
-                    <input
-                    type="checkbox"
-                    checked={selectedCompanies.includes(c.id)}
-                    onChange={(e) => {
-                        if (e.target.checked) {
-                        setSelectedCompanies([...selectedCompanies, c.id]);
-                        } else {
-                        setSelectedCompanies(
-                            selectedCompanies.filter((id) => id !== c.id)
-                        );
-                        }
-                    }}
-                    />
-                    <span>{c.name}</span>
-                    {!c.isConfigured && (
-                    <span style={notConfiguredBadge}>Not Configured</span>
-                    )}
-                </label>
-                ))}
-            </div>
-            </div>
-
-            {/* Create Company */}
-            <div>
-            <div style={labelStyle}>Create New Company</div>
-            <div style={{ display: "flex", gap: 10 }}>
-                <input
-                placeholder="Company name"
-                value={newCompanyName}
-                onChange={(e) => setNewCompanyName(e.target.value)}
-                style={inputStyle}
-                />
-                <button
-                style={{
-                    ...primaryBtnStyle,
-                    cursor: newCompanyName.trim() ? "pointer" : "not-allowed",
-                    opacity: newCompanyName.trim() ? 1 : 0.6,
-                }}
-                disabled={!newCompanyName.trim()}
-                onClick={handleCreateCompany}
-                >
-                Create
-                </button>
-
-            </div>
-            </div>
-
+              {tab.label}
+            </button>
+          ))}
         </div>
-        )}
- 
 
-{activeTab === "PLAN" && (
-  <div style={{ display: "flex", flexDirection: "column", gap: 32 }}>
-    <h3 style={{ 
-      margin: 0, 
-      fontSize: "20px", 
-      fontWeight: 600, 
-      color: "#1e293b" 
-    }}>
-      Manage Subscription
-    </h3>
+        <div className="mum-body">
+          {activeTab === "ASSIGN" && (
+            <div className="mum-section">
+              <div className="mum-field">
+                <label className="mum-label" htmlFor="mum-role">
+                  Role
+                </label>
+                <select
+                  id="mum-role"
+                  className="mum-select"
+                  value={role}
+                  onChange={(e) => setRole(e.target.value)}
+                >
+                  <option value="">Select role</option>
+                  <option value="SUPER_ADMIN">SUPER_ADMIN</option>
+                  <option value="ADMIN">ADMIN</option>
+                  <option value="JOB_PORTAL_MANAGER">JOB_PORTAL_MANAGER</option>
+                </select>
+              </div>
 
-    {/* CURRENT STATUS */}
-    <div style={{ 
-      display: "flex", 
-      flexDirection: "column", 
-      gap: 12 
-    }}>
-      <div style={labelStyle}>Current Plan</div>
-      
-      {subscription && subscription.expiration_at ? (
-        (() => {
-          const now = Date.now();
-          const expirationTime = Number(subscription.expiration_at);
-          const isExpired = expirationTime <= now;
-
-          if (isExpired) {
-            return (
-              <div style={{
-                padding: "20px",
-                background: "#fef2f2",
-                borderRadius: "12px",
-                border: "1px solid #fecaca",
-                color: "#991b1b",
-                fontSize: "15px",
-                fontWeight: 500,
-              }}>
-                Free User (Expired) — 5 GB storage
-                <div style={{ marginTop: 8, fontSize: "13px", opacity: 0.9 }}>
-                  Expired on {new Date(expirationTime).toLocaleDateString("en-IN", {
-                    dateStyle: "medium"
-                  })}
+              <div className="mum-field">
+                <div className="mum-label">Company Access</div>
+                <div className="mum-company-list">
+                  {companies.map((c) => (
+                    <label key={c.id} className="mum-company-row">
+                      <input
+                        type="checkbox"
+                        checked={selectedCompanies.includes(c.id)}
+                        onChange={(e) => {
+                          if (e.target.checked) {
+                            setSelectedCompanies([...selectedCompanies, c.id]);
+                          } else {
+                            setSelectedCompanies(
+                              selectedCompanies.filter((id) => id !== c.id)
+                            );
+                          }
+                        }}
+                      />
+                      <span className="mum-company-name">{c.name}</span>
+                      {!c.isConfigured && (
+                        <span className="mum-badge-warn">Not Configured</span>
+                      )}
+                    </label>
+                  ))}
                 </div>
               </div>
-            );
-          }
 
-          // Active Premium Subscription
-          return (
-            <div style={{
-              padding: "20px",
-              background: "#ffffff",
-              borderRadius: "12px",
-              border: "1px solid #e5e7eb",
-              boxShadow: "0 1px 3px rgba(0,0,0,0.05)",
-              fontSize: "14px",
-            }}>
-              <div style={currentItemStyle}>
-                <span style={currentLabelStyle}>Plan</span>
-                <span>
-                  {(() => {
-                    const id = subscription.entitlement_ids?.[0];
-                    if (id === "stolity_lite_trial") return "Stolity Trial - 1 week";
-                    if (id === "stolity_lite_monthly") return "Stolity Lite Monthly";
-                    if (id === "stolity_lite_yearly") return "Stolity Lite Yearly";
-                    return subscription.entitlement_ids?.join(", ") || "None";
-                  })()}
-                </span>
-              </div>
-              <div style={currentItemStyle}>
-                <span style={currentLabelStyle}>Storage</span>
-                <span>{subscription.storage || "—"}</span>
-              </div>
-              <div style={currentItemStyle}>
-                <span style={currentLabelStyle}>Expires</span>
-                <span>
-                  {new Date(expirationTime).toLocaleString("en-IN", {
-                    dateStyle: "medium",
-                    timeStyle: "short",
-                  })}
-                </span>
-              </div>
-              <div style={{
-                ...currentItemStyle,
-                borderBottom: "none",
-                marginBottom: 0,
-                paddingBottom: 0,
-              }}>
-                <span style={currentLabelStyle}>Last Updated</span>
-                <span>{subscription.firebase_updated_time || "—"}</span>
-              </div>
-
-              {isActivePremium && (
-                <div style={{ marginTop: 16, paddingTop: 16, borderTop: "1px solid #f1f5f9" }}>
+              <div className="mum-field">
+                <div className="mum-label">Create New Company</div>
+                <div className="mum-row">
+                  <input
+                    className="mum-input"
+                    placeholder="Company name"
+                    value={newCompanyName}
+                    onChange={(e) => setNewCompanyName(e.target.value)}
+                  />
                   <button
                     type="button"
-                    onClick={handleEndPremium}
-                    disabled={endingPremium}
-                    style={{
-                      width: "100%",
-                      padding: "10px 16px",
-                      borderRadius: "999px",
-                      border: "1px solid #fecaca",
-                      background: endingPremium ? "#fee2e2" : "#fef2f2",
-                      color: "#991b1b",
-                      fontWeight: 600,
-                      fontSize: 14,
-                      cursor: endingPremium ? "not-allowed" : "pointer",
-                      opacity: endingPremium ? 0.7 : 1,
+                    className="mum-btn mum-btn--primary"
+                    disabled={!newCompanyName.trim()}
+                    onClick={handleCreateCompany}
+                  >
+                    Create
+                  </button>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {activeTab === "PLAN" && (
+            <div className="mum-section">
+              <h3 className="mum-section-title">Manage Subscription</h3>
+
+              <div className="mum-field">
+                <div className="mum-label">Current Plan</div>
+
+                {subscription && subscription.expiration_at ? (
+                  (() => {
+                    const now = Date.now();
+                    const expirationTime = Number(subscription.expiration_at);
+                    const isExpired = expirationTime <= now;
+
+                    if (isExpired) {
+                      return (
+                        <div className="mum-card mum-card--danger">
+                          Free User (Expired) — 5 GB storage
+                          <div className="mum-hint" style={{ marginTop: 8, color: "inherit", opacity: 0.9 }}>
+                            Expired on{" "}
+                            {new Date(expirationTime).toLocaleDateString("en-IN", {
+                              dateStyle: "medium",
+                            })}
+                          </div>
+                        </div>
+                      );
+                    }
+
+                    return (
+                      <div className="mum-card">
+                        <div className="mum-meta-row">
+                          <span className="mum-meta-key">Plan</span>
+                          <span>
+                            {(() => {
+                              const id = subscription.entitlement_ids?.[0];
+                              if (id === "stolity_lite_trial") return "Stolity Trial - 1 week";
+                              if (id === "stolity_lite_monthly") return "Stolity Lite Monthly";
+                              if (id === "stolity_lite_yearly") return "Stolity Lite Yearly";
+                              return subscription.entitlement_ids?.join(", ") || "None";
+                            })()}
+                          </span>
+                        </div>
+                        <div className="mum-meta-row">
+                          <span className="mum-meta-key">Storage</span>
+                          <span>{subscription.storage || "—"}</span>
+                        </div>
+                        <div className="mum-meta-row">
+                          <span className="mum-meta-key">Expires</span>
+                          <span>
+                            {new Date(expirationTime).toLocaleString("en-IN", {
+                              dateStyle: "medium",
+                              timeStyle: "short",
+                            })}
+                          </span>
+                        </div>
+                        <div className="mum-meta-row">
+                          <span className="mum-meta-key">Last Updated</span>
+                          <span>{subscription.firebase_updated_time || "—"}</span>
+                        </div>
+
+                        {isActivePremium && (
+                          <div style={{ marginTop: 16, paddingTop: 12, borderTop: "1px solid #f1f5f9" }}>
+                            <button
+                              type="button"
+                              className="mum-btn mum-btn--danger"
+                              onClick={handleEndPremium}
+                              disabled={endingPremium}
+                            >
+                              {endingPremium ? "Ending Premium…" : "End Premium"}
+                            </button>
+                            <div className="mum-hint" style={{ marginTop: 8, textAlign: "center" }}>
+                              Sets expiry to yesterday and resets storage to 5 GB
+                            </div>
+                          </div>
+                        )}
+                      </div>
+                    );
+                  })()
+                ) : (
+                  <div className="mum-card mum-card--ok">Free User — 5 GB storage</div>
+                )}
+              </div>
+
+              <div
+                className="mum-section"
+                style={{ paddingTop: 4, borderTop: "1px solid #f1f5f9", gap: 16 }}
+              >
+                <div className="mum-field">
+                  <label className="mum-label" htmlFor="mum-plan">
+                    Select Plan
+                  </label>
+                  <select
+                    id="mum-plan"
+                    className="mum-select"
+                    value={entitlementIds.length > 0 ? entitlementIds[0] : ""}
+                    onChange={(e) => {
+                      const selectedPlan = e.target.value;
+                      let newEntitlementIds = selectedPlan ? [selectedPlan] : [];
+                      let newStorage = selectedPlan ? "50" : storageValue;
+
+                      setEntitlementIds(newEntitlementIds);
+                      setStorageValue(newStorage);
+
+                      if (selectedPlan) {
+                        const now = Date.now();
+                        let futureMs;
+                        if (selectedPlan === "stolity_lite_trial") {
+                          futureMs = now + 7 * 24 * 60 * 60 * 1000;
+                        } else if (selectedPlan === "stolity_lite_monthly") {
+                          futureMs = now + 30.44 * 24 * 60 * 60 * 1000;
+                        } else if (selectedPlan === "stolity_lite_yearly") {
+                          futureMs = now + 365.25 * 24 * 60 * 60 * 1000;
+                        }
+                        setExpirationAt(Math.round(futureMs).toString());
+                      } else {
+                        setExpirationAt("");
+                      }
                     }}
                   >
-                    {endingPremium ? "Ending Premium…" : "End Premium"}
-                  </button>
-                  <div style={{ fontSize: 12, color: "#6b7280", marginTop: 8, textAlign: "center" }}>
-                    Sets expiry to yesterday and resets storage to 5 GB
-                  </div>
+                    <option value="">No Plan (Free)</option>
+                    <option value="stolity_lite_trial">Stolity Trial - 1 week</option>
+                    <option value="stolity_lite_monthly">Stolity Lite Monthly</option>
+                    <option value="stolity_lite_yearly">Stolity Lite Yearly</option>
+                  </select>
                 </div>
-              )}
+
+                <div className="mum-field">
+                  <label className="mum-label" htmlFor="mum-storage">
+                    Storage (GB – number only)
+                  </label>
+                  <input
+                    id="mum-storage"
+                    className="mum-input"
+                    list="storage-options"
+                    placeholder="e.g. 50"
+                    value={storageValue}
+                    onChange={(e) => setStorageValue(e.target.value)}
+                  />
+                  <datalist id="storage-options">
+                    <option value="50" />
+                    <option value="75" />
+                    <option value="100" />
+                    <option value="200" />
+                    <option value="500" />
+                    <option value="1000" />
+                    <option value="2000" />
+                  </datalist>
+                  <div className="mum-hint">Selecting a plan auto-sets to 50 GB</div>
+                </div>
+              </div>
             </div>
-          );
-        })()
-      ) : (
-        /* No subscription at all - Free User */
-        <div style={{
-          padding: "20px",
-          background: "#f0fdf4",
-          borderRadius: "12px",
-          border: "1px solid #86efac",
-          color: "#166534",
-          fontSize: "15px",
-          fontWeight: 500,
-        }}>
-          Free User — 5 GB storage
-        </div>
-      )}
-    </div>
-
-    {/* EDIT / UPGRADE FORM */}
-    <div style={{ 
-      display: "flex", 
-      flexDirection: "column", 
-      gap: 24,
-      paddingTop: 12,
-      borderTop: "1px solid #f0e6d8",
-    }}>
-      <div>
-        <div style={labelStyle}>Select Plan</div>
-        <select
-          value={entitlementIds.length > 0 ? entitlementIds[0] : ""}
-          onChange={(e) => {
-            const selectedPlan = e.target.value;
-            let newEntitlementIds = selectedPlan ? [selectedPlan] : [];
-            let newStorage = selectedPlan ? "50" : storageValue;
-
-            setEntitlementIds(newEntitlementIds);
-            setStorageValue(newStorage);
-
-            // Auto-set expiration_at (hidden field)
-            if (selectedPlan) {
-              const now = Date.now();
-              let futureMs;
-              if (selectedPlan === "stolity_lite_trial") {
-                futureMs = now + (7 * 24 * 60 * 60 * 1000); // 1 week
-              } else if (selectedPlan === "stolity_lite_monthly") {
-                futureMs = now + (30.44 * 24 * 60 * 60 * 1000);   // ~1 month
-              } else if (selectedPlan === "stolity_lite_yearly") {
-                futureMs = now + (365.25 * 24 * 60 * 60 * 1000);  // ~1 year
-              }
-              setExpirationAt(Math.round(futureMs).toString());
-            } else {
-              setExpirationAt("");
-            }
-          }}
-          style={{
-            ...selectStyle,
-            padding: "12px 44px 12px 16px",
-          }}
-        >
-          <option value="">No Plan (Free)</option>
-          <option value="stolity_lite_trial">Stolity Trial - 1 week</option>
-          <option value="stolity_lite_monthly">Stolity Lite Monthly</option>
-          <option value="stolity_lite_yearly">Stolity Lite Yearly</option>
-        </select>
-      </div>
-
-      <div>
-        <div style={labelStyle}>Storage (GB – number only)</div>
-        <input
-          list="storage-options"
-          placeholder="e.g. 50"
-          value={storageValue}
-          onChange={(e) => setStorageValue(e.target.value)}
-          style={inputStyle}
-        />
-        <datalist id="storage-options">
-          <option value="50" />
-          <option value="75" />
-          <option value="100" />
-          <option value="200" />
-          <option value="500" />
-          <option value="1000" />
-          <option value="2000" />
-        </datalist>
-        <div style={{ fontSize: "12px", color: "#6b7280", marginTop: 6 }}>
-          Selecting a plan auto-sets to 50 GB
-        </div>
-      </div>
-    </div>
-  </div>
-)}
-
+          )}
 
           {activeTab === "SOFT_BAN" && (
-            <div style={{ display: "flex", flexDirection: "column", gap: 24 }}>
-              <h3 style={{ margin: 0, fontSize: "20px", fontWeight: 600, color: "#1e293b" }}>
-                Soft Ban Controls
-              </h3>
+            <div className="mum-section">
+              <h3 className="mum-section-title">Soft Ban Controls</h3>
 
-              {/* Status + Toggle */}
               <div
-                style={{
-                  display: "flex",
-                  alignItems: "center",
-                  gap: "16px",
-                  padding: "16px 24px",
-                  background: isSoftBan ? "#fee2e2" : "#f0fdf4",
-                  borderRadius: "12px",
-                  border: `1px solid ${isSoftBan ? "#fca5a5" : "#86efac"}`,
-                }}
+                className={`mum-status-row ${isSoftBan ? "mum-card--danger" : "mum-card--ok"}`}
+                style={{ border: `1px solid ${isSoftBan ? "#fca5a5" : "#86efac"}` }}
               >
                 <div
-                  style={{
-                    width: "16px",
-                    height: "16px",
-                    borderRadius: "50%",
-                    background: isSoftBan ? "#dc2626" : "#16a34a",
-                  }}
+                  className="mum-status-dot"
+                  style={{ background: isSoftBan ? "#dc2626" : "#16a34a" }}
                 />
-                <strong style={{ fontSize: "16px", color: isSoftBan ? "#991b1b" : "#166534" }}>
+                <strong
+                  className="mum-status-label"
+                  style={{ color: isSoftBan ? "#991b1b" : "#166534" }}
+                >
                   {isSoftBan ? "SOFT-BANNED" : "ACTIVE"}
                 </strong>
 
-                {/* Beautiful toggle switch */}
-                <label
-                  style={{
-                    position: "relative",
-                    display: "inline-block",
-                    width: "60px",
-                    height: "34px",
-                    marginLeft: "auto",
-                  }}
-                >
+                <label className="mum-toggle">
                   <input
                     type="checkbox"
                     checked={isSoftBan}
                     onChange={handleToggleSoftBan}
-                    style={{ opacity: 0, width: 0, height: 0 }}
                   />
-                  <span
-                    style={{
-                      position: "absolute",
-                      cursor: "pointer",
-                      top: 0,
-                      left: 0,
-                      right: 0,
-                      bottom: 0,
-                      backgroundColor: isSoftBan ? "#dc2626" : "#ccc",
-                      transition: ".4s",
-                      borderRadius: "34px",
-                    }}
-                  >
-                    <span
-                      style={{
-                        position: "absolute",
-                        content: "",
-                        height: "26px",
-                        width: "26px",
-                        left: isSoftBan ? "30px" : "4px",
-                        bottom: "4px",
-                        backgroundColor: "white",
-                        transition: ".4s",
-                        borderRadius: "50%",
-                      }}
-                    />
-                  </span>
+                  <span className="mum-toggle-track" />
                 </label>
               </div>
 
-              {/* Note */}
-              <p style={{ fontSize: "14px", color: "#6b7280", margin: 0 }}>
+              <p className="mum-section-desc">
                 {isSoftBan
                   ? "User access is restricted. All platform features are paused."
                   : "User account is fully active with no restrictions."}
@@ -965,53 +849,30 @@ const handleCreateCompany = async () => {
           )}
 
           {activeTab === "SHARED_FOLDERS" && (
-            <div style={{ display: "flex", flexDirection: "column", gap: 24 }}>
-              <h3 style={{ margin: 0, fontSize: "20px", fontWeight: 600, color: "#1e293b" }}>
-                Shared Folder Access
-              </h3>
+            <div className="mum-section">
+              <h3 className="mum-section-title">Shared Folder Access</h3>
 
-              <p style={{ margin: 0, fontSize: 14, color: "#6b7280", lineHeight: 1.5 }}>
+              <p className="mum-section-desc">
                 These names map to folders in the default bucket (e.g.{" "}
-                <code style={{ fontSize: 13 }}>infomanav.in</code>). Users see them on
-                the Files page via <code style={{ fontSize: 13 }}>GET /shared-folders</code>.
-                On signup, non-public email domains are auto-assigned (e.g.{" "}
-                <code style={{ fontSize: 13 }}>user@king.in</code> →{" "}
-                <code style={{ fontSize: 13 }}>king.in</code>).
+                <code>infomanav.in</code>). Users see them on the Files page via{" "}
+                <code>GET /shared-folders</code>. On signup, non-public email domains are
+                auto-assigned (e.g. <code>user@king.in</code> → <code>king.in</code>).
               </p>
 
               {emailDomain && (
-                <div
-                  style={{
-                    padding: "14px 16px",
-                    borderRadius: 12,
-                    border: "1px solid #e8dccb",
-                    background: "#fffaf3",
-                    fontSize: 14,
-                    color: "#4b5563",
-                  }}
-                >
+                <div className="mum-card mum-card--soft" style={{ fontSize: 14, color: "#4b5563" }}>
                   Email domain: <strong>{emailDomain}</strong>
                   {sharedFolders.includes(emailDomain) ? (
-                    <span style={{ marginLeft: 8, color: "#166534" }}>
-                      — already assigned
-                    </span>
+                    <span style={{ marginLeft: 8, color: "#166534" }}>— already assigned</span>
                   ) : (
                     <button
                       type="button"
+                      className="mum-btn mum-btn--sm"
+                      style={{ marginLeft: 12 }}
                       onClick={() => {
                         if (!sharedFolders.includes(emailDomain)) {
                           setSharedFolders((prev) => [...prev, emailDomain]);
                         }
-                      }}
-                      style={{
-                        marginLeft: 12,
-                        padding: "4px 12px",
-                        borderRadius: 999,
-                        border: "1px solid #ffab49",
-                        background: "#ffe7c6",
-                        cursor: "pointer",
-                        fontSize: 13,
-                        fontWeight: 500,
                       }}
                     >
                       Add {emailDomain}
@@ -1020,49 +881,21 @@ const handleCreateCompany = async () => {
                 </div>
               )}
 
-              <div>
-                <div style={labelStyle}>Assigned shared folders</div>
+              <div className="mum-field">
+                <div className="mum-label">Assigned shared folders</div>
                 {sharedFolders.length === 0 ? (
-                  <div
-                    style={{
-                      padding: "16px",
-                      borderRadius: 12,
-                      border: "1px dashed #e8dccb",
-                      color: "#6b7280",
-                      fontSize: 14,
-                    }}
-                  >
+                  <div className="mum-empty">
                     No shared folders assigned. User will only see their private storage.
                   </div>
                 ) : (
-                  <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
+                  <div className="mum-chip-list">
                     {sharedFolders.map((folderName) => (
-                      <span
-                        key={folderName}
-                        style={{
-                          display: "inline-flex",
-                          alignItems: "center",
-                          gap: 8,
-                          padding: "8px 12px",
-                          borderRadius: 999,
-                          border: "1px solid #e8dccb",
-                          background: "#ffffff",
-                          fontSize: 14,
-                        }}
-                      >
+                      <span key={folderName} className="mum-chip">
                         {folderName}
                         <button
                           type="button"
+                          className="mum-chip-remove"
                           onClick={() => handleRemoveSharedFolder(folderName)}
-                          style={{
-                            border: "none",
-                            background: "transparent",
-                            cursor: "pointer",
-                            color: "#9ca3af",
-                            fontSize: 16,
-                            lineHeight: 1,
-                            padding: 0,
-                          }}
                           aria-label={`Remove ${folderName}`}
                         >
                           ×
@@ -1073,10 +906,11 @@ const handleCreateCompany = async () => {
                 )}
               </div>
 
-              <div>
-                <div style={labelStyle}>Add custom shared folder</div>
-                <div style={{ display: "flex", gap: 10 }}>
+              <div className="mum-field">
+                <div className="mum-label">Add custom shared folder</div>
+                <div className="mum-row">
                   <input
+                    className="mum-input"
                     placeholder="e.g. partner.com or custom-folder"
                     value={newSharedFolder}
                     onChange={(e) => setNewSharedFolder(e.target.value)}
@@ -1086,278 +920,67 @@ const handleCreateCompany = async () => {
                         handleAddSharedFolder();
                       }
                     }}
-                    style={inputStyle}
                   />
                   <button
                     type="button"
-                    style={{
-                      ...primaryBtnStyle,
-                      cursor: newSharedFolder.trim() ? "pointer" : "not-allowed",
-                      opacity: newSharedFolder.trim() ? 1 : 0.6,
-                    }}
+                    className="mum-btn mum-btn--primary"
                     disabled={!newSharedFolder.trim()}
                     onClick={handleAddSharedFolder}
                   >
                     Add
                   </button>
                 </div>
-                <div style={{ fontSize: 12, color: "#6b7280", marginTop: 6 }}>
-                  Lowercase, no spaces. The folder must exist or receive uploads in the default bucket.
+                <div className="mum-hint">
+                  Lowercase, no spaces. The folder must exist or receive uploads in the default
+                  bucket.
                 </div>
               </div>
             </div>
           )}
-
-
-
         </div>
 
-        {/* Footer */}
-        {/* <div style={footerStyle}>
-          <button onClick={onClose} style={cancelBtnStyle}>
+        <div className="mum-footer">
+          <button type="button" className="mum-btn mum-btn--ghost" onClick={onClose}>
             Cancel
           </button>
-          <button
-            onClick={handleSave}
-            style={{
-                ...saveBtnStyle,
-                cursor: canSave ? "pointer" : "not-allowed",
-                opacity: canSave ? 1 : 0.6,
-            }}
-            disabled={!canSave}
+
+          {activeTab === "ASSIGN" && (
+            <button
+              type="button"
+              className="mum-btn mum-btn--primary"
+              onClick={handleSave}
+              disabled={!canSave}
             >
-            Save
+              Save
             </button>
+          )}
 
+          {activeTab === "PLAN" && (
+            <button
+              type="button"
+              className="mum-btn mum-btn--primary"
+              onClick={handleUpgradePlan}
+              disabled={!hasChanges}
+            >
+              Update Plan
+            </button>
+          )}
 
-        </div> */}
-        {/* Footer */}
-<div style={footerStyle}>
-  <button onClick={onClose} style={cancelBtnStyle}>
-    Cancel
-  </button>
-
-  {activeTab === "ASSIGN" && (
-    <button
-      onClick={handleSave}
-      style={{
-        ...saveBtnStyle,
-        cursor: canSave ? "pointer" : "not-allowed",
-        opacity: canSave ? 1 : 0.6,
-      }}
-      disabled={!canSave}
-    >
-      Save
-    </button>
-  )}
-
-  {activeTab === "PLAN" && (
-    <button
-      onClick={handleUpgradePlan}
-      style={{
-        ...saveBtnStyle,
-        cursor: hasChanges ? "pointer" : "not-allowed",
-        opacity: hasChanges ? 1 : 0.6,
-      }}
-      disabled={!hasChanges}
-    >
-      Update Plan
-    </button>
-  )}
-
-  {activeTab === "SHARED_FOLDERS" && (
-    <button
-      onClick={handleSaveSharedFolders}
-      style={{
-        ...saveBtnStyle,
-        cursor:
-          hasSharedFolderChanges && !savingSharedFolders
-            ? "pointer"
-            : "not-allowed",
-        opacity: hasSharedFolderChanges && !savingSharedFolders ? 1 : 0.6,
-      }}
-      disabled={!hasSharedFolderChanges || savingSharedFolders}
-    >
-      {savingSharedFolders ? "Saving…" : "Save Shared Folders"}
-    </button>
-  )}
-
-
-</div>
+          {activeTab === "SHARED_FOLDERS" && (
+            <button
+              type="button"
+              className="mum-btn mum-btn--primary"
+              onClick={handleSaveSharedFolders}
+              disabled={!hasSharedFolderChanges || savingSharedFolders}
+            >
+              {savingSharedFolders ? "Saving…" : "Save Shared Folders"}
+            </button>
+          )}
+        </div>
       </div>
-    </div>
+    </div>,
+    document.body
   );
 };
 
 export default ManageUserModal;
-
-
-const overlayStyle = {
-  position: "fixed",
-  inset: 0,
-  background: "rgba(0,0,0,0.35)",
-  display: "flex",
-  alignItems: "center",
-  justifyContent: "center",
-  zIndex: 1000,
-};
-
-const selectStyle = {
-  width: "100%",
-  padding: "12px 44px 12px 16px",
-  borderRadius: "999px",
-  border: "1px solid #E8DCCB",
-  backgroundColor: "#FFFFFF",
-  color: "#2F2F2F",
-  cursor: "pointer",
-  appearance: "none",
-  WebkitAppearance: "none",
-  MozAppearance: "none",
-  backgroundImage:
-    "url(\"data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'><path fill='%23999999' d='M6 8L0 0h12z'/></svg>\")",
-  backgroundRepeat: "no-repeat",
-  backgroundPosition: "right 16px center",
-};
-
-const inputStyle = {
-  width: "100%",
-  padding: "12px 16px",
-  borderRadius: "999px",
-  border: "1px solid #E8DCCB",
-  outline: "none",
-  fontSize: "14px",
-  color: "#2F2F2F",
-  background: "#FFFFFF",
-};
-
-
-const modalStyle = {
-  width: "800px",
-  background: "#FFFFFF",
-  borderRadius: "18px",
-  boxShadow: "0 20px 60px rgba(0,0,0,0.2)",
-  display: "flex",
-  flexDirection: "column",
-  maxHeight: "85vh",  
-  overflow:"auto"
-};
-
-const headerStyle = {
-  padding: "20px 24px",
-  borderBottom: "1px solid #F0E6D8",
-  display: "flex",
-  justifyContent: "space-between",
-  alignItems: "center",
-};
-
-const closeBtnStyle = {
-  border: "none",
-  background: "transparent",
-  fontSize: 18,
-  cursor: "pointer",
-};
-
-const tabBarStyle = {
-  display: "flex",
-  gap: 8,
-  padding: "16px 24px",
-  borderBottom: "1px solid #F0E6D8",
-};
-
-const tabBtnStyle = (active) => ({
-  padding: "10px 18px",
-  borderRadius: "999px",
-  border: active ? "1px solid #FFAB49" : "1px solid #E8DCCB",
-  background: active ? "#FFE7C6" : "#FFFFFF",
-  color: "#2F2F2F",
-  cursor: "pointer",
-  fontWeight: 500,
-});
-
-const contentStyle = {
-  padding: "24px",
-  flex: 1,
-  overflowY: "auto",
-};
-
-const footerStyle = {
-  padding: "16px 24px",
-  borderTop: "1px solid #F0E6D8",
-  display: "flex",
-  justifyContent: "flex-end",
-  gap: 12,
-};
-
-const cancelBtnStyle = {
-  padding: "8px 18px",
-  borderRadius: "999px",
-  border: "1px solid #E8DCCB",
-  background: "#FFFFFF",
-  cursor: "pointer",
-};
-
-const saveBtnStyle = {
-  padding: "8px 20px",
-  borderRadius: "999px",
-  border: "none",
-  background: "#FFAB49",
-  color: "#FFFFFF",
-  cursor: "not-allowed",
-};
-
-const labelStyle = {
-  fontSize: 13,
-  fontWeight: 600,
-  marginBottom: 6,
-  color: "#555",
-};
-
-const companyListStyle = {
-  border: "1px solid #F0E6D8",
-  borderRadius: 12,
-  padding: 12,
-  maxHeight: 220,
-  overflowY: "auto",
-  display: "flex",
-  flexDirection: "column",
-  gap: 8,
-};
-
-const companyRowStyle = {
-  display: "flex",
-  alignItems: "center",
-  gap: 10,
-  fontSize: 14,
-};
-
-const notConfiguredBadge = {
-  marginLeft: "auto",
-  fontSize: 11,
-  padding: "2px 8px",
-  borderRadius: 999,
-  background: "#FFF1DF",
-  border: "1px solid #E8DCCB",
-};
-
-const primaryBtnStyle = {
-  padding: "10px 18px",
-  borderRadius: 999,
-  border: "none",
-  background: "#FFAB49",
-  color: "#fff",
-  cursor: "not-allowed",
-};
-
-const currentItemStyle = {
-  display: "flex",
-  justifyContent: "space-between",
-  marginBottom: 10,
-  paddingBottom: 10,
-  borderBottom: "1px solid #f1f5f9",
-};
-
-const currentLabelStyle = {
-  fontWeight: 500,
-  color: "#4b5563",
-  minWidth: "120px",
-};

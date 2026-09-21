@@ -8,7 +8,8 @@ import JobPortalBriefcase_active from "../images/JobPortalBriefcase_active.svg";
 import LogoStolityMini from "../images/NewLogo.svg";
 import SuperAdminDashboard_Active from "../images/SuperAdminDashboard_Active.svg";
 import SuperAdminDashboard from "../images/SuperAdminDashboard.svg";
-import { ChakraProvider, Stack, useToast } from "@chakra-ui/react";
+import { SESSION_END_EVENT } from "../utils/endUserSession";
+import { showToast } from "./ToastProvider";
 import homeSidebar from "../images/homeSidebar.svg";
 import profileSidebar from "../images/profileSidebar.svg";
 import settingsSidebar from "../images/settingsSidebar.svg";
@@ -28,8 +29,6 @@ import { FiHeadphones } from "react-icons/fi";
 import { useDispatch, useSelector } from "react-redux";
 
 import axios from "axios";
-
-const SESSION_END_EVENT = "stolity:session-end";
 
 const SideNav = () => {
   const [openMenus, setOpenMenus] = useState({});
@@ -66,18 +65,6 @@ const SideNav = () => {
     !!subscription &&
     Array.isArray(subscription.entitlement_ids) &&
     subscription.entitlement_ids.length > 0;
-
-  const toast = useToast();
-
-  const showToast = (status, message) => {
-    toast({
-      title: `${status.charAt(0).toUpperCase() + status.slice(1)}`,
-      description: message,
-      status: status,
-      duration: 3000,
-      isClosable: true,
-    });
-  };
 
   // Countdown state (for warning card)
   const [countdown, setCountdown] = useState(15);

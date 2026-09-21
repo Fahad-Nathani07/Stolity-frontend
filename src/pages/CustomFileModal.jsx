@@ -1,7 +1,7 @@
 import React, { useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import axios from "axios";
-import { ChakraProvider, Stack, useToast } from "@chakra-ui/react";
+
 import { MdOutlineDriveFileRenameOutline } from "react-icons/md";
 import editIcon from "../images/editIcon.svg"
 import ZoomInIcon from "../images/ZoomInIcon.svg"
@@ -21,22 +21,16 @@ import { init as pptxInit } from "pptx-preview"; // pptx-preview provides init (
 import { useDispatch, useSelector } from "react-redux";
 // import "pptx-preview/dist/pptx-preview.css";
 
-
-import { FaCheckCircle } from "react-icons/fa"; //<FaCheckCircle />
-import { BsXCircleFill } from "react-icons/bs"; // <BsXCircleFill />
-import { IoIosInformationCircle } from "react-icons/io"; // <IoIosInformationCircle />
-import { FaExclamationTriangle } from "react-icons/fa"; // <FaExclamationTriangle />
-
 import { MdOutlineEdit } from "react-icons/md";
 import { IoChevronBack, IoChevronForward } from "react-icons/io5";
+import { DualRingMark } from "../components/brandLoaders";
+import CreateFolderModal from "../components/CreateFolderModal";
 import "../css/CustomFileModal.css";
+import { showToast } from "../components/ToastProvider";
 
 const MIN_IMAGE_ZOOM = 1;
 const MAX_IMAGE_ZOOM = 4;
 const IMAGE_ZOOM_STEP = 0.25;
-
-
-
 
 export default function CustomFileModal({
   show,
@@ -48,7 +42,6 @@ export default function CustomFileModal({
   audioSrc,
   errorMessage2,
   isProgressVisible,
-  loaderGif,
   apiUrl,
   token,
   toggleFullscreen,
@@ -64,6 +57,7 @@ export default function CustomFileModal({
   fileName,
   isPublic,
   onRenameSuccess,
+  onMoveSuccess,
   triggerUpdate,
   handleOpenCreateFolder,
   setModalFile,
@@ -88,9 +82,9 @@ export default function CustomFileModal({
   const [showCreateFolderFromModal, setShowCreateFolderFromModal] = useState(false);
   const [newFolderName, setNewFolderName] = useState("");
   const [newFolderError, setNewFolderError] = useState("");
+  const [isCreatingFolderFromModal, setIsCreatingFolderFromModal] = useState(false);
     const isSharedValue = useSelector((state) => state.getdata.isSharedValue);
     const filenameRedux = useSelector((state) => state.getdata.fileName);
-
 
   const [currentFullName, setCurrentFullName] = useState(fullName);
   const [currentNameOnly, setCurrentNameOnly] = useState(nameOnly);
@@ -102,7 +96,6 @@ export default function CustomFileModal({
   const pptxMountRef = useRef(null);
   const [imageZoom, setImageZoom] = useState(1);    // stable mount for pptx-preview
   
-
 
 useEffect(()=>{
   console.log("modalFile123456",modalFile)
@@ -125,7 +118,6 @@ useEffect(() => {
     audioSrc,
     errorMessage2,
     isProgressVisible,
-    loaderGif,
     apiUrl,
     token,
     toggleFullscreen,
@@ -160,7 +152,6 @@ useEffect(() => {
   audioSrc,
   errorMessage2,
   isProgressVisible,
-  loaderGif,
   apiUrl,
   token,
   toggleFullscreen,
@@ -184,7 +175,6 @@ useEffect(() => {
   setSelectedFolder,
   docSrc,
 ]);
-
 
   useEffect(() => {
     console.log("USEEFFECT START — docSrc change:", docSrc, "modalFile:", modalFile);
@@ -308,122 +298,14 @@ useEffect(() => {
     // No cleanup returned
   }, [docSrc, modalFile]);
 
-
-
-
-
-  const toast = useToast();
-
-
-  const iconMap = {
-  success: FaCheckCircle,
-  error: BsXCircleFill,
-  info: IoIosInformationCircle,
-  warning: FaExclamationTriangle,
-};
-
-
-const getStatusColors = (status) => {
-  return {
-    bg: 'rgba(255, 255, 255, 0.85)',     // Clean white glass
-    border: status === 'success' ? 'rgba(16, 185, 129, 0.3)' :
-            status === 'error' ? 'rgba(239, 68, 68, 0.3)' :
-            status === 'info' ? 'rgba(59, 130, 246, 0.3)' :
-            'rgba(245, 158, 11, 0.3)',        // Status-colored border
-    icon: status === 'success' ? '#10b981' :
-          status === 'error' ? '#ef4444' :
-          status === 'info' ? '#3b82f6' :
-          '#f59e0b'
-  };
-};
-
-
-
-const showToast = (status, message) => {
-  const IconComponent = iconMap[status];
-  const colors = getStatusColors(status);
-  
-  toast({
-    // position: 'bottom-center',
-    position: 'bottom-right',
-    duration: 4000,
-    isClosable: true,
-    render: () => (
-      <div className="premium-toast" style={{
-        background: `linear-gradient(135deg, ${colors.bg}, rgba(255,255,255,0.9))`,
-        backdropFilter: 'blur(20px)',
-        border: `2px solid ${colors.border}`,
-        borderRadius: '16px',
-        boxShadow: '0 25px 50px -12px rgba(0,0,0,0.25), 0 0 0 1px rgba(255,255,255,0.05)',
-        padding: '20px',
-        maxWidth: '720px',
-        fontFamily: "'SF Pro', 'SFProText', -apple-system, BlinkMacSystemFont, sans-serif",
-        animation: 'toastSlideIn 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
-      }}>
-        <div style={{ display: 'flex', alignItems: 'flex-start', gap: '12px' }}>
-          <IconComponent 
-            style={{ 
-              width: '24px', 
-              height: '24px', 
-              color: colors.icon,
-              flexShrink: 0,
-              marginTop: '2px'
-            }} 
-          />
-          <div style={{ flex: 1, minWidth: 0 }}>
-            <div style={{
-              fontSize: '14px',
-              fontWeight: '600',
-              color: '#1f2937',
-              marginBottom: '4px',
-              lineHeight: '1.3'
-            }}>
-              {status.charAt(0).toUpperCase() + status.slice(1)}
-            </div>
-            <div style={{
-              fontSize: '14px',
-              color: '#6b7280',
-              lineHeight: '1.4'
-            }}>
-              {message}
-            </div>
-          </div>
-          <button 
-            style={{
-              background: 'none',
-              border: 'none',
-              padding: '4px',
-              cursor: 'pointer',
-              color: '#9ca3af',
-              borderRadius: '4px',
-              opacity: 0.7,
-              transition: 'all 0.2s'
-            }}
-            onClick={() => toast.closeAll()}
-            onMouseEnter={(e) => e.target.style.opacity = 1}
-            onMouseLeave={(e) => e.target.style.opacity = 0.7}
-          >
-            ✕
-          </button>
-        </div>
-      </div>
-    ),
-  });
-};
-
-
   useEffect(() => {
     setCurrentFullName(fullName);
     setCurrentNameOnly(nameOnly);
   }, [fullName, nameOnly]);
 
-
   useEffect(() => {
     console.log("✅DEBUG: docSrc changed ->", docSrc);
   }, [docSrc]);
-
-
-
 
   // Create folder and Move
   // const handleCreateFolderAndMove = async (e) => {
@@ -505,8 +387,15 @@ const showToast = (status, message) => {
   //   }
   // };
 
+  const closeCreateFolderFromModal = () => {
+    if (isCreatingFolderFromModal) return;
+    setShowCreateFolderFromModal(false);
+    setNewFolderError("");
+    setNewFolderName("");
+  };
+
   const handleCreateFolderAndMove = async (e) => {
-  e.preventDefault();
+  e?.preventDefault?.();
   console.log("ggggg handleCreateFolderAndMove: called");
 
   if (!newFolderName.trim()) {
@@ -526,6 +415,7 @@ const showToast = (status, message) => {
 
   try {
     setNewFolderError("");
+    setIsCreatingFolderFromModal(true);
     console.log("ggggg handleCreateFolderAndMove: folder name valid");
 
     const parts = modalFile.split("/");
@@ -578,25 +468,26 @@ const showToast = (status, message) => {
     );
     console.log("ggggg handleCreateFolderAndMove: file moved");
 
-    // 3) Refresh + close popup + modal
     showToast?.("success", "Folder created and file moved!");
-    console.log("ggggg handleCreateFolderAndMove: success toast shown");
     setShowCreateFolderFromModal(false);
-    console.log("ggggg handleCreateFolderAndMove: popup closed");
-    onRenameSuccess?.();
-    console.log("ggggg handleCreateFolderAndMove: onRenameSuccess called");
-    onClose();
-    console.log("ggggg handleCreateFolderAndMove: modal closed");
+    setNewFolderName("");
+    setNewFolderError("");
+
+    const movedPath = modalFile;
+    if (typeof onMoveSuccess === "function") {
+      await onMoveSuccess(movedPath);
+    } else {
+      await onRenameSuccess?.();
+      onClose?.();
+    }
   } catch (error) {
     setNewFolderError("Error creating folder or moving file");
     console.log("ggggg handleCreateFolderAndMove: error =", error);
     showToast?.("error", "Error creating folder or moving file");
+  } finally {
+    setIsCreatingFolderFromModal(false);
   }
 };
-
-
-
-
 
   // const handleMove = async (selectedOption) => {
   //   console.log("handleMove: selectedOption =", selectedOption);
@@ -709,34 +600,25 @@ const handleMove = async (selectedOption) => {
     );
     console.log("handleMove: move API response =", res.data);
 
-    // Show success toast
     showToast("success", "File moved successfully");
-    console.log("handleMove: showToast success");
 
-    // Call reloadAfterTast to refresh the file list and update Redux
-    await onRenameSuccess?.();
-
-    await handleNext();
-
+    const movedPath = modalFile;
+    // Advance/close using fresh list — do NOT call handleNext (stale filedata bug)
+    if (typeof onMoveSuccess === "function") {
+      await onMoveSuccess(movedPath);
+    } else {
+      await onRenameSuccess?.();
+      await handleNext?.();
+    }
   } catch (error) {
     console.error("handleMove: error =", error);
-    // showToast("error", `Failed to move file.`);
     showToast("warning", error?.response?.data?.message);
   }
 };
 
-
-
-
-
-
-
-
-
   useEffect(() => {
     console.log("✅modalFile: ", modalFile)
   }, [modalFile])
-
 
   const handleRenameSubmit = async () => {
     setRenameError("");
@@ -802,16 +684,11 @@ const handleMove = async (selectedOption) => {
     }
   };
 
-
-
-
-
   const exitRenameMode = () => {
     setIsRenameMode(false);
     setRenameInput(fileName);
     setRenameError("");
   };
-
 
   useEffect(() => {
     const handleKeyDown = (e) => {
@@ -823,9 +700,6 @@ const handleMove = async (selectedOption) => {
     window.addEventListener("keydown", handleKeyDown);
     return () => window.removeEventListener("keydown", handleKeyDown);
   }, [show, onClose]);
-
-
-
 
   // Paste all the usestates and useeffects above this
   if (!show) return null;
@@ -865,10 +739,6 @@ const handleMove = async (selectedOption) => {
       setFolderWindowStart(folderWindowStart - 1);
     }
   };
-
-
-
-
 
   return createPortal(
     <div className="custom-file-modal-overlay" onClick={onClose}>
@@ -1006,7 +876,7 @@ const handleMove = async (selectedOption) => {
           </button>
         {isProgressVisible ? (
           <div className="cfm-loader">
-            <img src={loaderGif} alt="" />
+            <DualRingMark size={44} />
           </div>
         ) : videoSrc ? (
           <VideoPlayer
@@ -1213,89 +1083,21 @@ const handleMove = async (selectedOption) => {
         </footer>
       </div>
 
-
-
-      {showCreateFolderFromModal && (
-        <div
-          style={{
-            position: "fixed",
-            inset: 0,
-            background: "rgba(0,0,0,0.45)",
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "center",
-            zIndex: 5000,
-          }}
-          onClick={() => setShowCreateFolderFromModal(false)}
-        >
-          <div
-            style={{
-              background: "#fff",
-              borderRadius: "18px",
-              padding: "20px 24px",
-              width: "340px",
-              boxShadow: "0 12px 40px rgba(0,0,0,0.25)",
-            }}
-            onClick={(e) => e.stopPropagation()}
-          >
-            <h4 style={{ margin: "0 0 8px 0", fontSize: 18 }}>Create Folder</h4>
-            <p style={{ margin: "0 0 12px 0", fontSize: 14, color: "#555" }}>
-              This file will be moved into the new folder after it is created.
-            </p>
-
-            <form onSubmit={handleCreateFolderAndMove}>
-              <input
-                type="text"
-                value={newFolderName}
-                onChange={(e) => setNewFolderName(e.target.value)}
-                placeholder="Enter Folder Name"
-                style={{
-                  width: "100%",
-                  padding: "8px 10px",
-                  borderRadius: 8,
-                  border: "1px solid #ddd",
-                  marginBottom: 8,
-                }}
-              />
-              {newFolderError && (
-                <p style={{ color: "red", fontSize: 13, margin: "0 0 8px 0" }}>
-                  {newFolderError}
-                </p>
-              )}
-              <div style={{ display: "flex", justifyContent: "flex-end", gap: 10 }}>
-                <button
-                  type="button"
-                  onClick={() => setShowCreateFolderFromModal(false)}
-                  style={{
-                    borderRadius: 10,
-                    border: "none",
-                    background: "#F3F3F3",
-                    padding: "6px 14px",
-                    cursor: "pointer",
-                  }}
-                >
-                  Close
-                </button>
-                <button
-                  type="submit"
-                  style={{
-                    borderRadius: 10,
-                    border: "none",
-                    background: "#FFD580",
-                    padding: "6px 16px",
-                    cursor: "pointer",
-                    fontWeight: 600,
-                  }}
-                >
-                  Create &amp; Move
-                </button>
-              </div>
-            </form>
-          </div>
-        </div>
-      )}
-
-
+      <CreateFolderModal
+        isOpen={showCreateFolderFromModal}
+        onClose={closeCreateFolderFromModal}
+        value={newFolderName}
+        onChange={(e) => {
+          setNewFolderName(e.target.value);
+          if (newFolderError) setNewFolderError("");
+        }}
+        onSubmit={handleCreateFolderAndMove}
+        error={newFolderError}
+        isSubmitting={isCreatingFolderFromModal}
+        description="This file will be moved into the new folder after it is created."
+        submitLabel="Create & Move"
+        zIndex={5200}
+      />
 
     </div>,
     document.body

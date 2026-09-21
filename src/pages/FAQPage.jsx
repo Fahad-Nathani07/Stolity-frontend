@@ -1,6 +1,9 @@
 import React, { useCallback, useEffect, useState } from "react";
+import AOS from "aos";
+import "aos/dist/aos.css";
 import axios from "axios";
 import "../css/FAQPage.css";
+import "../css/SettingsPageBreadcrumb.css";
 import SideNav from "../components/SideNav";
 import { showToast } from "../components/ToastProvider";
 import MinusIcon from "../images/MinusIcon.svg";
@@ -347,6 +350,19 @@ const FAQPage = () => {
     fetchActiveQuestion();
   }, [fetchActiveQuestion]);
 
+  useEffect(() => {
+    AOS.init({
+      duration: 1000,
+      offset: 80,
+      easing: "ease-in-out",
+      once: true,
+    });
+  }, []);
+
+  useEffect(() => {
+    AOS.refresh();
+  }, [openIndex, activeQuestion, checkingActive]);
+
   const handleAccordionClick = (idx) => {
     setOpenIndex((prev) => (prev === idx ? null : idx));
   };
@@ -413,17 +429,21 @@ const FAQPage = () => {
   return (
    <div className="faq-main-wrapper2">
       <SideNav />
-      <div className="settings-breadcrumb" style={{marginBottom:"0"}}>
-          <span style={{fontFamily:800}}>Settings</span>
-          <span className="breadcrumb-separator">›</span>
-          <span className="breadcrumb-current">FAQs</span>
+      <div className="stolity-settings-header" data-aos="zoom-out">
+        <div className="stolity-settings-breadcrumb">
+          <span>Settings</span>
+          <span className="stolity-settings-breadcrumb-sep" aria-hidden="true">
+            ›
+          </span>
+          <span className="stolity-settings-breadcrumb-current">FAQs</span>
+        </div>
       </div>
      <div className="faq-main-wrapper" >
       <div className="faqBody">
-        <h1 className="faq-title">Frequently Asked Questions</h1>
+        <h1 className="faq-title" data-aos="zoom-in">Frequently Asked Questions</h1>
       <div className="faq-content-wrapper">
         {/* Left: FAQ Accordion */}
-        <div className="faq-left-col">
+        <div className="faq-left-col" data-aos="zoom-in">
   {FAQS.map((faq, idx) => {
     const isOpen = openIndex === idx;
     return (
@@ -459,7 +479,7 @@ const FAQPage = () => {
 </div>
 
         {/* Right: Ask Question Card */}
-        <div className="faq-right-col">
+        <div className="faq-right-col" data-aos="zoom-in">
           <img
             src={FAQImg1}
             alt=""

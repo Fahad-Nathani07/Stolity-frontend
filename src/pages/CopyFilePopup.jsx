@@ -1,10 +1,6 @@
 import React, { useContext, useState, useEffect } from "react";
 import { UploadContext } from "./UploadContext";
 import { useSelector, useDispatch } from "react-redux";
-import { FaCheckCircle } from "react-icons/fa"; //<FaCheckCircle />
-import { BsXCircleFill } from "react-icons/bs"; // <BsXCircleFill />
-import { IoIosInformationCircle } from "react-icons/io"; // <IoIosInformationCircle />
-import { FaExclamationTriangle } from "react-icons/fa"; // <FaExclamationTriangle />
 import {
   incrementFCounter,
   removeLastFolder,
@@ -13,9 +9,8 @@ import {
   resetFCounter,
   setLoader,
 } from "../store/fileSlicer";
-import { ChakraProvider, useToast } from "@chakra-ui/react";
 import axios from "axios";
-import Loader2 from "../components/Loader2";
+import LoaderDualRing from "../components/LoaderDualRing";
 import FolderPickerListPanel from "../components/FolderPickerListPanel";
 import FolderDestinationModal, {
   formatModalItemSummary,
@@ -43,7 +38,6 @@ function CopyFilePopup({ moveKey, source, onClose, files, fileSize, setTriggerUp
   const [selectedPath, setSelectedPath] = useState("");
   const [progress, setProgress] = useState(0);
   const [loading2, setLoading2] = useState(false);
-  const toast = useToast();
   const [newFolderName, setNewFolderName] = useState("");
 const [creatingFolder, setCreatingFolder] = useState(false);
 
@@ -376,30 +370,6 @@ const handleCreateFolder = async () => {
 
 
 
-const iconMap = {
-  success: FaCheckCircle,
-  error: BsXCircleFill,
-  info: IoIosInformationCircle,
-  warning: FaExclamationTriangle,
-};
-
-
-const getStatusColors = (status) => {
-  return {
-    bg: 'rgba(255, 255, 255, 0.85)',     // Clean white glass
-    border: status === 'success' ? 'rgba(16, 185, 129, 0.3)' :
-            status === 'error' ? 'rgba(239, 68, 68, 0.3)' :
-            status === 'info' ? 'rgba(59, 130, 246, 0.3)' :
-            'rgba(245, 158, 11, 0.3)',        // Status-colored border
-    icon: status === 'success' ? '#10b981' :
-          status === 'error' ? '#ef4444' :
-          status === 'info' ? '#3b82f6' :
-          '#f59e0b'
-  };
-};
-
-
-
   const handleClose = () => {
     dispatch(resetFCounter());
     onClose();
@@ -456,7 +426,7 @@ const getStatusColors = (status) => {
         />
       </FolderDestinationModal>
 
-      {loading2 && <Loader2 />}
+      {loading2 && <LoaderDualRing />}
     </>
   );
 }

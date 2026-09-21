@@ -19,28 +19,6 @@
   color: var(--hsc-ink);
 }
 
-.hsc-breadcrumb {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  padding: 20px 28px;
-  background: rgba(255, 255, 255, 0.86);
-  border-bottom: 1px solid var(--hsc-line);
-  backdrop-filter: blur(10px);
-  -webkit-backdrop-filter: blur(10px);
-  font-size: 0.9375rem;
-  color: var(--hsc-muted);
-}
-
-.hsc-breadcrumb-sep {
-  color: #cbd5e1;
-}
-
-.hsc-breadcrumb-current {
-  color: var(--hsc-ink);
-  font-weight: 650;
-}
-
 .hsc-shell {
   max-width: 920px;
   margin: 0 auto;
@@ -522,10 +500,6 @@
 }
 
 @media (max-width: 640px) {
-  .hsc-breadcrumb {
-    padding: 16px 18px;
-  }
-
   .hsc-shell {
     padding: 18px 14px 36px;
   }

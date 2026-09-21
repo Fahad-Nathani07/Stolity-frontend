@@ -4,12 +4,9 @@ import axios from 'axios'
 import SideNav from '../components/SideNav';
 import Footer from '../components/Footer';
 import ToggleNav from '../components/ToggleNav';
-import { ChakraProvider,  Stack, useToast } from '@chakra-ui/react';
 
-import { FaCheckCircle } from "react-icons/fa"; //<FaCheckCircle />
-import { BsXCircleFill } from "react-icons/bs"; // <BsXCircleFill />
-import { IoIosInformationCircle } from "react-icons/io"; // <IoIosInformationCircle />
-import { FaExclamationTriangle } from "react-icons/fa"; // <FaExclamationTriangle />
+
+import { showToast } from "../components/ToastProvider";
 
 
 
@@ -58,112 +55,9 @@ const ChangePassword = () => {
     setOldPass("");
   }
 
-  const toast = useToast();
-
-
-  const iconMap = {
-   success: FaCheckCircle,
-   error: BsXCircleFill,
-   info: IoIosInformationCircle,
-   warning: FaExclamationTriangle,
- };
- 
- 
- const getStatusColors = (status) => {
-   return {
-     bg: 'rgba(255, 255, 255, 0.85)',     // Clean white glass
-     border: status === 'success' ? 'rgba(16, 185, 129, 0.3)' :
-             status === 'error' ? 'rgba(239, 68, 68, 0.3)' :
-             status === 'info' ? 'rgba(59, 130, 246, 0.3)' :
-             'rgba(245, 158, 11, 0.3)',        // Status-colored border
-     icon: status === 'success' ? '#10b981' :
-           status === 'error' ? '#ef4444' :
-           status === 'info' ? '#3b82f6' :
-           '#f59e0b'
-   };
- };
- 
- 
- 
- const showToast = (status, message) => {
-   const IconComponent = iconMap[status];
-   const colors = getStatusColors(status);
-   
-   toast({
-     // position: 'bottom-center',
-     position: 'bottom-right',
-     duration: 4000,
-     isClosable: true,
-     render: () => (
-       <div className="premium-toast" style={{
-         background: `linear-gradient(135deg, ${colors.bg}, rgba(255,255,255,0.9))`,
-         backdropFilter: 'blur(20px)',
-         border: `2px solid ${colors.border}`,
-         borderRadius: '16px',
-         boxShadow: '0 25px 50px -12px rgba(0,0,0,0.25), 0 0 0 1px rgba(255,255,255,0.05)',
-         padding: '20px',
-         maxWidth: '720px',
-         fontFamily: "'SF Pro', 'SFProText', -apple-system, BlinkMacSystemFont, sans-serif",
-         animation: 'toastSlideIn 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
-       }}>
-         <div style={{ display: 'flex', alignItems: 'flex-start', gap: '12px' }}>
-           <IconComponent 
-             style={{ 
-               width: '24px', 
-               height: '24px', 
-               color: colors.icon,
-               flexShrink: 0,
-               marginTop: '2px'
-             }} 
-           />
-           <div style={{ flex: 1, minWidth: 0 }}>
-             <div style={{
-               fontSize: '14px',
-               fontWeight: '600',
-               color: '#1f2937',
-               marginBottom: '4px',
-               lineHeight: '1.3'
-             }}>
-               {status.charAt(0).toUpperCase() + status.slice(1)}
-             </div>
-             <div style={{
-               fontSize: '14px',
-               color: '#6b7280',
-               lineHeight: '1.4'
-             }}>
-               {message}
-             </div>
-           </div>
-           <button 
-             style={{
-               background: 'none',
-               border: 'none',
-               padding: '4px',
-               cursor: 'pointer',
-               color: '#9ca3af',
-               borderRadius: '4px',
-               opacity: 0.7,
-               transition: 'all 0.2s'
-             }}
-             onClick={() => toast.closeAll()}
-             onMouseEnter={(e) => e.target.style.opacity = 1}
-             onMouseLeave={(e) => e.target.style.opacity = 0.7}
-           >
-             ✕
-           </button>
-         </div>
-       </div>
-     ),
-   });
- };
-
-
   return (
     <>
-    <ChakraProvider>
-                
-    </ChakraProvider>
-    <SideNav />
+<SideNav />
     <div className="container-fluid page-body-wrapper">
 
     <nav className="navbar p-0 fixed-top d-flex flex-row">

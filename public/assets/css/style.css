@@ -11019,7 +11019,7 @@ pre code {
 .table thead th,
 .jsgrid .jsgrid-table thead th {
   vertical-align: bottom;
-  border-bottom: 2px solid #e7e7e7;
+  border-bottom: 2px solid rgb(255 230 199);
 }
 
 .table tbody+tbody,
@@ -30708,6 +30708,10 @@ div.tagsinput span.tag a {
   padding-top: 70px;
 }
 
+.files-navbar{
+ border-bottom: 1px solid #e7e7e7;
+}
+
 @media (min-width: 992px) {
   .sidebar-icon-only .navbar {
     left: 78px;
@@ -30972,18 +30976,33 @@ div.tagsinput span.tag a {
   --stolity-footer-bar-height: 72px;
 }
 
-.main-panel:has(> .files-pagination-footer) {
+.page-body-wrapper:has(> .main-panel > .files-pagination-footer) {
   height: 100vh;
   max-height: 100vh;
+  min-height: 0 !important;
   overflow: hidden;
-  box-sizing: border-box;
+}
+
+.main-panel:has(> .files-pagination-footer) {
+  height: 100vh !important;
+  max-height: 100vh !important;
+  min-height: 0 !important;
+  overflow: hidden !important;
+  box-sizing: border-box !important;
+  display: flex !important;
+  flex-direction: column !important;
 }
 
 .main-panel:has(> .files-pagination-footer) > .content-wrapper {
-  flex: 1 1 auto;
-  min-height: 0;
-  overflow-x: hidden;
-  overflow-y: auto;
+  flex: 1 1 auto !important;
+  min-height: 0 !important;
+  overflow-x: hidden !important;
+  overflow-y: auto !important;
+  -webkit-overflow-scrolling: touch;
+}
+
+.main-panel:has(> .files-pagination-footer) > .files-pagination-footer {
+  flex: 0 0 auto !important;
 }
 
 .files-pagination-footer {
@@ -30996,7 +31015,8 @@ div.tagsinput span.tag a {
   background-color: #ffffff;
   box-shadow: 0 -2px 8px rgba(0, 0, 0, 0.1);
   border-top: 1px solid #e0e0e0;
-  z-index: 20;
+  z-index: 30;
+  position: relative;
 }
 
 body.audio-player-active .main-panel:has(> .files-pagination-footer) > .content-wrapper {
@@ -32091,6 +32111,7 @@ div.dataTables_wrapper div.dataTables_filter input {
 .show_entries_row {
   display: flex;
   align-items: center;
+  width: 100%;
 }
 
 .fiter_search {
@@ -32151,10 +32172,12 @@ div.dataTables_wrapper div.dataTables_filter input {
 }
 
 .page_title h1 {
-  color: #263682;
-  font-size: 20px !important;
-  /* text-transform: uppercase; */
-  font-weight: 600;
+  margin: 0;
+  color: #202020;
+  font-size: 24px !important;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  line-height: 1.15;
 }
 
 .dropdown-processed i {
@@ -32851,7 +32874,7 @@ padding-right: 20px;
 }
 
 .table thead th {
-  font-size: 17px;
+  font-size: 15px;
   vertical-align: middle;
 }
 
@@ -35570,7 +35593,9 @@ ol {
   background: #fff;
   /* padding: 25px; */
   border-radius: 10px;
-  box-shadow: 0px 4px 8px rgba(0, 0, 0, 0.15);
+  box-shadow: 0px 0px 12px rgba(0, 0, 0, 0.05);
+  border: 1px solid #F1F1F1;
+  overflow: hidden;
   transition: transform 0.2s, box-shadow 0.2s;
   min-height: 250px;
   min-width: 0;
@@ -35583,8 +35608,8 @@ ol {
 /* Three-dot menu on top-right */
 .menu-icon2 {
   position: absolute;
-  top: 10px;
-  right: 10px;
+  top: 8px;
+  right: 8px;
   font-size: 16px;
   cursor: pointer;
   color: #777;
@@ -35869,20 +35894,12 @@ ol {
   vertical-align: middle; /* Align icons properly */
 }
 
-/* Custom Dropdown Menu */
-/* Dropdown Menu */
+/* Custom Dropdown Menu — base (premium overrides in RowActionDropdown.css) */
 .custom-dropdown-menu {
   position: absolute !important;
   background-color: white !important;
-  min-width: 319px !important;
-  max-width: 319px; /* Ensure dropdown doesn't exceed this width */
-  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1) !important;
-  border-radius: 8px !important;
-  padding: 8px 0 !important;
   z-index: 1200;
   display: none;
-  left: -160px  !important;
-  top: 0px !important;
 }
 
 /* Ensure dropdown menu is visible when active */
@@ -36005,9 +36022,6 @@ ol {
 
 /* 🌟 Mobile Styles */
 @media (max-width: 768px) {
-  .custom-dropdown-menu {
-    left: -160px !important;
-  }
   .filter-row-new{
     flex-direction: column;
   }
@@ -38721,7 +38735,7 @@ ol {
 }
 
 .file-name {
-  max-width: 40%;
+  max-width: 85%;
   font-family: "SF Pro", "SFProText", -apple-system, BlinkMacSystemFont, sans-serif !important;
   overflow: hidden;
   text-overflow: ellipsis;

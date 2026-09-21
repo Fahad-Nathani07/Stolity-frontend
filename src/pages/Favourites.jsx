@@ -20,10 +20,30 @@ import AvatarDefault from "../images/AvatarDefault.jpg";
 import sharedIcon from "../images/shared_icon.svg";
 import { resolveFileIconPath } from "../utils/fileIcon";
 import { buildFileStreamUrl, preloadStreamedImage } from "../utils/fileStream";
-import { validateItemName } from "../utils/validateItemName";
+import {
+  validateItemName,
+  isCreateFolderNameTaken,
+  getCreateFolderErrorMessage,
+  FOLDER_EXISTS_MESSAGE,
+} from "../utils/validateItemName";
 import { getApiErrorMessage } from "../utils/handleS3CopyError";
-import { streamDownloadResponse, createDownloadWritable, isDownloadCancelledError, scheduleDownloadRemoval } from "../utils/downloadWithProgress";
+import { streamDownloadResponse, ensureDownloadWritable, estimateDownloadBytes, isDownloadCancelledError, scheduleDownloadRemoval, toastBatchDownloadSummary } from "../utils/downloadWithProgress";
+import { downloadFolderNoZip, downloadMultipleFoldersToDirectory } from "../utils/downloadFolderNoZip";
+import { downloadFileNativeBrowser, downloadMultipleFilesToDirectory, ensureSaveDirectory } from "../utils/downloadFilePresigned";
 import FileInfoModal from "../components/FileInfoModal";
+import {
+  clearFileSelection,
+  getFileSelectionKeys,
+  getFolderSelectionKeys,
+  hasFileSelection,
+  toggleFileSelection,
+  subscribeFileSelection,
+  syncSelectionDomClass,
+} from "../components/fileSelectionStore";
+import RowSelectCheckbox from "../components/RowSelectCheckbox";
+import PageSelectAllCheckbox from "../components/PageSelectAllCheckbox";
+import StoreBulkSelectionToolbar from "../components/StoreBulkSelectionToolbar";
+import { BULK_ROW_ACTION_TOAST_MESSAGE } from "../utils/bulkSelectionRowActions";
 import VisibilityModal from "../components/VisibilityModal";
 import FileShareModal from "../components/FileShareModal";
 import EmptyFilesState from "../components/EmptyFilesState";
@@ -38,12 +58,12 @@ import "../css/FilesToolbar.css";
 import CardFilePreview from "../components/CardFilePreview";
 import FilesPaginationFooter from "../components/FilesPaginationFooter";
 import { useStickyListHeader } from "../hooks/useStickyListHeader";
-import { getBulkRowActionToggleProps } from "../utils/bulkSelectionRowActions";
-import BulkSelectionToolbar from "../components/BulkSelectionToolbar";
 import RenameModal from "../components/RenameModal";
+import CreateFolderModal from "../components/CreateFolderModal";
+import PremiumUpgradeModal from "../components/PremiumUpgradeModal";
 import { useSessionEndCleanup } from "../hooks/useSessionEndCleanup";
 import useListPageSize from "../hooks/useListPageSize";
-import useFileSearch from "../hooks/useFileSearch";
+import FileSearchBar from "../components/FileSearchBar";
 import svgCrown from "../images/crown.svg";
 import fullscreeen from "../images/mediaPlayer/fullscreen.svg";
 import zoomin from "../images/mediaPlayer/add-button.svg";
@@ -56,7 +76,7 @@ import IconHomeW from "../images/GridWhite.svg";
 import IconListW from "../images/listWhite.svg";
 import DeletePopup from "../images/deletePopup.svg";
 import SortHome from "../images/SortHome.svg";
-import FilterHome from "../images/filterHome.svg";
+import { ChevronDown, SlidersHorizontal } from "lucide-react";
 import SortIcon from "../images/sort-style-1.svg";
 import { Tab, Tabs, TabList, TabPanel } from "react-tabs";
 import copyIcon from "../images/DropdownIcons/copyIcon.svg";
@@ -82,10 +102,6 @@ import svgPng from "../images/TypesPng.svg"
 import svgTxt from "../images/TypesTxt.svg"
 import svgZip from "../images/TypesZip.svg"
 
-import { FaCheckCircle } from "react-icons/fa"; //<FaCheckCircle />
-import { BsXCircleFill } from "react-icons/bs"; // <BsXCircleFill />
-import { IoIosInformationCircle } from "react-icons/io"; // <IoIosInformationCircle />
-import { FaExclamationTriangle } from "react-icons/fa"; // <FaExclamationTriangle />
 import { FaLock } from "react-icons/fa";
 
 import {
@@ -104,10 +120,11 @@ import "rsuite/dist/rsuite.min.css";
 import { useDropzone } from "react-dropzone";
 import { UploadContext } from "./UploadContext";
 import { Modal as BootstrapModal } from "react-bootstrap";
-import { ChakraProvider, Stack, useToast } from "@chakra-ui/react";
+
 import SideNav from "../components/SideNav";
 import Footer from "../components/Footer";
 import ToggleNav from "../components/ToggleNav";
+import TruncatedTooltip from "../components/TruncatedTooltip";
 
 //LIGHTBOX
 import MoveFilePopup from "./MoveFilePopup";
@@ -141,6 +158,7 @@ import SelectFolderModal from "./DownloadModal/SelectFolderModal";
 import FileConversionModal from "../components/FileConversionModal";
 import CustomFileModal from "./CustomFileModal";
 import LoaderRecycleBin from "../components/LoaderRecycleBin";
+import { showToast } from "../components/ToastProvider";
 
 let c = 1;
 
@@ -181,10 +199,6 @@ const Favourites = () => {
   registerCancelRefresh,
 } = useContext(UploadContext);
 
-
-
-
-
   //Anurag Declaration
   const token = sessionStorage.getItem("number");
   const [selectedFilter, setSelectedFilter] = useState("Sort By");
@@ -210,6 +224,8 @@ const Favourites = () => {
   const [targetFolder, setTargetFolder] = useState("");
 
   const [folderFieldError, setFolderFieldError] = useState("");
+  const [isCreatingFolder, setIsCreatingFolder] = useState(false);
+  const [newFolderName, setNewFolderName] = useState("");
   const [showDropdown, setShowDropdown] = useState(false);
 
   const [isVideo, setisVideo] = useState(false);
@@ -251,7 +267,6 @@ const Favourites = () => {
           (state) => state.jobPortal
         );
     
-
 
   useEffect(() => {
     const token = sessionStorage.getItem("number");
@@ -303,7 +318,6 @@ const Favourites = () => {
 //   const [showAudioPlayer, setShowAudioPlayer] = useState(false);
 // const [currentAudioFile, setCurrentAudioFile] = useState(null);
 
-
   useEffect(() => {
     const lockScroll = () => {
       document.body.style.overflow = "hidden";
@@ -332,11 +346,20 @@ const Favourites = () => {
   const [currentPage, setCurrentPage] = useState(1);
   const [itemsPerPage, setItemsPerPage] = useListPageSize();
   const [totalEntries, setTotalEntries] = useState(0);
+  const [query, setQuery] = useState("");
+
+  const clearSearchBar = () => setQuery("");
+  const clearSearch = () => {
+    setQuery("");
+    setCurrentPage(1);
+  };
+  const handleSearchChange = (e) => {
+    setQuery(e.target.value);
+    setCurrentPage(1);
+  };
 
   const [loader_Recycle, setLoader_Recycle] = useState(false);
     const [loader2, setLoader2] = useState(false);
-
-
 
   const docBlobRef = useRef(null);
   
@@ -352,13 +375,7 @@ const Favourites = () => {
   
   
 
-
-
-
   const [sortedData, setSortedData] = useState([]); // Stores sorted results
-
-
-
 
   // *************** File Conversion *************** // 
   
@@ -368,24 +385,16 @@ const Favourites = () => {
   const [showPrivateWarning, setShowPrivateWarning] = useState(false);
   const [fileToShare, setFileToShare] = useState(null);
 
-
   const handleFilesConverted = (updatedFiles) => {
     setFiles(updatedFiles);
     setConvertedFiles(updatedFiles);
     setShowConversionModal(false);
   };
 
-
-
-
-
   const totalPages = Math.ceil(totalEntries / itemsPerPage);
   const startItem = (currentPage - 1) * itemsPerPage + 1;
   const endItem = Math.min(currentPage * itemsPerPage, totalEntries);
   const isNextPage = currentPage < totalPages;
-
-
-
 
   useEffect(() => {
   const fetchData = async () => {
@@ -405,7 +414,6 @@ const Favourites = () => {
 
   fetchData();
 }, []);
-
 
   
   const fileTypes = ["pdf", "jpg", "jpeg", "png", "mov", "mp3", "mp4", "zip"];
@@ -430,14 +438,24 @@ useEffect(() => {
       ? sortedData
       : allEntries;
 
+  const q = query.trim().toLowerCase();
+  const filtered = !q
+    ? dataSource
+    : dataSource.filter((file) => {
+        const full = String(file.fileName || "").toLowerCase();
+        const base = full.includes("/")
+          ? full.slice(full.lastIndexOf("/") + 1)
+          : full;
+        return full.includes(q) || base.includes(q);
+      });
+
+  setTotalEntries(filtered.length);
+
   const startIndex = (currentPage - 1) * itemsPerPage;
   const endIndex = startIndex + itemsPerPage;
 
-  const slicedData = dataSource.slice(startIndex, endIndex);
-  setFileData(slicedData);
-}, [currentPage, itemsPerPage, allEntries, sortedData, selectedFileTypes]);
-
-
+  setFileData(filtered.slice(startIndex, endIndex));
+}, [currentPage, itemsPerPage, allEntries, sortedData, selectedFileTypes, query]);
 
   const handleShow = () => setShow(true);
   const handleClose = () => setShow(false);
@@ -463,14 +481,34 @@ useEffect(() => {
   const [selectStatus2, setSelectStatus2] = useState(false);
   const [checkedFiles, setCheckedFiles] = useState([]);
   const [selectedFiles, setSelectedFiles] = useState([]);
-  const [keys, setKeys] = useState([]);
-  const [keys2, setKeys2] = useState([]);
-  const hasBulkSelection = keys.length > 0 || keys2.length > 0;
-
   const [moveFol, setMoveFol] = useState(false);
 
   const [view, setView] = useState(localStorage.getItem("view") || "list");
-  const { filterBarRef, tableBoxRef, tableBoxClassName } = useStickyListHeader(view, hasBulkSelection);
+  const { filterBarRef, tableBoxRef, tableBoxClassName } = useStickyListHeader(view, false);
+
+  useEffect(() => {
+    syncSelectionDomClass();
+    const unsubscribe = subscribeFileSelection(() => syncSelectionDomClass());
+    return () => {
+      unsubscribe();
+      clearFileSelection();
+    };
+  }, []);
+
+  useEffect(() => {
+    const onClick = (e) => {
+      if (!hasFileSelection()) return;
+      const toggle = e.target.closest?.(".dropdown-toggle");
+      if (!toggle) return;
+      if (toggle.closest(".bulk-selection-slot, .bulk-selection-float")) return;
+      if (!toggle.closest("#filestable") && !toggle.closest("#dataView")) return;
+      e.preventDefault();
+      e.stopPropagation();
+      showToast("warning", BULK_ROW_ACTION_TOAST_MESSAGE);
+    };
+    document.addEventListener("click", onClick, true);
+    return () => document.removeEventListener("click", onClick, true);
+  }, []);
 
   const toggleView = (selectedView) => {
     setView(selectedView);
@@ -489,8 +527,7 @@ useEffect(() => {
     dispatch(resetFolderList());
     getFileData(1);
     setIsWhisperClicked(false);
-    setKeys([]);
-    setKeys2([]);
+    clearFileSelection();
     setCurrentPage(1);
     getLatestFolderList();
   };
@@ -504,9 +541,7 @@ useEffect(() => {
     getFileData(1);
     setMoveFol(false);
     setEndIndex(1);
-    setKeys([]);
-    setKeys2([]);
-    setIsSelectAll(false);
+    clearFileSelection();
   };
   // Copy File code
   const handleCClick = (name) => {
@@ -517,10 +552,12 @@ useEffect(() => {
   const handleCClose = () => {
     dispatch(resetFolderList());
     setIsCWhisperClicked(false);
-    setKeys([]);
+    clearFileSelection();
   };
 
   const handleBulkMoveSelection = () => {
+    const keys = getFileSelectionKeys();
+    const keys2 = getFolderSelectionKeys();
     if (keys.length === 0 && keys2.length === 0) {
       showToast("error", "No files or folders selected.");
       return;
@@ -538,78 +575,13 @@ useEffect(() => {
     setMoveFol(true);
   };
 
- 
-
-  //Checkbox code
-  const [isSelectAll, setIsSelectAll] = useState(false);
-
-  const handleCheckboxChange = (file) => {
-    if (file.isFolder) {
-      // If the file is a folder, update the keys2 list
-      setKeys2((prevKeys2) => {
-        const isChecked = prevKeys2.includes(file.fileName);
-        const newKeys2 = isChecked
-          ? prevKeys2.filter((f) => f !== file.fileName)
-          : [...prevKeys2, file.fileName];
-        return newKeys2;
-      });
-    } else {
-      // If the file is not a folder, update the keys list
-      setKeys((prevKeys) => {
-        const isChecked = prevKeys.includes(file.fileName);
-        const newKeys = isChecked
-          ? prevKeys.filter((f) => f !== file.fileName)
-          : [...prevKeys, file.fileName];
-        return newKeys;
-      });
-    }
-  };
-
   /** When any row is selected, row clicks toggle selection instead of open/navigate */
   const trySelectInsteadOfOpen = (file) => {
-    if (keys.length === 0 && keys2.length === 0) return false;
+    if (!hasFileSelection()) return false;
     if (file.fileName === "blackbox" || file.isShared) return true;
-    handleCheckboxChange(file);
+    toggleFileSelection(file.fileName, !!file.isFolder);
     return true;
   };
-
-  const handleSelectAllToggle = () => {
-    if (!isSelectAll) {
-      // Select all - preserve existing selections and add all other items
-      const allFiles = filedata
-        .filter((file) => !file.isFolder)
-        .map((file) => file.fileName);
-      const allFolders = filedata
-        .filter((file) => file.isFolder)
-        .map((file) => file.fileName);
-
-      setKeys((prevKeys) => [...new Set([...prevKeys, ...allFiles])]);
-      setKeys2((prevKeys2) => [...new Set([...prevKeys2, ...allFolders])]);
-    } else {
-      // Deselect all
-      setKeys([]);
-      setKeys2([]);
-    }
-    setIsSelectAll(!isSelectAll);
-  };
-
-  useEffect(() => {
-    // Check if all files and folders are selected
-    const allFiles = filedata
-      .filter((file) => !file.isFolder)
-      .map((file) => file.fileName);
-    const allFolders = filedata
-      .filter((file) => file.isFolder)
-      .map((file) => file.fileName);
-
-    const areAllFilesSelected = allFiles.every((file) => keys.includes(file));
-    const areAllFoldersSelected = allFolders.every((folder) =>
-      keys2.includes(folder)
-    );
-
-    // Update the isSelectAll state
-    setIsSelectAll(areAllFilesSelected && areAllFoldersSelected);
-  }, [keys, keys2, filedata]);
 
 //  const handleMulDelete = async () => {
 //   try {
@@ -666,7 +638,6 @@ useEffect(() => {
 //   }
 // };
 
-
   // Copy text to clipboard
  
 
@@ -676,12 +647,12 @@ const getFileIcon = (file) =>
     sharedIconSrc: sharedIcon,
   });
 
-
-
   
 const handleMulDelete = async () => {
   const loaderStartedAt = Date.now();
   setLoader_Recycle(true); // Start recycle loader
+  const keys = getFileSelectionKeys();
+  const keys2 = getFolderSelectionKeys();
 
   try {
     // Check if any selected item is a shared folder
@@ -723,13 +694,11 @@ const handleMulDelete = async () => {
 
     // After successful delete, reset states and refresh data
     getLatestFolderList();
-    setIsSelectAll(false);
     setSelectStatus(false);
     getFileData(1); // Refresh file data
     setCurrentPage(1);
     getRootFolderSize(); // Refresh folder size
-    setKeys([]); // Reset keys for files
-    setKeys2([]); // Reset keys for folders
+    clearFileSelection();
 
     // Show success toast and stop recycle loader after delay
     afterMinLoaderDisplay(loaderStartedAt, () => {
@@ -742,19 +711,13 @@ const handleMulDelete = async () => {
   }
 };
 
-
-
-
-
-
-
-
 // NOTE: if you want to change concurrency at runtime, add this state in your component:
 const [downloadConcurrency, setDownloadConcurrency] = useState(1);
 // Then this function will pick that value. If you don't add it, the function falls back to 1.
 
-
 const handleMulDownload = async () => {
+  const keys = getFileSelectionKeys();
+  const keys2 = getFolderSelectionKeys();
   if (keys.length === 0 && keys2.length === 0) {
     showToast("error", "No files or folders selected!");
     return;
@@ -765,125 +728,221 @@ const handleMulDownload = async () => {
     ...keys2.map((fileName) => ({ fileName, isFolder: true })),
   ];
 
-  const batchId = Date.now() + "-" + Math.random().toString(36).slice(2, 9);
-
-  const concurrency =
-    typeof downloadConcurrency !== "undefined" && Number.isFinite(downloadConcurrency)
-      ? Math.max(1, Number(downloadConcurrency))
-      : 1;
-
+  // One shared controller for the whole batch so Cancel / ✕ aborts remaining
+  // files even after the first few have already finished.
+  const batchAbortController = new AbortController();
   items.forEach((item, i) => {
     const downloadId = Date.now() + Math.random() + i;
-    const abortController = new AbortController();
-    addDownload(downloadId, item.fileName, abortController, item.isFolder);
+    addDownload(
+      downloadId,
+      item.fileName,
+      batchAbortController,
+      item.isFolder
+    );
     item.downloadId = downloadId;
-    item.abortController = abortController;
-    item.endpoint = item.isFolder ? "download-folder" : "download-file";
+    item.abortController = batchAbortController;
+    item.endpoint = item.isFolder ? "download-folder" : "download-file-url";
   });
 
-  const downloadOne = async (item) => {
-    const { fileName, endpoint, downloadId, abortController } = item;
-    let succeeded = false;
-    try {
-      let writable = null;
-      if (item.isFolder) {
-        try {
-          writable = await createDownloadWritable({
-            fileName,
-            isFolder: true,
-          });
-        } catch (pickerErr) {
-          if (isDownloadCancelledError(pickerErr)) throw pickerErr;
-          throw new Error(
-            "Choose a save location to download folders (use Chrome/Edge)."
-          );
-        }
-        if (!writable) {
-          throw new Error(
-            "Choose a save location to download folders (use Chrome/Edge)."
-          );
-        }
-      }
+  const fileItems = items.filter((item) => !item.isFolder);
+  const folderItems = items.filter((item) => item.isFolder);
 
-      const response = await fetch(`${apiUrl}${endpoint}?filePath=${encodeURIComponent(fileName)}`, {
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
-        signal: abortController.signal,
-      });
+  const itemByPath = Object.fromEntries(
+    items.map((item) => [item.fileName, item])
+  );
 
-      if (!response.ok) throw new Error("Network response was not ok");
-
-      await streamDownloadResponse({
-        response,
-        fileName,
-        isFolder: item.isFolder,
-        writable,
-        onProgress: (percent) => updateDownloadProgress(downloadId, percent),
-      });
-
-      succeeded = true;
-      updateDownloadProgress(downloadId, 100);
-      return { success: true, downloadId };
-    } catch (err) {
-      if (isDownloadCancelledError(err)) {
-        console.warn("Download cancelled", item.fileName);
-        showToast("info", `Download cancelled: ${item.fileName}`);
-      } else {
-        console.error("Download error for", fileName, err);
-        showToast("error", err?.message || `Error downloading ${fileName}.`);
-      }
-      return { success: false, downloadId, error: err };
-    } finally {
-      if (!succeeded) {
-        scheduleDownloadRemoval(removeDownload, downloadId, { delayMs: 0 });
-      }
-    }
-  };
-
-  let cursor = 0;
-  const runWorker = async () => {
-    while (true) {
-      if (cursor >= items.length) break;
-      const myIndex = cursor;
-      cursor += 1;
-      const item = items[myIndex];
-      if (!item) break;
-      await downloadOne(item);
-    }
-  };
-
-  const workers = Array.from({ length: Math.min(concurrency, items.length) }, () => runWorker());
-  try {
-    await Promise.all(workers);
-    showToast("success", "All downloads processed.");
-
-    const cleanupDelay = 600;
+  const cleanupProgress = () => {
     setTimeout(() => {
       items.forEach((it) => {
         try {
           removeDownload(it.downloadId);
         } catch (e) {}
       });
-    }, cleanupDelay);
+    }, 600);
+  };
+
+  try {
+    const batchSignal = batchAbortController.signal;
+    let succeeded = 0;
+    let cancelled = 0;
+    let failed = 0;
+
+    let sharedDirHandle = null;
+    const needsDirectStreamDir =
+      fileItems.length > 1 || folderItems.length > 0;
+    if (needsDirectStreamDir) {
+      try {
+        sharedDirHandle = await ensureSaveDirectory();
+      } catch (err) {
+        if (isDownloadCancelledError(err)) {
+          toastBatchDownloadSummary(showToast, {
+            total: items.length,
+            succeeded: 0,
+            cancelled: items.length,
+            failed: 0,
+          });
+          cleanupProgress();
+          return;
+        }
+        throw err;
+      }
+      if (!sharedDirHandle) {
+        showToast(
+          "error",
+          "Choose a save folder (Chrome/Edge) to download with folder structure."
+        );
+        cleanupProgress();
+        return;
+      }
+    }
+
+    if (fileItems.length === 1) {
+      const item = fileItems[0];
+      try {
+        await downloadFileNativeBrowser({
+          apiUrl,
+          token,
+          filePath: item.fileName,
+          signal: batchSignal,
+          onProgress: (percent) => {
+            updateDownloadProgress(item.downloadId, percent);
+          },
+        });
+        updateDownloadProgress(item.downloadId, 100);
+        succeeded += 1;
+      } catch (err) {
+        if (isDownloadCancelledError(err)) cancelled += 1;
+        else failed += 1;
+        scheduleDownloadRemoval(removeDownload, item.downloadId, {
+          delayMs: 0,
+        });
+      }
+    } else if (fileItems.length > 0) {
+      try {
+        const batch = await downloadMultipleFilesToDirectory({
+          apiUrl,
+          token,
+          filePaths: fileItems.map((item) => item.fileName),
+          signal: batchSignal,
+          dirHandle: sharedDirHandle,
+          estimatedBytesByPath: Object.fromEntries(
+            fileItems.map((item) => [
+              item.fileName,
+              estimateDownloadBytes(
+                filedata?.find?.((f) => f.fileName === item.fileName)
+              ),
+            ])
+          ),
+          onFileProgress: (filePath, percent) => {
+            const item = itemByPath[filePath];
+            if (item) updateDownloadProgress(item.downloadId, percent);
+          },
+        });
+        (batch.results || []).forEach((r) => {
+          const item = itemByPath[r.filePath];
+          if (r.success) {
+            succeeded += 1;
+            if (item) updateDownloadProgress(item.downloadId, 100);
+          } else if (r.cancelled) {
+            cancelled += 1;
+            if (item) {
+              scheduleDownloadRemoval(removeDownload, item.downloadId, {
+                delayMs: 0,
+              });
+            }
+          } else {
+            failed += 1;
+            if (item) {
+              scheduleDownloadRemoval(removeDownload, item.downloadId, {
+                delayMs: 0,
+              });
+            }
+          }
+        });
+      } catch (err) {
+        if (isDownloadCancelledError(err)) {
+          cancelled += fileItems.length;
+        } else {
+          failed += fileItems.length;
+        }
+        fileItems.forEach((item) =>
+          scheduleDownloadRemoval(removeDownload, item.downloadId, {
+            delayMs: 0,
+          })
+        );
+      }
+    }
+
+    if (folderItems.length > 0 && !batchSignal.aborted) {
+      try {
+        const folderBatch = await downloadMultipleFoldersToDirectory({
+          apiUrl,
+          token,
+          folderPaths: folderItems.map((item) => item.fileName),
+          signal: batchSignal,
+          dirHandle: sharedDirHandle,
+          onFolderProgress: (folderPath, percent) => {
+            const item = itemByPath[folderPath];
+            if (item) updateDownloadProgress(item.downloadId, percent);
+          },
+        });
+        (folderBatch.results || []).forEach((r) => {
+          const item = itemByPath[r.folderPath];
+          if (r.success) {
+            succeeded += 1;
+            if (item) updateDownloadProgress(item.downloadId, 100);
+          } else if (r.cancelled) {
+            cancelled += 1;
+            if (item) {
+              scheduleDownloadRemoval(removeDownload, item.downloadId, {
+                delayMs: 0,
+              });
+            }
+          } else {
+            failed += 1;
+            if (item) {
+              scheduleDownloadRemoval(removeDownload, item.downloadId, {
+                delayMs: 0,
+              });
+            }
+          }
+        });
+      } catch (err) {
+        if (isDownloadCancelledError(err)) {
+          cancelled += folderItems.length;
+        } else {
+          failed += folderItems.length;
+        }
+        folderItems.forEach((item) =>
+          scheduleDownloadRemoval(removeDownload, item.downloadId, {
+            delayMs: 0,
+          })
+        );
+      }
+    }
+
+    toastBatchDownloadSummary(showToast, {
+      total: items.length,
+      succeeded,
+      cancelled,
+      failed,
+    });
+    cleanupProgress();
   } catch (err) {
     console.error("Queue error:", err);
-    showToast("error", "One or more downloads failed.");
-
-    const cleanupDelay = 600;
-    setTimeout(() => {
-      items.forEach((it) => {
-        try {
-          removeDownload(it.downloadId);
-        } catch (e) {}
+    if (isDownloadCancelledError(err)) {
+      toastBatchDownloadSummary(showToast, {
+        total: items.length,
+        succeeded: 0,
+        cancelled: items.length,
+        failed: 0,
       });
-    }, cleanupDelay);
+    } else {
+      showToast("error", "One or more downloads failed.");
+    }
+    cleanupProgress();
   }
 };
-
-
-
-
 
   
   
@@ -1103,8 +1162,6 @@ const handleFTypeSelect = (eventKey) => {
   }
 };
 
-
-
   const getFileNameOnly = (fullName) => {
   const parts = fullName.split("/");
   return parts.length > 0 ? parts[parts.length - 1] : fullName;
@@ -1118,7 +1175,6 @@ const getFilePathOnly = (fullName) => {
   }
   return "/";
 };
-
 
   const handleFilterSelect = (eventKey) => {
     if (
@@ -1193,14 +1249,6 @@ const getFilePathOnly = (fullName) => {
     return [...sharedFolders, ...files];
   };
 
-
-
-
-
-
-
-
-
 // Helper function to convert file size string to bytes for sorting
 const parseSizeToBytes = (sizeStr) => {
   if (!sizeStr) return 0;
@@ -1241,8 +1289,6 @@ const dateFilter2 = () => {
   applyTypeAndSort(selectedFileTypes, "By Date(Newest)");
 };
 
-
-
   const closePopup = () => {
   setSelectedFileTypes([]);
   setCustomExtInput("");
@@ -1252,8 +1298,6 @@ const dateFilter2 = () => {
   getFileData(); // Reload favorites
   setShowFTPopup(false);
 };
-
-
 
   //Anurag Get Files
   // Modify your getFileData function to ensure it correctly handles pagination
@@ -1282,31 +1326,6 @@ const dateFilter2 = () => {
   }
 };
 
-  const {
-    query,
-    searchLoading,
-    handleSearchChange,
-    clearSearch,
-    resetSearchBar,
-  } = useFileSearch({
-    apiUrl,
-    token,
-    onResults: (list) => {
-      setSortedData([]);
-      setAllEntries(list);
-      setTotalEntries(list.length);
-      setCurrentPage(1);
-    },
-    onSearchClear: () => {
-      setSortedData([]);
-      setAllEntries([]);
-      setTotalEntries(0);
-    },
-    reloadList: () => getFileData(currentPage),
-  });
-
-  const clearSearchBar = resetSearchBar;
-
   // Cancel-all: refresh list once immediately, then aborts continue in background
   useEffect(() => {
     if (typeof registerCancelRefresh !== "function") return undefined;
@@ -1315,7 +1334,6 @@ const dateFilter2 = () => {
     });
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [registerCancelRefresh]);
-
 
 const handleRemoveFromFavorites = async (file) => {
   try {
@@ -1337,9 +1355,6 @@ const handleRemoveFromFavorites = async (file) => {
     showToast("error", "Failed to remove from favorites");
   }
 };
-
-
-
 
   // Pagination control handlers (no API calls now)
   const goToFirstPage = () => setCurrentPage(1);
@@ -1505,7 +1520,7 @@ const handleRemoveFromFavorites = async (file) => {
     return str.substring(0, index);
   };
 
-  //Anurag Search file — see useFileSearch hook
+  // Frontend search filters allEntries / sortedData locally (see query + pagination effect)
 
   //Image getting function
   const getImageInfo = async (filename) => {
@@ -1567,8 +1582,6 @@ const handleRemoveFromFavorites = async (file) => {
       console.error(error);
     }
   };
-
-
 
   const getDocInfo = async (filename) => {
     try {
@@ -2098,7 +2111,6 @@ const handleRemoveFromFavorites = async (file) => {
 //   }
 // };
 
-
 const handleFileDelete = async (file) => {
   const loaderStartedAt = Date.now();
   setLoader_Recycle(true); // Start recycle loader
@@ -2169,10 +2181,6 @@ const handleFileDelete = async (file) => {
   }
 };
 
-
-
-
-
   const [openPDFModal, setOpenPDFModal] = useState(false);
   const handleOpenPDFModal = () => setOpenPDFModal(true);
   const handleClosePDFModal = () => setOpenPDFModal(false);
@@ -2190,6 +2198,7 @@ const handleFileDelete = async (file) => {
   const handleCloseCreateFolder = () => {
     setCreateFolderButton(false);
     setFolderFieldError("");
+    setNewFolderName("");
   };
 
   const [pubpri, setPubPri] = useState("private");
@@ -2305,47 +2314,64 @@ const handleFileDelete = async (file) => {
     cancelToken.current = abortController;
 
     try {
-      const endpoint = isFolder ? "download-folder" : "download-file";
-
-      let writable = null;
       if (isFolder) {
         try {
-          writable = await createDownloadWritable({ fileName, isFolder: true });
-        } catch (pickerErr) {
-          if (isDownloadCancelledError(pickerErr)) throw pickerErr;
-          throw new Error(
-            "Choose a save location to download folders (use Chrome/Edge)."
+          await downloadFolderNoZip({
+            apiUrl,
+            token,
+            filePath: fileName,
+            signal: abortController.signal,
+            onProgress: (percent) => {
+              setProgress(percent);
+              updateDownloadProgress(downloadId, percent);
+            },
+          });
+        } catch (err) {
+          if (err?.name === "AbortError" || isDownloadCancelledError(err)) {
+            throw err;
+          }
+          console.warn(
+            "[Favourites] No-zip folder download failed, falling back to zip:",
+            err?.message || err
           );
-        }
-        if (!writable) {
-          throw new Error(
-            "Choose a save location to download folders (use Chrome/Edge)."
+          const writable = await ensureDownloadWritable({
+            fileName,
+            isFolder: true,
+            required: true,
+          });
+          const response = await fetch(
+            `${apiUrl}download-folder?filePath=${encodeURIComponent(fileName)}`,
+            {
+              headers: {
+                Authorization: `Bearer ${token}`,
+              },
+              signal: abortController.signal,
+            }
           );
+          if (!response.ok) throw new Error("Network response was not ok");
+          await streamDownloadResponse({
+            response,
+            fileName,
+            isFolder: true,
+            writable,
+            onProgress: (percent) => {
+              setProgress(percent);
+              updateDownloadProgress(downloadId, percent);
+            },
+          });
         }
-      }
-
-      const response = await fetch(
-        `${apiUrl}${endpoint}?filePath=${encodeURIComponent(fileName)}`,
-        {
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
+      } else {
+        await downloadFileNativeBrowser({
+          apiUrl,
+          token,
+          filePath: fileName,
           signal: abortController.signal,
-        }
-      );
-
-      if (!response.ok) throw new Error("Network response was not ok");
-
-      await streamDownloadResponse({
-        response,
-        fileName,
-        isFolder,
-        writable,
-        onProgress: (percent) => {
-          setProgress(percent);
-          updateDownloadProgress(downloadId, percent);
-        },
-      });
+          onProgress: (percent) => {
+            setProgress(percent);
+            updateDownloadProgress(downloadId, percent);
+          },
+        });
+      }
 
       succeeded = true;
       setProgress(100);
@@ -2627,7 +2653,6 @@ const handleFileDelete = async (file) => {
   return "/"; // If no slash, return "/" for root folder
 };
 
-
 function getTextAfterLastSlash(text) {
   if (text.includes("/")) {
     return text.substring(text.lastIndexOf("/") + 1);
@@ -2648,49 +2673,58 @@ function getModifiedRecentFolderText(input) {
   }
 }
 
-
   //Create Folder
   const createJustFolder = async (event) => {
-    event.preventDefault();
-    const isValid = /^[a-zA-Z0-9_\- ]{1,}$/.test(
-      document.getElementById("folname").value
-    );
+    event?.preventDefault?.();
+    if (isCreatingFolder) return;
+
+    const folderfield = (newFolderName || "").trim();
+    const isValid = /^[a-zA-Z0-9_\- ]{1,}$/.test(folderfield);
+
+    if (!folderfield) {
+      setFolderFieldError("Please enter a folder name.");
+      return;
+    }
 
     if (!isValid) {
       setFolderFieldError(
         "Folder name can only contain letters, numbers, underscores, hyphens, and spaces."
       );
-
       return;
     }
-    const folderfield = document.getElementById("folname").value;
-    if (folderfield) {
-      const folderName = path + document.getElementById("folname").value;
-      // console.log(folderName);
-      try {
-        const res = await axios.post(
-          `${apiUrl}create-folder`,
-          { folderName: folderName },
-          {
-            headers: {
-              Authorization: `Bearer ${token}`,
-              "Content-Type": "application/x-www-form-urlencoded",
-            },
-          }
-        );
-        handleCloseFileUploadModal();
 
-        getLatestFolderList();
-        getFolderList();
-        getFileData(currentPage);
-        handleCloseCreateFolder();
-        setOpenFileUploadModal(false);
-        //  console.log(res.data);
-        showToast("success", "Folder created successfully!");
-      } catch (error) {
-        console.error(`There's error at ${error}`);
-      }
-      document.getElementById("folname").value = null;
+    if (isCreateFolderNameTaken(allEntries, folderfield)) {
+      setFolderFieldError(FOLDER_EXISTS_MESSAGE);
+      return;
+    }
+
+    const folderName = path + folderfield;
+    setIsCreatingFolder(true);
+    try {
+      await axios.post(
+        `${apiUrl}create-folder`,
+        { folderName: folderName },
+        {
+          headers: {
+            Authorization: `Bearer ${token}`,
+            "Content-Type": "application/x-www-form-urlencoded",
+          },
+        }
+      );
+      handleCloseFileUploadModal();
+      getLatestFolderList();
+      getFolderList();
+      getFileData(currentPage);
+      handleCloseCreateFolder();
+      setOpenFileUploadModal(false);
+      showToast("success", "Folder created successfully!");
+    } catch (error) {
+      console.error(`There's error at ${error}`);
+      const message = getCreateFolderErrorMessage(error);
+      setFolderFieldError(message);
+      showToast("error", message);
+    } finally {
+      setIsCreatingFolder(false);
     }
   };
 
@@ -3516,10 +3550,6 @@ const handleFileUpload = async () => {
   setFiles([]);
 };
 
-
-
-
-
 // const handleFileUpload = async () => {
 //   if (files.length === 0) {
 //     showToast("error", "Please select a file to upload.");
@@ -3651,104 +3681,11 @@ const handleFileUpload = async () => {
     }
   };
 
-  const toast = useToast();
-
-
-    const iconMap = {
-    success: FaCheckCircle,
-    error: BsXCircleFill,
-    info: IoIosInformationCircle,
-    warning: FaExclamationTriangle,
-  };
-  
-  
-  const getStatusColors = (status) => {
-    return {
-      bg: 'rgba(255, 255, 255, 0.85)',     // Clean white glass
-      border: status === 'success' ? 'rgba(16, 185, 129, 0.3)' :
-              status === 'error' ? 'rgba(239, 68, 68, 0.3)' :
-              status === 'info' ? 'rgba(59, 130, 246, 0.3)' :
-              'rgba(245, 158, 11, 0.3)',        // Status-colored border
-      icon: status === 'success' ? '#10b981' :
-            status === 'error' ? '#ef4444' :
-            status === 'info' ? '#3b82f6' :
-            '#f59e0b'
-    };
-  };
   
   
   
-  const showToast = (status, message) => {
-    const IconComponent = iconMap[status];
-    const colors = getStatusColors(status);
-    
-    toast({
-      // position: 'bottom-center',
-      position: 'bottom-right',
-      duration: 4000,
-      isClosable: true,
-      render: () => (
-        <div className="premium-toast" style={{
-          background: `linear-gradient(135deg, ${colors.bg}, rgba(255,255,255,0.9))`,
-          backdropFilter: 'blur(20px)',
-          border: `2px solid ${colors.border}`,
-          borderRadius: '16px',
-          boxShadow: '0 25px 50px -12px rgba(0,0,0,0.25), 0 0 0 1px rgba(255,255,255,0.05)',
-          padding: '20px',
-          maxWidth: '720px',
-          fontFamily: "'SF Pro', 'SFProText', -apple-system, BlinkMacSystemFont, sans-serif",
-          animation: 'toastSlideIn 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
-        }}>
-          <div style={{ display: 'flex', alignItems: 'flex-start', gap: '12px' }}>
-            <IconComponent 
-              style={{ 
-                width: '24px', 
-                height: '24px', 
-                color: colors.icon,
-                flexShrink: 0,
-                marginTop: '2px'
-              }} 
-            />
-            <div style={{ flex: 1, minWidth: 0 }}>
-              <div style={{
-                fontSize: '14px',
-                fontWeight: '600',
-                color: '#1f2937',
-                marginBottom: '4px',
-                lineHeight: '1.3'
-              }}>
-                {status.charAt(0).toUpperCase() + status.slice(1)}
-              </div>
-              <div style={{
-                fontSize: '14px',
-                color: '#6b7280',
-                lineHeight: '1.4'
-              }}>
-                {message}
-              </div>
-            </div>
-            <button 
-              style={{
-                background: 'none',
-                border: 'none',
-                padding: '4px',
-                cursor: 'pointer',
-                color: '#9ca3af',
-                borderRadius: '4px',
-                opacity: 0.7,
-                transition: 'all 0.2s'
-              }}
-              onClick={() => toast.closeAll()}
-              onMouseEnter={(e) => e.target.style.opacity = 1}
-              onMouseLeave={(e) => e.target.style.opacity = 0.7}
-            >
-              ✕
-            </button>
-          </div>
-        </div>
-      ),
-    });
-  };
+  
+  
   
 
   //Image slider functionality
@@ -3885,7 +3822,6 @@ const handleFileUpload = async () => {
   //   });
   // }; 
 
-
   // f7
 //     const handleNext = () => {
 //   setErrorMessage2("");
@@ -3974,7 +3910,6 @@ const handleFileUpload = async () => {
 //   });
 // };
 
-
 const handleNext = () => {
   console.log("✅handleNext is clicked");
   setErrorMessage2("");
@@ -4061,10 +3996,6 @@ const handleNext = () => {
     return newIndex;
   });
 };
-
-
-
-
 
   // const handlePrev = () => {
   //   setErrorMessage2("");
@@ -4156,7 +4087,6 @@ const handleNext = () => {
   //   });
   // };
 
-
     const handlePrev = () => {
   setErrorMessage2("");
   setIsProgressVisible(true);
@@ -4237,10 +4167,6 @@ const handleNext = () => {
   });
 };
 
-
-
-
-
   const deleteFromModal = async (filename) => {
   const loaderStartedAt = Date.now();
   setLoader_Recycle(true);
@@ -4296,8 +4222,47 @@ const handleNext = () => {
   }
 };
 
-
   const moveFromModal = async () => {};
+
+  const onMoveSuccessFromModal = async (movedFileName) => {
+    const removedIndex = currentImageIndex;
+    const allFiles = await getFileData();
+    try {
+      await getRootFolderSize?.();
+    } catch (_) {}
+
+    const startIndex = (currentPage - 1) * itemsPerPage;
+    const pageFiles = (allFiles || []).slice(
+      startIndex,
+      startIndex + itemsPerPage
+    );
+    const next = resolvePreviewAfterDelete(
+      pageFiles,
+      movedFileName,
+      removedIndex
+    );
+
+    if (!next) {
+      handleImageClose();
+      return;
+    }
+
+    openPreviewFile(next.file, next.index, {
+      handleImageShow,
+      setCurrentImageIndex,
+      setModalFile,
+      setErrorMessage2,
+      setIsProgressVisible,
+      setImageSrc,
+      setVideoSrc,
+      setAudioSrc,
+      setPdfSrc,
+      setDocSrc,
+      getImageInfo,
+      getPdfInfo,
+      getDocInfo,
+    });
+  };
 
   //Handle prev by arrow
   useEffect(() => {
@@ -4346,6 +4311,8 @@ const handleNext = () => {
     setDraggedItem(file); // Keep track of the currently dragged item
     e.dataTransfer.effectAllowed = "move";
 
+    const keys = getFileSelectionKeys();
+    const keys2 = getFolderSelectionKeys();
     const totalSelectedItems = keys.length + keys2.length;
 
     const dragPreview = document.createElement("div");
@@ -4622,7 +4589,7 @@ const handleNext = () => {
             },
           }
         );
-        setKeys([]);
+        clearFileSelection();
         // console.log(res);
         setDragPop(false);
         removeUpload(uploadId);
@@ -4680,7 +4647,7 @@ const handleNext = () => {
           }
         );
 
-        setKeys2([]);
+        clearFileSelection();
         setDragPop(false);
         removeUpload(uploadId);
         getFileData(currentPage);
@@ -4785,9 +4752,7 @@ const handleNext = () => {
 
   return (
     <>
-      <ChakraProvider></ChakraProvider>
-
-      {codePopup && (
+{codePopup && (
         <div className="code-popup-overlay">
           <div className="code-popup-container">
             <button
@@ -4838,46 +4803,17 @@ const handleNext = () => {
         </div>
       )}
 
-
       <FileInfoModal
         isOpen={infoShower}
         onClose={() => setInfoShower(false)}
         fileInfo={fileInfo}
       />
 
-      {showUpgradeModal && (
-        <div className="premium-upgrade-overlay">
-          <div className="premium-upgrade-modal">
-            <h3 className="premium-upgrade-title">Unlock Premium Feature</h3>
-            <p className="premium-upgrade-text">
-              This action is available for premium users only. You can upgrade
-              your Stolity plan by clicking the button below.
-            </p>
-            <div className="premium-upgrade-actions">
-              <button
-                type="button"
-                className="premium-upgrade-cancel"
-                onClick={() => setShowUpgradeModal(false)}
-              >
-                Not now
-              </button>
-              <button
-                type="button"
-                className="premium-upgrade-confirm"
-                onClick={() => {
-                  setShowUpgradeModal(false);
-                  nav("/Payment");
-                }}
-              >
-                Go to Upgrade
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
-
-
-
+      <PremiumUpgradeModal
+        isOpen={showUpgradeModal}
+        onClose={() => setShowUpgradeModal(false)}
+        onUpgrade={() => nav("/Payment")}
+      />
 
       <VisibilityModal
         isOpen={isVisibility}
@@ -4887,7 +4823,6 @@ const handleNext = () => {
         onApply={() => changeVisibility(visiKey)}
         fileName={visiKey}
       />
-
 
       {renamePop && (
         <RenameModal
@@ -4961,11 +4896,13 @@ const handleNext = () => {
                 className="drag_btn ok"
                 onClick={() => {
                   moveDraggedFile(dragFile);
-                  if (keys.length > 0) {
-                    moveMultipleDrag(keys, targetFolder);
+                  const dragKeys = getFileSelectionKeys();
+                  const dragKeys2 = getFolderSelectionKeys();
+                  if (dragKeys.length > 0) {
+                    moveMultipleDrag(dragKeys, targetFolder);
                   }
-                  if (keys2.length > 0) {
-                    moveMultipleDrag2(keys2, targetFolder);
+                  if (dragKeys2.length > 0) {
+                    moveMultipleDrag2(dragKeys2, targetFolder);
                   }
                 }}
               >
@@ -5109,28 +5046,13 @@ const handleNext = () => {
             <div className={tableBoxClassName} ref={tableBoxRef}>
               <div className="filerbar_row" ref={filterBarRef}>
                 <div className="show_entries_row">
-                  {/* <div className="custom-search-bar">
-                    <img
-                      src={SearchIcon}
-                      alt="search"
-                      className="custom-search-icon"
-                    />
-                    <input
-                      value={query}
-                      onChange={handleSearchChange}
-                      type="text"
-                      className="custom-search-input"
-                      placeholder="Search"
-                    />
-                    {query && (
-                      <button
-                        className="clear-search-btn"
-                        onClick={clearSearch}
-                      >
-                        ✕
-                      </button>
-                    )}
-                  </div> */}
+                  <FileSearchBar
+                    value={query}
+                    onChange={handleSearchChange}
+                    onClear={clearSearch}
+                    isPremium={isPremium}
+                    onPremiumGate={() => setShowUpgradeModal(true)}
+                  />
                 </div>
 
                 <div className="files-toolbar filter-row-new">
@@ -5174,14 +5096,22 @@ const handleNext = () => {
                       </div>
 
                       <div
-                        className="files-toolbar__filetype"
+                        className={`files-toolbar__filetype${
+                          selectedFileTypes.length > 0 ? " is-active" : ""
+                        }${showFTPopup ? " is-open" : ""}`}
                         ref={fileTypeDropdownRef}
                       >
                       <Dropdown
+                        noCaret
                         onSelect={handleFTypeSelect}
                         title={
                           <span className="sort-filter-span">
-                            <img src={FilterHome} alt="" />
+                            <SlidersHorizontal
+                              className="sort-filter-lucide"
+                              size={15}
+                              strokeWidth={2}
+                              aria-hidden
+                            />
                             <span className="sort-filter-label">
                               {selectedFileTypes.length > 0
                                 ? `File Type (${selectedFileTypes.length})`
@@ -5194,6 +5124,14 @@ const handleNext = () => {
                                 className="sort-filter-crown"
                               />
                             )}
+                            <ChevronDown
+                              className={`filetype-chevron${
+                                showFTPopup ? " is-open" : ""
+                              }`}
+                              size={14}
+                              strokeWidth={2.4}
+                              aria-hidden
+                            />
                           </span>
                         }
                         className="filter_dropdown"
@@ -5202,7 +5140,7 @@ const handleNext = () => {
                             setShowUpgradeModal(true);
                             return;
                           }
-                          setShowFTPopup(true);
+                          setShowFTPopup((open) => !open);
                         }}
                       >
                       </Dropdown>
@@ -5347,14 +5285,11 @@ const handleNext = () => {
                 </div>
               </div>
 
-              <BulkSelectionToolbar
-                selectedCount={keys.length + keys2.length}
-                isSelectAll={isSelectAll}
-                onSelectAllToggle={handleSelectAllToggle}
+              <StoreBulkSelectionToolbar
+                pageItems={filedata}
                 variant="files"
-                showCopy={keys2.length === 0}
                 onDownload={() => {
-                  if (keys.length === 0 && keys2.length === 0) {
+                  if (!hasFileSelection()) {
                     showToast("error", "No files or folders selected!");
                   } else {
                     setShowDownloadModal(true);
@@ -5369,7 +5304,7 @@ const handleNext = () => {
            
                 <div id="dataView">
                   {view === "list" ? (
-                    placeholderLoading || searchLoading ? (
+                    placeholderLoading ? (
                       <div
                         className="table-responsive"
                         id="listViewContent"
@@ -5402,18 +5337,13 @@ const handleNext = () => {
                         <thead>
                           <tr>
                             <th style={{ width: "40px", textAlign: "center" }} className="files-col-check">
-                              <input
-                                id="check-Atharva"
-                                type="checkbox"
-                                onChange={handleSelectAllToggle}
-                                checked={isSelectAll}
-                              />
+                              <PageSelectAllCheckbox pageItems={filedata} />
                             </th>
 
                          <th
   className="files-col-name"
   style={{
-    width: "60%",
+    width: "40%",
     fontWeight: 600,
     color: "#181818",
   }}
@@ -5454,11 +5384,10 @@ const handleNext = () => {
   </div>
 </th>
 
-
                             <th
                               className="files-col-size"
                               style={{
-                                width: "15%",
+                                width: "20%",
                                 fontWeight: 600,
                                 color: "#181818",
                                 justifyContent: "center",
@@ -5490,7 +5419,7 @@ const handleNext = () => {
                             <th
                               className="files-col-date"
                               style={{
-                                width: "15%",
+                                width: "25%",
                                 fontWeight: 600,
                                 color: "#181818",
                                 justifyContent: "center",
@@ -5533,8 +5462,6 @@ const handleNext = () => {
                           </tr>
                         </thead>
 
-
-
                        {filedata.map((file, index) => {
                           return (
                               <tbody>
@@ -5558,17 +5485,10 @@ const handleNext = () => {
                                   }
                                 >
                                   <td>
-                                    <input
-                                      id="check-Atharva"
-                                      type="checkbox"
-                                      onChange={() =>
-                                        handleCheckboxChange(file)
-                                      }
-                                      checked={
-                                        file.isFolder
-                                          ? keys2.includes(file.fileName)
-                                          : keys.includes(file.fileName)
-                                      }
+                                    <RowSelectCheckbox
+                                      fileName={file.fileName}
+                                      isFolder={!!file.isFolder}
+                                      disabled={file.fileName === "blackbox" || file.isShared}
                                     />
                                   </td>
                                   <td
@@ -5676,11 +5596,11 @@ const handleNext = () => {
                                       />
                                     </span>
                                     <div className="file-item">
-                                      <span
-                                        title={getTextAfterLastSlash(
+                                      <TruncatedTooltip
+                                        label={getTextAfterLastSlash(
                                           file.fileName
                                         )}
-                                        className="file-name filename_link"
+                                        textClassName="file-name filename_link"
                                         style={{ cursor: "pointer" }}
                                         onClick={() => {
   if (trySelectInsteadOfOpen(file)) return;
@@ -5771,7 +5691,7 @@ const handleNext = () => {
                                             55
                                           )
                                         )}
-                                      </span>
+                                      </TruncatedTooltip>
                                       <span
                                         className="file-path"
                                         title={getTextBeforeLastSlash(
@@ -5824,7 +5744,8 @@ const handleNext = () => {
                                         id="dropdownMenuButton"
                                         aria-haspopup="true"
                                         aria-expanded="false"
-                                        {...getBulkRowActionToggleProps(hasBulkSelection, showToast)}
+                                        className="dropdown-toggle"
+                                    data-toggle="dropdown"
                                       >
                                         <svg
                                           width="24"
@@ -5852,11 +5773,6 @@ const handleNext = () => {
                                       </button>
                                       <div
                                         className="dropdown-menu custom-dropdown-menu"
-                                        style={{
-                                          transform:
-                                            "translate3d(-242px, -25px, 0px)",
-                                        }}
-                                        // aria-labelledby="dropdownMenuButton"
                                       >
                                         <a className="file-container">
                                           <div className="file-icon">
@@ -5870,26 +5786,23 @@ const handleNext = () => {
                                             />
                                           </div>
                                           <div className="file-details">
-                                            <div className="file-name">
-                                              {file.fileName}
+                                            <div
+                                              className="file-name"
+                                              style={{
+                                                whiteSpace: "nowrap",
+                                                overflow: "hidden",
+                                                textOverflow: "ellipsis",
+                                                maxWidth: "220px",
+                                                display: "block",
+                                              }}
+                                              title={getTextAfterLastSlash(file.fileName)}
+                                            >
+                                              {getTextAfterLastSlash(file.fileName)}
                                             </div>
-                                            <div className="upload-date">
-                                              <p>
-                                                Uploaded on{" "}
-                                                {file.uploadDateTime.substring(
-                                                  0,
-                                                  file.uploadDateTime.indexOf(
-                                                    ","
-                                                  )
-                                                )}
-                                              </p>
-                                              <span>• {file.fileSize}</span>
-                                            </div>
+                                            <div className="file-size">{file.fileSize}</div>
                                           </div>
                                         </a>
                                         {file.isFolder === false && (
-
-
 
                                             
                                          <a
@@ -5907,11 +5820,7 @@ const handleNext = () => {
   Remove from Favorites
 </a>
 
-
                                         )}
-
-
-
 
                                           {file.isFolder === false && (
   <a
@@ -6179,7 +6088,7 @@ const handleNext = () => {
                   ) : (
                     <>
                       <div className="grid-view2">
-                        {placeholderLoading || searchLoading ? (
+                        {placeholderLoading ? (
                                                   <div className="file-grid-placeholder" id="cardPlaceHolder" style={{width:"100%"}}>
                                                     <Placeholder.Grid
                                                       rows={2}
@@ -6376,20 +6285,15 @@ const handleNext = () => {
                                 }
                               }}
                             >
-                              <input
-                                id="check-Atharva"
-                                type="checkbox"
+                              <RowSelectCheckbox
+                                fileName={file.fileName}
+                                isFolder={!!file.isFolder}
+                                disabled={file.fileName === "blackbox" || file.isShared}
                                 className="checkbox-input"
-                                 style={{
-                                position: "absolute", top: "8px", left: "8px"
-                              }}
-                                onClick={(event) => event.stopPropagation()} // Stops click from bubbling to parent
-                                onChange={() => handleCheckboxChange(file)}
-                                checked={
-                                  file.isFolder
-                                    ? keys2.includes(file.fileName)
-                                    : keys.includes(file.fileName)
-                                }
+                                style={{
+                                  position: "absolute", top: "8px", left: "8px"
+                                }}
+                                onClick={(event) => event.stopPropagation()}
                               />
                               {/* Three Dots Menu */}
 
@@ -6400,7 +6304,8 @@ const handleNext = () => {
                                     id="dropdownMenuButton"
                                     aria-haspopup="true"
                                     aria-expanded="false"
-                                    {...getBulkRowActionToggleProps(hasBulkSelection, showToast)}
+                                    className="dropdown-toggle"
+                                    data-toggle="dropdown"
                                   >
                                     <svg
                                       width="24"
@@ -6420,11 +6325,6 @@ const handleNext = () => {
                                   </button>
                                   <div
                                     className="dropdown-menu custom-dropdown-menu"
-                                    style={{
-                                      transform:
-                                        "translate3d(-242px, -25px, 0px)",
-                                    }}
-                                    // aria-labelledby="dropdownMenuButton"
                                   >
                                     {/* {file.isFolder === false && (
                                     <a
@@ -6453,22 +6353,22 @@ const handleNext = () => {
                                         />
                                       </div>
                                       <div className="file-details">
-                                        <div className="file-name">
-                                          {file.fileName}
+                                        <div
+                                          className="file-name"
+                                          style={{
+                                            whiteSpace: "nowrap",
+                                            overflow: "hidden",
+                                            textOverflow: "ellipsis",
+                                            maxWidth: "220px",
+                                            display: "block",
+                                          }}
+                                          title={getTextAfterLastSlash(file.fileName)}
+                                        >
+                                          {getTextAfterLastSlash(file.fileName)}
                                         </div>
-                                        <div className="upload-date">
-                                          <p>
-                                            Uploaded on{" "}
-                                            {file.uploadDateTime.substring(
-                                              0,
-                                              file.uploadDateTime.indexOf(",")
-                                            )}
-                                          </p>
-                                          <span>• {file.fileSize}</span>
-                                        </div>
+                                        <div className="file-size">{file.fileSize}</div>
                                       </div>
                                     </a>
-
 
                                        {file.isFolder === false && (
                                          <a
@@ -6804,7 +6704,6 @@ const handleNext = () => {
   {getFilePathOnly(file.fileName)}
 </div>
 
-
   {/* Date & Items */}
   <div className="file-info2" style={{ textAlign: "left" }}>
     <span className="file-date2">
@@ -6826,17 +6725,14 @@ const handleNext = () => {
                 </div>
              
 
-
-
-
               {isWhisperClicked && (
                 <MoveFilePopup
                   moveKey={movedFile}
                   source={""}
                   onClose={handleMClose}
                   currentP={currentPage}
-                  files={keys}
-                  folders={keys2}
+                  files={getFileSelectionKeys()}
+                  folders={getFolderSelectionKeys()}
                   showToast={showToast}
                 />
               )}
@@ -6885,7 +6781,7 @@ const handleNext = () => {
                   moveKey={copiedFile}
                   source={""}
                   onClose={handleCClose}
-                  files={keys}
+                  files={getFileSelectionKeys()}
                   setTriggerUpdate={setTriggerUpdate}
                   onCopySuccess={getFileData}
                   showToast={showToast}
@@ -6918,7 +6814,6 @@ const handleNext = () => {
               audioSrc={audioSrc}
               errorMessage2={errorMessage2}
               isProgressVisible={isProgressVisible}
-              loaderGif={loaderGif}
               apiUrl={apiUrl}
               token={token}
               toggleFullscreen={toggleFullscreen}
@@ -6938,6 +6833,7 @@ const handleNext = () => {
               docSrc={docSrc}
         // onRenameSuccess={() => getFolderFiles(selectedFolder)}
               onRenameSuccess={() => getFileData()}
+              onMoveSuccess={onMoveSuccessFromModal}
         
             />
 
@@ -7213,6 +7109,7 @@ const handleNext = () => {
                       pattern="[a-zA-Z0-9_\- ]{1,}"
                       required
                       placeholder="Enter Folder Name"
+                      disabled={isCreatingFolder}
                     />
                     {folderFieldError && (
                       <p className="error-message">{folderFieldError}</p>
@@ -7223,6 +7120,7 @@ const handleNext = () => {
                         type="button"
                         className="btn_width_same btn_grey_ripple ripple_effect rename_btn cancel"
                         onClick={handleCloseFileUploadModal}
+                        disabled={isCreatingFolder}
                       >
                         Close
                       </button>
@@ -7230,8 +7128,9 @@ const handleNext = () => {
                       <button
                         type="submit"
                         className=" btn_width_same ripple_effect rename_btn ok"
+                        disabled={isCreatingFolder}
                       >
-                        Create
+                        {isCreatingFolder ? "Creating…" : "Create"}
                       </button>
                     </div>
                   </form>
@@ -7242,51 +7141,18 @@ const handleNext = () => {
         </Modal.Body>
       </Modal>
 
-      {createFolderButton && (
-        <div className="popup-overlay">
-          <div className="create-folder-card">
-            <div
-              className="folder-icon"
-              style={{ display: "flex", justifyContent: "center" }}
-            >
-              <img src={createFolderPopup} alt="Create Folder" height={48} />
-            </div>
-            <h5 className="folder-title">Create Folder</h5>
-
-            <form
-              className="folder-form"
-              onSubmit={createJustFolder}
-              action="javascript:void(0);"
-              method="POST"
-            >
-              <input
-                className="folder-input"
-                type="text"
-                name="fname"
-                id="folname"
-                pattern="[a-zA-Z0-9_\- ]{1,}"
-                required
-                placeholder="Enter Folder Name"
-              />
-              {folderFieldError && (
-                <p className="error-message">{folderFieldError}</p>
-              )}
-
-              <div className="rename_buttons mt-3">
-                <button
-                  className="rename_btn cancel"
-                  onClick={handleCloseCreateFolder}
-                >
-                  Close
-                </button>
-                <button type="submit" className="rename_btn ok">
-                  Create
-                </button>
-              </div>
-            </form>
-          </div>
-        </div>
-      )}
+      <CreateFolderModal
+        isOpen={createFolderButton}
+        onClose={handleCloseCreateFolder}
+        value={newFolderName}
+        onChange={(e) => {
+          setNewFolderName(e.target.value);
+          if (folderFieldError) setFolderFieldError("");
+        }}
+        onSubmit={createJustFolder}
+        error={folderFieldError}
+        isSubmitting={isCreatingFolder}
+      />
 
       {showDownloadModal && (
         <div className="rename_popup_wrapper">
@@ -7492,14 +7358,12 @@ const handleNext = () => {
         reloadAfterTast={getFileData}
       />
 
-
       <FileConversionModal
         isOpen={showConversionModal}
         onClose={() => setShowConversionModal(false)}
         files={files}
         onFilesUpdated={handleFilesConverted}
       />
-
 
        {loader_Recycle && (<LoaderRecycleBin/>)}
 

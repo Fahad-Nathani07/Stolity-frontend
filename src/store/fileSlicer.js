@@ -235,9 +235,7 @@ const fileSlicer = createSlice({
       const total = state.audioQueue.length;
       if (total === 0) return;
 
-      const atLast = state.currentTrackIndex >= total - 1;
-      if (atLast && state.repeatMode === "off") return;
-
+      // Always advance; wrap last → first so the playlist keeps playing.
       state.currentTrackIndex = (state.currentTrackIndex + 1) % total;
       state.currentAudioFile = state.audioQueue[state.currentTrackIndex];
     },
@@ -245,9 +243,7 @@ const fileSlicer = createSlice({
       const total = state.audioQueue.length;
       if (total === 0) return;
 
-      const atFirst = state.currentTrackIndex <= 0;
-      if (atFirst && state.repeatMode === "off") return;
-
+      // Wrap first → last for consistent playlist navigation.
       state.currentTrackIndex = (state.currentTrackIndex - 1 + total) % total;
       state.currentAudioFile = state.audioQueue[state.currentTrackIndex];
     },

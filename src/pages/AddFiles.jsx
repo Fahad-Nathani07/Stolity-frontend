@@ -10,10 +10,10 @@ import ToggleNav from '../components/ToggleNav';
 import { useSelector } from 'react-redux';
 import { useNavigate } from 'react-router-dom';
 import { useDropzone } from 'react-dropzone';
-import { ChakraProvider, Button, Stack, useToast } from '@chakra-ui/react';
+
 import { UploadContext } from './UploadContext';
 import { uploadFolderViaMultipart } from "../utils/uploadFolderViaMultipart";
-
+import { showToast } from "../components/ToastProvider";
 
 const AddFiles = () => {
   const { uploads, addUpload, updateUploadProgress, updateUploadMeta, removeUpload, getUpload, isPausing } = useContext(UploadContext);
@@ -44,13 +44,6 @@ const AddFiles = () => {
   } else {
     path = '';
   }
-
-
-
-
-
-
-
 
   const removeFile = (index) => {
     const updatedFiles = [...files];
@@ -148,17 +141,12 @@ const AddFiles = () => {
   function removeLastSlashAndText(inputString) {
     const lastSlashIndex = inputString.lastIndexOf('/');
 
-
     if (lastSlashIndex === -1) {
       return inputString;
     }
 
     return inputString.substring(0, lastSlashIndex);
   }
-
-
-
-
 
   // //Anurag folder upload
   const handleFolderChange = (event) => {
@@ -196,8 +184,6 @@ const AddFiles = () => {
     console.log('Updated file list:', updatedFileList);
     console.log('Folder structure:', updatedFolderStructure);
   };
-
-
 
   const uploadFolder = async () => {
     if (!fileList?.length) {
@@ -302,12 +288,6 @@ const AddFiles = () => {
     setPubPri2(event.target.value);
   };
 
-
-
-
-
-
-
   //folder upload bug
   const onDrop = useCallback((acceptedFiles) => {
     setFiles(acceptedFiles);
@@ -342,27 +322,9 @@ const AddFiles = () => {
     input.click();
   };
 
-  // ERROR MESSAGE
-  const toast = useToast();
-
-
-  const showToast = (status, message) => {
-    toast({
-      title: `${status.charAt(0).toUpperCase() + status.slice(1)}`,
-      description: message,
-      status: status, // Set this to 'error' for a red-colored pop-up
-      duration: 3000,
-      isClosable: true,
-    });
-  };
   return (
     <>
-    <ChakraProvider>
-                
-    </ChakraProvider>
-
-      
-      <SideNav />
+<SideNav />
 
       <div className="container-fluid page-body-wrapper">
 
@@ -442,8 +404,6 @@ const AddFiles = () => {
                   <button onClick={handleFileUpload} className='btn_gradient btn_width_same btn_red_ripple ripple_effect'>Submit</button>
                 </div>
 
-
-
               </TabPanel>
 
               <TabPanel>
@@ -464,7 +424,6 @@ const AddFiles = () => {
                 <ul className='upload_thumbnails_list font-extrabold'>
                   {nameOfFolder}
                 </ul>
-
 
                 <ul className='radio_checkbox_list'>
                   <li><input type="radio" name="FileUpload2"
@@ -491,7 +450,6 @@ const AddFiles = () => {
                     {/* <label class="form__label" for="fname">Enter Your Folder Name</label> */}
                   </div>
                 </form>
-
 
                 <div className='btn_group mt-4'>
                   <button className='btn_back btn_width_same btn_grey_ripple ripple_effect'>Back</button>

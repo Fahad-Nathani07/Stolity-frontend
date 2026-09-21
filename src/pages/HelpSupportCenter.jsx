@@ -1,7 +1,10 @@
 import React, { useCallback, useEffect, useState } from "react";
+import AOS from "aos";
+import "aos/dist/aos.css";
 import { FiMail, FiPhone, FiClock, FiSend, FiCheckCircle } from "react-icons/fi";
 import axios from "axios";
 import "../css/HelpSupportCenter.css";
+import "../css/SettingsPageBreadcrumb.css";
 import SideNav from "../components/SideNav";
 import SupportPageIcon from "../images/SupportPageIcon.svg";
 import CallbackRequestModal from "../components/CallbackRequestModal";
@@ -62,6 +65,19 @@ const HelpSupportCenter = () => {
     refreshActiveCallback();
   }, [refreshActiveCallback]);
 
+  useEffect(() => {
+    AOS.init({
+      duration: 1000,
+      offset: 80,
+      easing: "ease-in-out",
+      once: true,
+    });
+  }, []);
+
+  useEffect(() => {
+    AOS.refresh();
+  }, [activeTab, hasActiveCallback, showCallbackModal]);
+
   const handleGmailCompose = (e) => {
     e.preventDefault();
     const userEmail = sessionStorage.getItem("email") || "";
@@ -90,16 +106,20 @@ const HelpSupportCenter = () => {
     <div className="hsc-page-shell">
       <SideNav />
       <div className="help-support-center">
-        <div className="hsc-breadcrumb">
-          <span>Settings</span>
-          <span className="hsc-breadcrumb-sep" aria-hidden="true">
-            /
-          </span>
-          <span className="hsc-breadcrumb-current">Help & Support</span>
+        <div className="stolity-settings-header" data-aos="zoom-out">
+          <div className="stolity-settings-breadcrumb">
+            <span>Settings</span>
+            <span className="stolity-settings-breadcrumb-sep" aria-hidden="true">
+              ›
+            </span>
+            <span className="stolity-settings-breadcrumb-current">
+              Help & Support
+            </span>
+          </div>
         </div>
 
         <div className="hsc-shell">
-          <header className="hsc-hero">
+          <header className="hsc-hero" data-aos="zoom-in">
             <div className="hsc-hero-copy">
               <p className="hsc-eyebrow">Support</p>
               <h1 className="hsc-title">How can we help?</h1>
@@ -113,7 +133,7 @@ const HelpSupportCenter = () => {
             </div>
           </header>
 
-          <div className="hsc-channels" role="tablist" aria-label="Support channels">
+          <div className="hsc-channels" role="tablist" aria-label="Support channels" data-aos="zoom-in">
             {CHANNELS.map(({ key, label, description, icon: Icon }) => {
               const isActive = activeTab === key;
               return (
@@ -137,7 +157,7 @@ const HelpSupportCenter = () => {
             })}
           </div>
 
-          <div className="hsc-panel" role="tabpanel">
+          <div className="hsc-panel" role="tabpanel" data-aos="zoom-in" key={activeTab}>
             {activeTab === "email" ? (
               <form className="hsc-form" onSubmit={handleGmailCompose}>
                 <div className="hsc-panel-head">

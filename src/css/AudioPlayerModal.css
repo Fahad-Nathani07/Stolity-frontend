@@ -25,6 +25,11 @@
   font-family: "SF Pro", "SFProText", -apple-system, BlinkMacSystemFont, "Segoe UI", Arial, sans-serif;
 }
 
+/* No table footer on this route — pin player to the bottom edge */
+.ap-bar--flush {
+  bottom: 0;
+}
+
 .ap-bar-divider {
   width: 1px;
   align-self: stretch;
@@ -443,6 +448,10 @@
   cursor: grab;
   user-select: none;
   max-width: 260px;
+}
+
+.ap-mini-widget--flush {
+  bottom: 16px;
 }
 
 .ap-mini-widget:active {

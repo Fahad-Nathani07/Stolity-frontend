@@ -1,17 +1,10 @@
 import React, { useEffect, useState } from "react";
+import { FiCopy, FiExternalLink, FiInfo, FiX } from "react-icons/fi";
 import { resolveFileIconPath } from "../utils/fileIcon";
 import "./FileInfoModal.css";
 
 /**
  * Shared premium file details modal.
- *
- * @param {boolean} isOpen
- * @param {() => void} onClose
- * @param {object|null} fileInfo
- * @param {boolean} [isPremium]
- * @param {() => void} [onUpgrade]
- * @param {boolean} [showVisibility]
- * @param {boolean} [requirePremiumForPublicUrl]
  */
 const FileInfoModal = ({
   isOpen,
@@ -52,7 +45,7 @@ const FileInfoModal = ({
     setTimeout(() => {
       setClosing(false);
       onClose?.();
-    }, 260);
+    }, 220);
   };
 
   if ((!isOpen && !closing) || !fileInfo) return null;
@@ -69,15 +62,6 @@ const FileInfoModal = ({
     return Boolean(fileUrl);
   })();
 
-  const urlHiddenLabel = (() => {
-    if (!showVisibility) return "";
-    if (!isPublic) return "This file is private — URL is hidden";
-    if (requirePremiumForPublicUrl && !isPremium) {
-      return "Premium required to view the public URL";
-    }
-    return "URL unavailable";
-  })();
-
   const iconSrc = resolveFileIconPath({
     fileName: fileInfo.fileName,
     fileType: fileInfo.fileType,
@@ -85,7 +69,7 @@ const FileInfoModal = ({
   });
 
   const displayName = fileInfo.fileName || "Untitled";
-  const baseName = displayName.includes("/")
+  const fullName = displayName.includes("/")
     ? displayName.split("/").filter(Boolean).pop()
     : displayName;
 
@@ -107,11 +91,19 @@ const FileInfoModal = ({
     window.open(fileUrl, "_blank", "noopener,noreferrer");
   };
 
-  const stats = [
+  const rows = [
+    { label: "Name", value: fullName, full: true },
     { label: "Size", value: fileInfo.fileSize || "—" },
     { label: "Format", value: typeLabel },
     { label: "Uploaded", value: fileInfo.uploadDateTime || "—" },
   ];
+
+  if (showVisibility) {
+    rows.splice(3, 0, {
+      label: "Access",
+      value: isPublic ? "Public" : "Private",
+    });
+  }
 
   const openClass = visible && !closing ? " is-open" : "";
 
@@ -121,133 +113,101 @@ const FileInfoModal = ({
       onClick={handleClose}
       role="presentation"
     >
-      <div className={`fim-glow${openClass}`} aria-hidden="true" />
-
       <div
-        className={`fim-modal${openClass}`}
+        className={`fim-dialog${openClass}`}
         onClick={(e) => e.stopPropagation()}
         role="dialog"
         aria-modal="true"
-        aria-label="File details"
+        aria-labelledby="fim-title"
       >
-        <button
-          type="button"
-          className="fim-close"
-          onClick={handleClose}
-          aria-label="Close"
-        >
-          <span aria-hidden="true">×</span>
-        </button>
-
-        <div className="fim-banner">
-          <div className="fim-icon-wrap">
-            <img src={iconSrc} alt="" className="fim-icon" />
-          </div>
-
-          <p className="fim-eyebrow">File details</p>
-          <h3 className="fim-name" title={displayName}>
-            {baseName}
-          </h3>
-
-          <div className="fim-meta-pills">
-            <span className="fim-pill fim-pill-type">.{typeLabel.toLowerCase()}</span>
-            {showVisibility && (
-              <span
-                className={`fim-pill fim-pill-acl ${
-                  isPublic ? "is-public" : "is-private"
-                }`}
-              >
-                <span className="fim-pill-dot" aria-hidden="true" />
-                {isPublic ? "Public" : "Private"}
-              </span>
-            )}
-          </div>
-        </div>
-
-        <div className="fim-stats">
-          {stats.map((stat, i) => (
-            <div
-              key={stat.label}
-              className="fim-stat"
-              style={{ animationDelay: `${90 + i * 55}ms` }}
-            >
-              <span className="fim-stat-label">{stat.label}</span>
-              <span className="fim-stat-value" title={String(stat.value)}>
-                {stat.value}
-              </span>
-            </div>
-          ))}
-        </div>
-
-        <div
-          className={`fim-url-card${canShowUrl ? "" : " is-locked"}`}
-          style={{ animationDelay: "260ms" }}
-        >
-          <div className="fim-url-card-head">
-            <span className="fim-url-card-title">File URL</span>
-            {canShowUrl ? (
-              <span className="fim-url-card-status is-live">Available</span>
-            ) : (
-              <span className="fim-url-card-status is-locked">Restricted</span>
-            )}
-          </div>
-
-          {canShowUrl ? (
-            <>
-              <a
-                href={fileUrl}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="fim-url"
-                title={fileUrl}
-              >
-                {fileUrl}
-              </a>
-              <div className="fim-url-actions">
-                <button
-                  type="button"
-                  className="fim-btn fim-btn-ghost"
-                  onClick={copyUrl}
-                >
-                  {copied ? "Copied" : "Copy link"}
-                </button>
-                <button
-                  type="button"
-                  className="fim-btn fim-btn-solid"
-                  onClick={openUrl}
-                >
-                  Open
-                </button>
+        <div className="fim-card">
+          <header className="fim-header">
+            <div className="fim-header-main">
+              <div className="fim-icon-wrap" aria-hidden="true">
+                <FiInfo />
               </div>
-            </>
-          ) : (
-            <p className="fim-url-hidden">{urlHiddenLabel}</p>
-          )}
-        </div>
-
-        {showVisibility && !isPremium && isPrivate && onUpgrade && (
-          <div className="fim-premium">
-            <div className="fim-premium-icon" aria-hidden="true">
-              ★
-            </div>
-            <div className="fim-premium-text">
-              <strong>Unlock public links</strong>
-              <span>Share files with a public URL on Premium.</span>
+              <div className="fim-header-text">
+                <h2 id="fim-title" className="fim-title">
+                  File details
+                </h2>
+                <p className="fim-subtitle">Complete information for this item</p>
+              </div>
             </div>
             <button
               type="button"
-              className="fim-premium-btn"
-              onClick={() => {
-                handleClose();
-                setTimeout(() => onUpgrade(), 270);
-              }}
+              className="fim-close"
+              onClick={handleClose}
+              aria-label="Close"
             >
-              Upgrade
+              <FiX />
             </button>
-          </div>
-        )}
+          </header>
 
-        <p className="fim-footnote">Click outside or press Esc to close</p>
+          <div className="fim-body">
+            <div className="fim-file-chip">
+              <span className="fim-file-chip-icon" aria-hidden="true">
+                <img src={iconSrc} alt="" />
+              </span>
+              <span className="fim-file-chip-name">{fullName}</span>
+            </div>
+
+            <dl className="fim-rows">
+              {rows.map((row) => (
+                <div
+                  key={row.label}
+                  className={`fim-row${row.full ? " fim-row--full" : ""}`}
+                >
+                  <dt>{row.label}</dt>
+                  <dd>{row.value}</dd>
+                </div>
+              ))}
+            </dl>
+
+            {canShowUrl ? (
+              <div className="fim-url-block">
+                <div className="fim-field-label">File URL</div>
+                <div className="fim-url-box">{fileUrl}</div>
+                <div className="fim-actions">
+                  <button
+                    type="button"
+                    className="fim-btn fim-btn--ghost"
+                    onClick={copyUrl}
+                  >
+                    <FiCopy aria-hidden="true" />
+                    {copied ? "Copied" : "Copy"}
+                  </button>
+                  <button
+                    type="button"
+                    className="fim-btn fim-btn--primary"
+                    onClick={openUrl}
+                  >
+                    <FiExternalLink aria-hidden="true" />
+                    Open
+                  </button>
+                </div>
+              </div>
+            ) : null}
+
+            {showVisibility && !isPremium && isPrivate && onUpgrade ? (
+              <div className="fim-upgrade">
+                <div className="fim-upgrade-copy">
+                  <strong>Public links</strong>
+                  <span>Available on Premium</span>
+                </div>
+                <button
+                  type="button"
+                  className="fim-btn fim-btn--primary fim-upgrade-btn"
+                  onClick={() => {
+                    handleClose();
+                    setTimeout(() => onUpgrade(), 230);
+                  }}
+                >
+                  Upgrade
+                </button>
+              </div>
+            ) : null}
+          </div>
+        </div>
       </div>
     </div>
   );

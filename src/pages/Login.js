@@ -2,12 +2,13 @@ import React, { useState, useEffect, useCallback } from "react";
 import CustomGoogleAuthButton from "../components/CustomGoogleAuthButton";
 import { useNavigate } from "react-router-dom";
 import axios from "axios";
+import AOS from "aos";
+import "aos/dist/aos.css";
 import Illustration from "../images/Illustration.svg";
 import { Link } from "react-router-dom";
 import LogoStolity from "../images/prelogin-img/logo-stolity.svg";
 import { ReactComponent as PasswordShow } from "../images/icon-eye.svg";
 import { ReactComponent as PasswordHide } from "../images/icon-eye-hide.svg";
-import { ChakraProvider, Stack, useToast } from "@chakra-ui/react";
 
 import { useDispatch, useSelector } from "react-redux";
 import { setGoogleAuth } from "../store/fileSlicer";
@@ -16,9 +17,7 @@ import AvatarDefault from "../images/AvatarDefault.jpg";
 import { loginUser } from "../store/subscriptionSlice"; // adjust the path if needed
 import { setUserProfileFromUserData, normalizeAvatarUrl } from "../store/userProfileSlice";
 
-import { FaCheckCircle, FaExclamationTriangle, FaArrowLeft } from "react-icons/fa";
-import { BsXCircleFill } from "react-icons/bs";
-import { IoIosInformationCircle } from "react-icons/io";
+import { FaArrowLeft } from "react-icons/fa";
 
 const REMEMBER_EMAIL_KEY = "stolity_remember_email";
 
@@ -55,9 +54,7 @@ const Login = ({ setSpanExpanded, spanExpanded }) => {
   const [currentSlide, setCurrentSlide] = useState(0);
   const dispatch = useDispatch();
   const navigate = useNavigate();
-  const toast = useToast();
-
-  const [isPageReady, setIsPageReady] = useState(false); // to avoid flash of form before check
+const [isPageReady, setIsPageReady] = useState(false); // to avoid flash of form before check
 
   // ────────────────────────────────────────────────
   //   NEW - login attempt & lockout states
@@ -84,6 +81,22 @@ const Login = ({ setSpanExpanded, spanExpanded }) => {
     }, 3000);
     return () => clearInterval(interval);
   }, []);
+
+  // Opening animation (same as PreLogin / Industries)
+  useEffect(() => {
+    AOS.init({
+      duration: 1000,
+      offset: 100,
+      easing: "ease-in-out",
+      once: true,
+    });
+  }, []);
+
+  useEffect(() => {
+    if (isPageReady) {
+      AOS.refresh();
+    }
+  }, [isPageReady]);
 
   // ────────────────────────────────────────────────
   //   Clear storage on mount
@@ -189,86 +202,6 @@ const Login = ({ setSpanExpanded, spanExpanded }) => {
 
     return () => clearInterval(timer);
   }, [countdownSeconds, email]);
-
-
-    const showToast = (status, message) => {
-    const IconComponent = iconMap[status];
-    const colors = getStatusColors(status);
-
-    toast({
-      position: "bottom-right",
-      duration: 4000,
-      isClosable: true,
-      render: () => (
-        <div
-          className="premium-toast"
-          style={{
-            background: `linear-gradient(135deg, ${colors.bg}, rgba(255,255,255,0.9))`,
-            backdropFilter: "blur(20px)",
-            border: `2px solid ${colors.border}`,
-            borderRadius: "16px",
-            boxShadow:
-              "0 25px 50px -12px rgba(0,0,0,0.25), 0 0 0 1px rgba(255,255,255,0.05)",
-            padding: "20px",
-            maxWidth: "720px",
-            fontFamily: '"SF Pro", "SFProText", -apple-system, BlinkMacSystemFont, sans-serif',
-            animation: "toastSlideIn 0.3s cubic-bezier(0.4, 0, 0.2, 1)",
-          }}
-        >
-          <div style={{ display: "flex", alignItems: "flex-start", gap: "12px" }}>
-            <IconComponent
-              style={{
-                width: "24px",
-                height: "24px",
-                color: colors.icon,
-                flexShrink: 0,
-                marginTop: "2px",
-              }}
-            />
-            <div style={{ flex: 1, minWidth: 0 }}>
-              <div
-                style={{
-                  fontSize: "14px",
-                  fontWeight: "600",
-                  color: "#1f2937",
-                  marginBottom: "4px",
-                  lineHeight: "1.3",
-                }}
-              >
-                {status.charAt(0).toUpperCase() + status.slice(1)}
-              </div>
-              <div
-                style={{
-                  fontSize: "14px",
-                  color: "#6b7280",
-                  lineHeight: "1.4",
-                }}
-              >
-                {message}
-              </div>
-            </div>
-            <button
-              style={{
-                background: "none",
-                border: "none",
-                padding: "4px",
-                cursor: "pointer",
-                color: "#9ca3af",
-                borderRadius: "4px",
-                opacity: 0.7,
-                transition: "all 0.2s",
-              }}
-              onClick={() => toast.closeAll()}
-              onMouseEnter={(e) => (e.target.style.opacity = 1)}
-              onMouseLeave={(e) => (e.target.style.opacity = 0.7)}
-            >
-              ✕
-            </button>
-          </div>
-        </div>
-      ),
-    });
-  };
 
   // ────────────────────────────────────────────────
   //   Form input handlers (existing)
@@ -484,40 +417,6 @@ const Login = ({ setSpanExpanded, spanExpanded }) => {
   }, [spanExpanded]);
 
   // ────────────────────────────────────────────────
-  //   Toast styling (existing)
-  // ────────────────────────────────────────────────
-  const iconMap = {
-    success: FaCheckCircle,
-    error: BsXCircleFill,
-    info: IoIosInformationCircle,
-    warning: FaExclamationTriangle,
-  };
-
-  const getStatusColors = (status) => {
-    return {
-      bg: "rgba(255, 255, 255, 0.85)",
-      border:
-        status === "success"
-          ? "rgba(16, 185, 129, 0.3)"
-          : status === "error"
-          ? "rgba(239, 68, 68, 0.3)"
-          : status === "info"
-          ? "rgba(59, 130, 246, 0.3)"
-          : "rgba(245, 158, 11, 0.3)",
-      icon:
-        status === "success"
-          ? "#10b981"
-          : status === "error"
-          ? "#ef4444"
-          : status === "info"
-          ? "#3b82f6"
-          : "#f59e0b",
-    };
-  };
-
-
-
-  // ────────────────────────────────────────────────
   //   Google login handlers
   // ────────────────────────────────────────────────
 
@@ -592,19 +491,19 @@ const Login = ({ setSpanExpanded, spanExpanded }) => {
 
   return (
     <>
-      <ChakraProvider></ChakraProvider>
-      <div className="form_container">
+<div className="form_container">
         <button
           type="button"
           className="login-back-btn"
           onClick={() => navigate("/")}
           aria-label="Back to home"
+          data-aos="fade-right"
         >
           <FaArrowLeft />
           <span>Back</span>
         </button>
 
-        <div className="login_left_col">
+        <div className="login_left_col" data-aos="zoom-out">
           <div className="login_graphic_text">
             <h2>{slides[currentSlide].title}</h2>
             <p>{slides[currentSlide].text}</p>
@@ -614,7 +513,7 @@ const Login = ({ setSpanExpanded, spanExpanded }) => {
           </div>
         </div>
 
-        <div className="login_content">
+        <div className="login_content" data-aos="zoom-in">
           <div className="login_form">
             <div className="logo_login">
               <button

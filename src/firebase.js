@@ -1,19 +1,19 @@
 import { initializeApp } from "firebase/app";
 import { getFirestore } from "firebase/firestore";
+import { getAnalytics, isSupported, logEvent } from "firebase/analytics";
 
-// Prod
+// Prod (Google Analytics enabled)
 const firebaseConfig = {
-  apiKey: "AIzaSyDgZrU2Qr2BKfrxnkpCfm5cXmeR1Br4v4U",
+  apiKey: "AIzaSyDb7QLDTYQ3fj9wnl90uf5wpxRgWe4pNUM",
   authDomain: "stolity-prod.firebaseapp.com",
   projectId: "stolity-prod",
   storageBucket: "stolity-prod.firebasestorage.app",
   messagingSenderId: "795594784207",
-  appId: "1:795594784207:web:5cd08975f731e1438026ba",
-  measurementId: "G-46B3Y5HN5R"
+  appId: "1:795594784207:web:9346219318908f178026ba",
+  measurementId: "G-SWYERDX8RB",
 };
 
-
-// UAT 
+// UAT
 // const firebaseConfig = {
 //   apiKey: "AIzaSyD_Y0SBJdHUt5-biumKxmlJMdmh-0mWx6E",
 //   authDomain: "nodeserver-filestorage.firebaseapp.com",
@@ -27,3 +27,32 @@ const firebaseConfig = {
 const app = initializeApp(firebaseConfig);
 
 export const db = getFirestore(app);
+
+/** Firebase Analytics instance (null until supported / ready). */
+export let analytics = null;
+
+const analyticsReady =
+  typeof window !== "undefined"
+    ? isSupported()
+        .then((supported) => {
+          if (supported) {
+            analytics = getAnalytics(app);
+          }
+          return analytics;
+        })
+        .catch(() => null)
+    : Promise.resolve(null);
+
+/**
+ * Safe wrapper — waits until analytics is ready, then logs.
+ * No-ops if Analytics is unsupported / blocked.
+ */
+export function logAnalyticsEvent(eventName, eventParams) {
+  analyticsReady.then((instance) => {
+    if (instance) {
+      logEvent(instance, eventName, eventParams);
+    }
+  });
+}
+
+export default app;
