@@ -1,9 +1,9 @@
 import React, { useEffect, useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import PreloginHeader from "../components/PreloginHeader";
 import ScrollReveal from "../components/ScrollReveal";
 import "./prelogin.css";
-import "./industries.css";
+import "./industries-classic_backup.css";
 
 const businessServices = [
   {
@@ -451,7 +451,7 @@ const IndustryCard = ({ item, index, onOpen }) => (
   </ScrollReveal>
 );
 
-const Industries = () => {
+const IndustriesClassic = () => {
   const navigate = useNavigate();
   const [searchQuery, setSearchQuery] = useState("");
 
@@ -491,7 +491,7 @@ const Industries = () => {
   );
 
   return (
-    <div className="prelogin-page industries-page">
+    <div className="prelogin-page industries-page industries-page--classic">
       <PreloginHeader
         aos
         links={[
@@ -517,25 +517,19 @@ const Industries = () => {
                 your industry workflows.
               </p>
             </ScrollReveal>
-            <ScrollReveal variant="fadeSoft" delay={0.34} className="industries-search-reveal">
-              <label className="industries-search-wrap" htmlFor="industries-search-input">
-                <span className="industries-search-icon" aria-hidden="true">
-                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                    <circle cx="11" cy="11" r="7" />
-                    <path d="M20 20l-3.5-3.5" />
-                  </svg>
-                </span>
-                <input
-                  id="industries-search-input"
-                  type="search"
-                  className="industries-search"
-                  placeholder="Search for an industry"
-                  value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
-                  aria-label="Search for an industry"
-                />
-              </label>
+            <ScrollReveal className="industries-search-wrap" variant="fadeSoft" delay={0.34}>
+              <input
+                type="search"
+                className="industries-search"
+                placeholder="Search for an industry"
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                aria-label="Search for an industry"
+              />
             </ScrollReveal>
+            <Link to="/Industries" className="industries-layout-toggle">
+              View new layout
+            </Link>
           </div>
         </section>
 
@@ -722,4 +716,4 @@ const Industries = () => {
   );
 };
 
-export default Industries;
+export default IndustriesClassic;

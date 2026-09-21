@@ -1,9 +1,5 @@
-# Dependencies
+# Dependencies (any folder named node_modules, not only repo root)
 node_modules/
-/node_modules
-/.pnp
-.pnp.js
-.yarn/install-state.gz
 
 # Testing
 /coverage
@@ -46,8 +42,12 @@ Desktop.ini
 # Misc
 *.local
 .turbo
+.pnp
+.pnp.js
+.yarn/install-state.gz
 
-# Local scratch / temp (do not commit)
+# Local scratch / backups — do NOT commit
 tmp-loader-frames/
 StolityWithoutNodeModules.zip
+Stolity_*.zip
 *.tgz

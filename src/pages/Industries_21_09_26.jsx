@@ -1,7 +1,8 @@
 import React, { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
+import AOS from "aos";
+import "aos/dist/aos.css";
 import PreloginHeader from "../components/PreloginHeader";
-import ScrollReveal from "../components/ScrollReveal";
 import "./prelogin.css";
 import "./industries.css";
 
@@ -425,44 +426,22 @@ const toIndustrySlug = (title) =>
     .replace(/[^a-z0-9]+/g, "-")
     .replace(/^-+|-+$/g, "");
 
-const IndustryCard = ({ item, index, onOpen }) => (
-  <ScrollReveal
-    className="industries-card-reveal"
-    variant="fadeUp"
-    delay={Math.min(index * 0.07, 0.42)}
-    duration={0.75}
-  >
-    <article
-      className="industries-card"
-      role="button"
-      tabIndex={0}
-      onClick={() => onOpen(item.title)}
-      onKeyDown={(e) => {
-        if (e.key === "Enter" || e.key === " ") {
-          e.preventDefault();
-          onOpen(item.title);
-        }
-      }}
-    >
-      <div className="industries-card-icon">{item.icon}</div>
-      <h3 className="industries-card-title">{item.title}</h3>
-      <p className="industries-card-desc">{item.description}</p>
-    </article>
-  </ScrollReveal>
-);
-
 const Industries = () => {
   const navigate = useNavigate();
   const [searchQuery, setSearchQuery] = useState("");
 
   useEffect(() => {
-    document.documentElement.classList.add("prelogin-active");
-    document.body.classList.add("prelogin-active");
-    return () => {
-      document.documentElement.classList.remove("prelogin-active");
-      document.body.classList.remove("prelogin-active");
-    };
+    AOS.init({
+      duration: 1000,
+      offset: 100,
+      easing: "ease-in-out",
+      once: true,
+    });
   }, []);
+
+  useEffect(() => {
+    AOS.refresh();
+  }, [searchQuery]);
 
   const openIndustry = (title) => {
     navigate(`/Industries/${toIndustrySlug(title)}`);
@@ -501,41 +480,26 @@ const Industries = () => {
       />
 
       <main className="industries-main">
-        <section className="industries-hero">
+        <section className="industries-hero" data-aos="zoom-out">
           <div className="content industries-hero-inner">
-            <ScrollReveal variant="fadeSoft" delay={0.05}>
-              <span className="industries-badge">
-                Cloud Storage Made Simple &amp; Secure
-              </span>
-            </ScrollReveal>
-            <ScrollReveal variant="fadeUp" delay={0.14} duration={0.9}>
-              <h1 className="industries-hero-title">Choose Your Industry</h1>
-            </ScrollReveal>
-            <ScrollReveal variant="fadeUp" delay={0.24}>
-              <p className="industries-hero-subtitle">
-                Securely manage, protect, organize, and share files tailored to
-                your industry workflows.
-              </p>
-            </ScrollReveal>
-            <ScrollReveal variant="fadeSoft" delay={0.34} className="industries-search-reveal">
-              <label className="industries-search-wrap" htmlFor="industries-search-input">
-                <span className="industries-search-icon" aria-hidden="true">
-                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                    <circle cx="11" cy="11" r="7" />
-                    <path d="M20 20l-3.5-3.5" />
-                  </svg>
-                </span>
-                <input
-                  id="industries-search-input"
-                  type="search"
-                  className="industries-search"
-                  placeholder="Search for an industry"
-                  value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
-                  aria-label="Search for an industry"
-                />
-              </label>
-            </ScrollReveal>
+            <span className="industries-badge">
+              Cloud Storage Made Simple &amp; Secure
+            </span>
+            <h1 className="industries-hero-title">Choose Your Industry</h1>
+            <p className="industries-hero-subtitle">
+              Securely manage, protect, organize, and share files tailored to
+              your industry workflows.
+            </p>
+            <div className="industries-search-wrap">
+              <input
+                type="search"
+                className="industries-search"
+                placeholder="Search for an industry"
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                aria-label="Search for an industry"
+              />
+            </div>
           </div>
         </section>
 
@@ -543,22 +507,31 @@ const Industries = () => {
           <div className="content">
 
             {/* Business Services */}
-          <div className="industries-search-wrap-content">
-          <ScrollReveal variant="fadeUp" duration={0.8}>
-            <h2 className="industries-category-title">
+          <div className="industries-search-wrap-content" data-aos="zoom-in">
+          <h2 className="industries-category-title">
               <span className="industries-category-accent">Business</span>{" "}
               Services
             </h2>
-          </ScrollReveal>
 
             <div className="industries-card-grid">
-              {filteredBusinessServices.map((item, index) => (
-                <IndustryCard
-                  key={item.title}
-                  item={item}
-                  index={index}
-                  onOpen={openIndustry}
-                />
+              {filteredBusinessServices.map((item) => (
+                <article
+                    key={item.title}
+                    className="industries-card"
+                    role="button"
+                    tabIndex={0}
+                    onClick={() => openIndustry(item.title)}
+                    onKeyDown={(e) => {
+                      if (e.key === "Enter" || e.key === " ") {
+                        e.preventDefault();
+                        openIndustry(item.title);
+                      }
+                    }}
+                  >
+                  <div className="industries-card-icon">{item.icon}</div>
+                  <h3 className="industries-card-title">{item.title}</h3>
+                  <p className="industries-card-desc">{item.description}</p>
+                </article>
               ))}
             </div>
 
@@ -568,21 +541,30 @@ const Industries = () => {
           </div>
 
             {/* Healthcare */}
-            <div className="industries-search-wrap-content">
-              <ScrollReveal variant="fadeUp" duration={0.8}>
-                <h2 className="industries-category-title">
-                  <span className="industries-category-accent">Healthcare</span>
-                </h2>
-              </ScrollReveal>
+            <div className="industries-search-wrap-content" data-aos="zoom-in">
+              <h2 className="industries-category-title">
+                <span className="industries-category-accent">Healthcare</span>
+              </h2>
 
               <div className="industries-card-grid">
-                {filteredHealthcare.map((item, index) => (
-                  <IndustryCard
+                {filteredHealthcare.map((item) => (
+                  <article
                     key={item.title}
-                    item={item}
-                    index={index}
-                    onOpen={openIndustry}
-                  />
+                    className="industries-card"
+                    role="button"
+                    tabIndex={0}
+                    onClick={() => openIndustry(item.title)}
+                    onKeyDown={(e) => {
+                      if (e.key === "Enter" || e.key === " ") {
+                        e.preventDefault();
+                        openIndustry(item.title);
+                      }
+                    }}
+                  >
+                    <div className="industries-card-icon">{item.icon}</div>
+                    <h3 className="industries-card-title">{item.title}</h3>
+                    <p className="industries-card-desc">{item.description}</p>
+                  </article>
                 ))}
               </div>
 
@@ -592,22 +574,31 @@ const Industries = () => {
             </div>
 
             {/* Construction & Real Estate */}
-            <div className="industries-search-wrap-content">
-              <ScrollReveal variant="fadeUp" duration={0.8}>
-                <h2 className="industries-category-title">
-                  <span className="industries-category-accent">Construction</span>{" "}
-                  &amp; Real Estate
-                </h2>
-              </ScrollReveal>
+            <div className="industries-search-wrap-content" data-aos="zoom-in">
+              <h2 className="industries-category-title">
+                <span className="industries-category-accent">Construction</span>{" "}
+                &amp; Real Estate
+              </h2>
 
               <div className="industries-card-grid">
-                {filteredConstruction.map((item, index) => (
-                  <IndustryCard
+                {filteredConstruction.map((item) => (
+                  <article
                     key={item.title}
-                    item={item}
-                    index={index}
-                    onOpen={openIndustry}
-                  />
+                    className="industries-card"
+                    role="button"
+                    tabIndex={0}
+                    onClick={() => openIndustry(item.title)}
+                    onKeyDown={(e) => {
+                      if (e.key === "Enter" || e.key === " ") {
+                        e.preventDefault();
+                        openIndustry(item.title);
+                      }
+                    }}
+                  >
+                    <div className="industries-card-icon">{item.icon}</div>
+                    <h3 className="industries-card-title">{item.title}</h3>
+                    <p className="industries-card-desc">{item.description}</p>
+                  </article>
                 ))}
               </div>
 
@@ -617,22 +608,31 @@ const Industries = () => {
             </div>
 
             {/* Media & Creative */}
-            <div className="industries-search-wrap-content">
-              <ScrollReveal variant="fadeUp" duration={0.8}>
-                <h2 className="industries-category-title">
-                  <span className="industries-category-accent">Media</span>{" "}
-                  &amp; Creative
-                </h2>
-              </ScrollReveal>
+            <div className="industries-search-wrap-content" data-aos="zoom-in">
+              <h2 className="industries-category-title">
+                <span className="industries-category-accent">Media</span>{" "}
+                &amp; Creative
+              </h2>
 
               <div className="industries-card-grid">
-                {filteredMediaCreative.map((item, index) => (
-                  <IndustryCard
+                {filteredMediaCreative.map((item) => (
+                  <article
                     key={item.title}
-                    item={item}
-                    index={index}
-                    onOpen={openIndustry}
-                  />
+                    className="industries-card"
+                    role="button"
+                    tabIndex={0}
+                    onClick={() => openIndustry(item.title)}
+                    onKeyDown={(e) => {
+                      if (e.key === "Enter" || e.key === " ") {
+                        e.preventDefault();
+                        openIndustry(item.title);
+                      }
+                    }}
+                  >
+                    <div className="industries-card-icon">{item.icon}</div>
+                    <h3 className="industries-card-title">{item.title}</h3>
+                    <p className="industries-card-desc">{item.description}</p>
+                  </article>
                 ))}
               </div>
 
@@ -642,21 +642,30 @@ const Industries = () => {
             </div>
 
             {/* Education */}
-            <div className="industries-search-wrap-content">
-              <ScrollReveal variant="fadeUp" duration={0.8}>
-                <h2 className="industries-category-title">
-                  <span className="industries-category-accent">Education</span>
-                </h2>
-              </ScrollReveal>
+            <div className="industries-search-wrap-content" data-aos="zoom-in">
+              <h2 className="industries-category-title">
+                <span className="industries-category-accent">Education</span>
+              </h2>
 
               <div className="industries-card-grid">
-                {filteredEducation.map((item, index) => (
-                  <IndustryCard
+                {filteredEducation.map((item) => (
+                  <article
                     key={item.title}
-                    item={item}
-                    index={index}
-                    onOpen={openIndustry}
-                  />
+                    className="industries-card"
+                    role="button"
+                    tabIndex={0}
+                    onClick={() => openIndustry(item.title)}
+                    onKeyDown={(e) => {
+                      if (e.key === "Enter" || e.key === " ") {
+                        e.preventDefault();
+                        openIndustry(item.title);
+                      }
+                    }}
+                  >
+                    <div className="industries-card-icon">{item.icon}</div>
+                    <h3 className="industries-card-title">{item.title}</h3>
+                    <p className="industries-card-desc">{item.description}</p>
+                  </article>
                 ))}
               </div>
 
@@ -666,22 +675,31 @@ const Industries = () => {
             </div>
 
             {/* Finance & Compliance */}
-            <div className="industries-search-wrap-content">
-              <ScrollReveal variant="fadeUp" duration={0.8}>
-                <h2 className="industries-category-title">
-                  <span className="industries-category-accent">Finance</span>{" "}
-                  &amp; Compliance
-                </h2>
-              </ScrollReveal>
+            <div className="industries-search-wrap-content" data-aos="zoom-in">
+              <h2 className="industries-category-title">
+                <span className="industries-category-accent">Finance</span>{" "}
+                &amp; Compliance
+              </h2>
 
               <div className="industries-card-grid">
-                {filteredFinanceCompliance.map((item, index) => (
-                  <IndustryCard
+                {filteredFinanceCompliance.map((item) => (
+                  <article
                     key={item.title}
-                    item={item}
-                    index={index}
-                    onOpen={openIndustry}
-                  />
+                    className="industries-card"
+                    role="button"
+                    tabIndex={0}
+                    onClick={() => openIndustry(item.title)}
+                    onKeyDown={(e) => {
+                      if (e.key === "Enter" || e.key === " ") {
+                        e.preventDefault();
+                        openIndustry(item.title);
+                      }
+                    }}
+                  >
+                    <div className="industries-card-icon">{item.icon}</div>
+                    <h3 className="industries-card-title">{item.title}</h3>
+                    <p className="industries-card-desc">{item.description}</p>
+                  </article>
                 ))}
               </div>
 
@@ -691,22 +709,31 @@ const Industries = () => {
             </div>
 
             {/* Enterprise & Teams */}
-            <div className="industries-search-wrap-content">
-              <ScrollReveal variant="fadeUp" duration={0.8}>
-                <h2 className="industries-category-title">
-                  <span className="industries-category-accent">Enterprise</span>{" "}
-                  &amp; Teams
-                </h2>
-              </ScrollReveal>
+            <div className="industries-search-wrap-content" data-aos="zoom-in">
+              <h2 className="industries-category-title">
+                <span className="industries-category-accent">Enterprise</span>{" "}
+                &amp; Teams
+              </h2>
 
               <div className="industries-card-grid">
-                {filteredEnterpriseTeams.map((item, index) => (
-                  <IndustryCard
+                {filteredEnterpriseTeams.map((item) => (
+                  <article
                     key={item.title}
-                    item={item}
-                    index={index}
-                    onOpen={openIndustry}
-                  />
+                    className="industries-card"
+                    role="button"
+                    tabIndex={0}
+                    onClick={() => openIndustry(item.title)}
+                    onKeyDown={(e) => {
+                      if (e.key === "Enter" || e.key === " ") {
+                        e.preventDefault();
+                        openIndustry(item.title);
+                      }
+                    }}
+                  >
+                    <div className="industries-card-icon">{item.icon}</div>
+                    <h3 className="industries-card-title">{item.title}</h3>
+                    <p className="industries-card-desc">{item.description}</p>
+                  </article>
                 ))}
               </div>
 

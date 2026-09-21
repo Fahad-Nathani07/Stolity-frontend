@@ -1,7 +1,6 @@
 import React, { useEffect, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
-import AOS from "aos";
-import "aos/dist/aos.css";
+import ScrollReveal from "../components/ScrollReveal";
 import PreloginHeader from "../components/PreloginHeader";
 import { getIndustryDetail } from "../data/industries";
 import "./prelogin.css";
@@ -38,17 +37,13 @@ const IndustryDetail = () => {
   const [everythingBgFailed, setEverythingBgFailed] = useState(false);
 
   useEffect(() => {
-    AOS.init({
-      duration: 1000,
-      offset: 100,
-      easing: "ease-in-out",
-      once: true,
-    });
+    document.documentElement.classList.add("prelogin-active");
+    document.body.classList.add("prelogin-active");
+    return () => {
+      document.documentElement.classList.remove("prelogin-active");
+      document.body.classList.remove("prelogin-active");
+    };
   }, []);
-
-  useEffect(() => {
-    AOS.refresh();
-  }, [slug, detail]);
 
   const markFeatureImageFailed = (id) => {
     setFailedFeatureImages((prev) => ({ ...prev, [id]: true }));
@@ -64,6 +59,12 @@ const IndustryDetail = () => {
   };
 
   if (!detail) {
+    const prettySlug = (slug || "")
+      .split("-")
+      .filter(Boolean)
+      .map((w) => w.charAt(0).toUpperCase() + w.slice(1))
+      .join(" ");
+
     return (
       <div className="prelogin-page industry-detail-page">
         <PreloginHeader
@@ -74,14 +75,68 @@ const IndustryDetail = () => {
             { label: "Pricing", to: "/#pricing" },
           ]}
         />
-        <main className="industry-detail-main">
-          <div className="content industry-detail-fallback" data-aos="zoom-in">
-            <h1>Coming soon</h1>
-            <p>This industry page is not ready yet.</p>
-            <button type="button" className="industry-detail-primary-btn" onClick={() => navigate("/Industries")}>
-              Back to Industries
-            </button>
-          </div>
+        <main className="industry-detail-main industry-coming-soon-main">
+          <section className="industry-coming-soon">
+            <div className="industry-coming-soon-glow" aria-hidden="true" />
+            <div className="content industry-coming-soon-inner">
+              <ScrollReveal variant="fadeSoft" delay={0.05}>
+                <span className="industry-coming-soon-badge">
+                  <span className="industry-coming-soon-pulse" aria-hidden="true" />
+                  In progress
+                </span>
+              </ScrollReveal>
+
+              <ScrollReveal variant="rise" delay={0.12} duration={0.95}>
+                <div className="industry-coming-soon-visual" aria-hidden="true">
+                  <div className="industry-coming-soon-orbit">
+                    <span />
+                    <span />
+                    <span />
+                  </div>
+                  <div className="industry-coming-soon-icon">
+                    <svg viewBox="0 0 48 48" fill="none" aria-hidden="true">
+                      <path
+                        d="M24 6l3.2 9.8H37l-8 5.8 3.1 9.7L24 25.5 15.9 31.3l3.1-9.7-8-5.8h9.8L24 6z"
+                        fill="#FFAB49"
+                      />
+                    </svg>
+                  </div>
+                </div>
+              </ScrollReveal>
+
+              <ScrollReveal as="h1" className="industry-coming-soon-title" variant="fadeUp" delay={0.2}>
+                Coming Soon
+              </ScrollReveal>
+
+              {prettySlug ? (
+                <ScrollReveal as="p" className="industry-coming-soon-industry" variant="fadeSoft" delay={0.28}>
+                  {prettySlug}
+                </ScrollReveal>
+              ) : null}
+
+              <ScrollReveal as="p" className="industry-coming-soon-copy" variant="fadeUp" delay={0.34}>
+                We&apos;re crafting a tailored Stolity experience for this industry — secure workflows, smarter sharing, and beautiful file management.
+              </ScrollReveal>
+
+              <ScrollReveal className="industry-coming-soon-actions" variant="fadeSoft" delay={0.42}>
+                <button
+                  type="button"
+                  className="industry-coming-soon-primary"
+                  onClick={() => navigate("/Industries")}
+                >
+                  Explore Industries
+                  <ArrowRightIcon />
+                </button>
+                <button
+                  type="button"
+                  className="industry-coming-soon-secondary"
+                  onClick={() => navigate("/")}
+                >
+                  Back to Home
+                </button>
+              </ScrollReveal>
+            </div>
+          </section>
         </main>
       </div>
     );
@@ -105,25 +160,25 @@ const IndustryDetail = () => {
       />
 
       <main className="industry-detail-main">
-        <section className="industry-detail-hero" data-aos="zoom-out">
+        <section className="industry-detail-hero">
           <div className="content industry-detail-hero-inner">
-            <span className="industry-detail-badge">
+            <ScrollReveal as="span" className="industry-detail-badge" variant="fadeSoft" delay={0.05}>
               <BadgeHeartIcon />
               {detail.badgeLabel}
-            </span>
+            </ScrollReveal>
 
-            <h1 className="industry-detail-title">
+            <ScrollReveal as="h1" className="industry-detail-title" variant="rise" delay={0.14}>
               {detail.titleBefore}
               <span className="industry-detail-title-accent">{detail.titleHighlight}</span>
-            </h1>
+            </ScrollReveal>
 
-            <div className="industry-detail-copy">
+            <ScrollReveal className="industry-detail-copy" variant="fadeUp" delay={0.24}>
               {detail.paragraphs.map((text) => (
                 <p key={text}>{text}</p>
               ))}
-            </div>
+            </ScrollReveal>
 
-            <div className="industry-detail-ctas">
+            <ScrollReveal className="industry-detail-ctas" variant="fadeSoft" delay={0.32}>
               <button type="button" className="industry-detail-primary-btn" onClick={handleGetStarted}>
                 {detail.ctaPrimary.label}
                 <ArrowRightIcon />
@@ -132,9 +187,9 @@ const IndustryDetail = () => {
                 <PlayIcon />
                 {detail.ctaSecondary.label}
               </button>
-            </div>
+            </ScrollReveal>
 
-            <div className="industry-detail-visual">
+            <ScrollReveal className="industry-detail-visual" variant="scaleIn" delay={0.4} duration={1.05}>
               {!heroFailed ? (
                 <img
                   src={detail.heroImage}
@@ -152,12 +207,12 @@ const IndustryDetail = () => {
                   </p>
                 </div>
               )}
-            </div>
+            </ScrollReveal>
           </div>
         </section>
 
         {whyChoose && (
-          <section className="industry-why-section" data-aos="zoom-in">
+          <ScrollReveal as="section" className="industry-why-section" variant="rise" duration={0.95}>
             <div className="content">
               <div
                 className={`industry-why-panel${!whyBgFailed ? " has-bg" : ""}`}
@@ -196,13 +251,19 @@ const IndustryDetail = () => {
                 </div>
               </div>
             </div>
-          </section>
+          </ScrollReveal>
         )}
 
         {featureSections.map((section) => {
           const imageFailed = failedFeatureImages[section.id];
           return (
-            <section key={section.id} className="industry-doc-section" data-aos="zoom-in">
+            <ScrollReveal
+              as="section"
+              key={section.id}
+              className="industry-doc-section"
+              variant="fadeUp"
+              duration={0.9}
+            >
               <div className="content">
                 <h2 className="industry-doc-heading">{section.title}</h2>
                 <div
@@ -237,12 +298,12 @@ const IndustryDetail = () => {
                   </div>
                 </div>
               </div>
-            </section>
+            </ScrollReveal>
           );
         })}
 
         {everythingYouNeed && (
-          <section className="industry-everything-section" data-aos="zoom-in">
+          <ScrollReveal as="section" className="industry-everything-section" variant="rise">
             <div className="content">
               <div
                 className={`industry-everything-panel${!everythingBgFailed ? " has-bg" : ""}`}
@@ -296,11 +357,11 @@ const IndustryDetail = () => {
                 </div>
               </div>
             </div>
-          </section>
+          </ScrollReveal>
         )}
 
         {bottomCta && (
-          <section className="industry-bottom-cta" data-aos="zoom-in">
+          <ScrollReveal as="section" className="industry-bottom-cta" variant="fadeSoft">
             <div className="content industry-bottom-cta-inner">
               <h2>
                 <span className="industry-detail-title-accent">{bottomCta.titleHighlight}</span>
@@ -317,12 +378,12 @@ const IndustryDetail = () => {
                 </button>
               </div>
             </div>
-          </section>
+          </ScrollReveal>
         )}
       </main>
 
       {footer && (
-        <footer className="industry-detail-footer content" data-aos="zoom-in">
+        <ScrollReveal as="footer" className="industry-detail-footer content" variant="fadeSoft">
           <p>{footer.copyright}</p>
           <ul>
             {footer.links.map((link) => (
@@ -331,7 +392,7 @@ const IndustryDetail = () => {
               </li>
             ))}
           </ul>
-        </footer>
+        </ScrollReveal>
       )}
     </div>
   );

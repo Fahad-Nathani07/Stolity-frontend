@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
+import { motion, useReducedMotion } from "framer-motion";
 import LogoImg from "../images/prelogin-img/logo-stolity.svg";
 
 const MenuIcon = ({ open }) =>
@@ -98,10 +99,21 @@ const PreloginHeader = ({ links = [], aos = false }) => {
     navigate("/Signup");
   };
 
+  const reduceMotion = useReducedMotion();
+  const HeaderTag = aos && !reduceMotion ? motion.header : "header";
+  const headerMotionProps =
+    aos && !reduceMotion
+      ? {
+          initial: { opacity: 0, y: -20 },
+          animate: { opacity: 1, y: 0 },
+          transition: { duration: 0.75, ease: [0.16, 1, 0.3, 1] },
+        }
+      : {};
+
   return (
-    <header
+    <HeaderTag
       className={menuOpen ? "is-menu-open" : undefined}
-      {...(aos ? { "data-aos": "zoom-out" } : {})}
+      {...headerMotionProps}
     >
       <div className="header-content content">
         <a href="/" onClick={go("/")} className="header-logo-link">
@@ -166,7 +178,7 @@ const PreloginHeader = ({ links = [], aos = false }) => {
           onClick={() => setMenuOpen(false)}
         />
       )}
-    </header>
+    </HeaderTag>
   );
 };
 

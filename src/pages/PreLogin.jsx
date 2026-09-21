@@ -11,14 +11,12 @@ import card3 from "../images/prelogin-img/card-3.jpg";
 import bannerImg from "../images/prelogin-img/banner-img.png";
 import scanOne from "../images/prelogin-img/scanner-1.jpg";
 import scanTwo from "../images/prelogin-img/scanner-2.jpg";
-import full from "../images/prelogin-img/full.svg";
 import { useNavigate, useLocation } from "react-router-dom";
 import { useDispatch } from "react-redux";
-import AOS from "aos";
-import "aos/dist/aos.css";
 import '../pages/prelogin.css'
 import { setRedirectToPaymentAfterLogin } from "../store/subscriptionSlice";
 import PreloginHeader from "../components/PreloginHeader";
+import ScrollReveal from "../components/ScrollReveal";
 
 const PreLogin = () => {
   const videoRef = useRef(null);
@@ -38,14 +36,14 @@ const PreLogin = () => {
     navigate("/Login");
   };
 
-  // Animatiom
+  // Prevent dual scrollbar (html+body both becoming scroll containers)
   useEffect(() => {
-    AOS.init({
-      duration: 1000,
-      offset: 100,
-      easing: "ease-in-out",
-      once: true,
-    });
+    document.documentElement.classList.add("prelogin-active");
+    document.body.classList.add("prelogin-active");
+    return () => {
+      document.documentElement.classList.remove("prelogin-active");
+      document.body.classList.remove("prelogin-active");
+    };
   }, []);
 
   // Scroll to #pricing (and other hashes) after navigate from header
@@ -62,40 +60,32 @@ const PreLogin = () => {
     return () => window.clearTimeout(timer);
   }, [location.hash]);
 
-  // Card Scrolling
-  const cardContainerRef = useRef(null);
+  // Sticky about section: highlight active feature card while scrolling
+  const aboutSectionRef = useRef(null);
+  const aboutCardsRef = useRef([]);
 
   useEffect(() => {
-    const debounceScroll = (func, delay) => {
-      let timeout;
-      return (...args) => {
-        clearTimeout(timeout);
-        timeout = setTimeout(() => func(...args), delay);
-      };
-    };
-  
-    const handleScroll = debounceScroll(() => {
-      const container = cardContainerRef.current;
-      if (!container) return;
-  
-      const sectionTop = container.offsetTop;
-      const sectionHeight = container.offsetHeight;
-      const scrollPosition = window.scrollY;
-      const windowHeight = window.innerHeight;
-  
-      const progress =
-        (scrollPosition - sectionTop + windowHeight * 0.5) / sectionHeight;
-  
-      if (progress >= 0 && progress <= 1) {
-        const maxScroll = container.scrollHeight - container.clientHeight;
-        const easedProgress = Math.pow(progress, 1.3);
-        container.scrollTop = easedProgress * maxScroll * 2.5; // Reduced multiplier
-        
+    const cards = aboutCardsRef.current.filter(Boolean);
+    if (!cards.length) return;
+
+    const observer = new IntersectionObserver(
+      (entries) => {
+        entries.forEach((entry) => {
+          if (entry.isIntersecting) {
+            cards.forEach((card) => card.classList.remove("is-active"));
+            entry.target.classList.add("is-active");
+          }
+        });
+      },
+      {
+        root: null,
+        rootMargin: "-35% 0px -45% 0px",
+        threshold: 0.15,
       }
-    }, 50); // 50ms delay
-  
-    window.addEventListener("scroll", handleScroll);
-    return () => window.removeEventListener("scroll", handleScroll);
+    );
+
+    cards.forEach((card) => observer.observe(card));
+    return () => observer.disconnect();
   }, []);
 
   // Full Screen Video
@@ -184,61 +174,68 @@ const PreLogin = () => {
       />
 
       <main>
-        <section className="hero-img" data-aos="zoom-out" style={{paddingBottom:"100px"}}>
+        <section className="hero-img" style={{ paddingBottom: "100px" }}>
           <div className="content">
             <div className="hero-content">
-              <h5>Upload. Organize. Share. Anytime, Anywhere.</h5>
-              <h1>
-                Effortless File Storage & Secure <br />
+              <ScrollReveal as="h5" variant="fadeSoft" delay={0.05} duration={0.7}>
+                Upload. Organize. Share. Anytime, Anywhere.
+              </ScrollReveal>
+              <ScrollReveal as="h1" variant="rise" delay={0.15} duration={1}>
+                Effortless File Storage & Secure
                 Sharing with Stolity
-              </h1>
-              <p className="pre-para">
+              </ScrollReveal>
+              <ScrollReveal as="p" className="pre-para" variant="fadeUp" delay={0.28} duration={0.85}>
                 Stolity is a powerful cloud-based file management platform that
                 allows you to upload, organize, and share files seamlessly. With
                 high-speed uploads up to 5 GB, advanced security features, and
                 intuitive sharing options, managing files has never been this
                 easy.
-              </p>
+              </ScrollReveal>
             </div>
 
             {/* -- video -- */}
-            <div className="hero-video">
-              <video
-                ref={videoRef}
-                src={heroVideo}
-                autoPlay
-                loop
-                muted
-                playsInline
-              ></video>
-              <div className="full-screen-content">
-                <h6>
-                  <b>Full Screen Mode</b>
-                </h6>
-                <img
-                  src={full}
-                  alt="Enter full screen"
-                  className="fullscreen-btn"
-                  role="button"
-                  tabIndex={0}
-                  onClick={handleFullScreen}
-                  onKeyDown={(e) => {
-                    if (e.key === "Enter" || e.key === " ") {
-                      e.preventDefault();
-                      handleFullScreen();
-                    }
-                  }}
-                />
+            <ScrollReveal className="hero-video" variant="fadeSoft" delay={0.38} duration={0.9}>
+              <div className="hero-video-chrome" aria-hidden="true">
+                <span className="hero-video-dot hero-video-dot--red" />
+                <span className="hero-video-dot hero-video-dot--amber" />
+                <span className="hero-video-dot hero-video-dot--green" />
+                <span className="hero-video-chrome-label">Stolity Preview</span>
               </div>
-            </div>
+              <div className="hero-video-frame">
+                <video
+                  ref={videoRef}
+                  src={heroVideo}
+                  autoPlay
+                  loop
+                  muted
+                  playsInline
+                ></video>
+              </div>
+              <button
+                type="button"
+                className="full-screen-content"
+                onClick={handleFullScreen}
+                aria-label="Enter full screen"
+              >
+                <span className="full-screen-icon" aria-hidden="true">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                    <path d="M8 3H5a2 2 0 0 0-2 2v3" />
+                    <path d="M16 3h3a2 2 0 0 1 2 2v3" />
+                    <path d="M8 21H5a2 2 0 0 1-2-2v-3" />
+                    <path d="M16 21h3a2 2 0 0 0 2-2v-3" />
+                  </svg>
+                </span>
+                <span className="full-screen-label">Full Screen</span>
+              </button>
+            </ScrollReveal>
           </div>
         </section>
 
         {/* --- Intro Section --- */}
-        <section data-aos="zoom-in"  style={{paddingBottom:"100px"}}>
+        <section style={{ paddingBottom: "100px" }}>
           <div className="content">
             <div className="row">
-              <div className="left-intro col-12 col-lg-6">
+              <ScrollReveal className="left-intro col-12 col-lg-6" variant="fadeUp" duration={0.95}>
                 <p className="pre-para semibold">Effortless File Management</p>
                 <h2>
                   Your{" "}
@@ -249,9 +246,9 @@ const PreLogin = () => {
                   <br />
                   Companion
                 </h2>
-              </div>
+              </ScrollReveal>
 
-              <div className="right-intro col-12 col-lg-6">
+              <ScrollReveal className="right-intro col-12 col-lg-6" variant="fadeUp" delay={0.12} duration={0.95}>
                 <p className="pre-para">
                   <b>Imagine this</b>: You’re working on an important project,
                   juggling multiple files across different devices. You need a
@@ -263,25 +260,29 @@ const PreLogin = () => {
                   effortlessly uploaded, neatly organized, and instantly
                   accessible from anywhere.
                 </p>
-              </div>
+              </ScrollReveal>
             </div>
           </div>
         </section>
 
         {/* --- About Section --- */}
-        <section style={{paddingBottom:"100px"}}>
+        <section className="about-section" ref={aboutSectionRef} style={{ paddingBottom: "100px" }}>
           <div className="content">
-            <div className="row">
+            <div className="row about-row">
               <div className="about-left col-12 col-lg-6">
-                <img src={aboutGift} alt="About Gift" />
+                <div className="about-visual">
+                  <img src={aboutGift} alt="About Gift" />
+                </div>
               </div>
 
-              <div
-                className="about-right col-12 col-lg-6"
-                ref={cardContainerRef}
-              >
+              <div className="about-right col-12 col-lg-6">
                 <div className="about-card-container">
-                  <div className="about-card">
+                  <div
+                    className="about-card is-active"
+                    ref={(el) => {
+                      aboutCardsRef.current[0] = el;
+                    }}
+                  >
                     <img src={upload} alt="upload" className="img-fluid" />
                     <h4>Upload Without Limits</h4>
                     <p>
@@ -290,7 +291,12 @@ const PreLogin = () => {
                     </p>
                   </div>
 
-                  <div className="about-card mt-4">
+                  <div
+                    className="about-card"
+                    ref={(el) => {
+                      aboutCardsRef.current[1] = el;
+                    }}
+                  >
                     <img src={share} alt="share" className="img-fluid" />
                     <h4>Share with Confidence</h4>
                     <p>
@@ -299,7 +305,12 @@ const PreLogin = () => {
                     </p>
                   </div>
 
-                  <div className="about-card mt-4">
+                  <div
+                    className="about-card"
+                    ref={(el) => {
+                      aboutCardsRef.current[2] = el;
+                    }}
+                  >
                     <img src={privacy} alt="privacy" className="img-fluid" />
                     <h4>Your Privacy, Our Priority</h4>
                     <p>
@@ -308,7 +319,12 @@ const PreLogin = () => {
                     </p>
                   </div>
 
-                  <div className="about-card mt-4">
+                  <div
+                    className="about-card"
+                    ref={(el) => {
+                      aboutCardsRef.current[3] = el;
+                    }}
+                  >
                     <img src={work} alt="work anywhere" className="img-fluid" />
                     <h4>Work from Anywhere</h4>
                     <p>
@@ -323,9 +339,9 @@ const PreLogin = () => {
         </section>
 
         {/* --- Services Card Section --- */}
-        <section data-aos="zoom-in" style={{paddingBottom:"100px"}}>
+        <section style={{ paddingBottom: "100px" }}>
           <div className="content">
-            <div className="card-heading">
+            <ScrollReveal className="card-heading" variant="fadeUp" duration={0.8}>
               <p className="pre-para semibold">
                 An Experience Built for Everyone
               </p>
@@ -336,10 +352,10 @@ const PreLogin = () => {
                   User Experience
                 </span>
               </h2>
-            </div>
+            </ScrollReveal>
 
             <div className="row">
-              <div className="services-card col-12 col-lg-4">
+              <ScrollReveal className="services-card col-12 col-lg-4" variant="rise" delay={0.08} duration={0.9}>
                 <div className="card">
                   <img src={card1} className="card-img-top" alt="Light and dark mode" />
                   <div className="card-body">
@@ -351,9 +367,9 @@ const PreLogin = () => {
                     </p>
                   </div>
                 </div>
-              </div>
+              </ScrollReveal>
 
-              <div className="services-card col-12 col-lg-4">
+              <ScrollReveal className="services-card col-12 col-lg-4" variant="rise" delay={0.18} duration={0.9}>
                 <div className="card">
                   <img src={card2} className="card-img-top" alt="Microinteractions" />
                   <div className="card-body">
@@ -367,9 +383,9 @@ const PreLogin = () => {
                     </p>
                   </div>
                 </div>
-              </div>
+              </ScrollReveal>
 
-              <div className="services-card col-12 col-lg-4">
+              <ScrollReveal className="services-card col-12 col-lg-4" variant="rise" delay={0.28} duration={0.9}>
                 <div className="card">
                   <img src={card3} className="card-img-top" alt="Web and mobile access" />
                   <div className="card-body">
@@ -380,24 +396,30 @@ const PreLogin = () => {
                     </p>
                   </div>
                 </div>
-              </div>
+              </ScrollReveal>
             </div>
           </div>
         </section>
 
         {/* --- Offers Card Section --- */}
-        <section id="pricing" data-aos="zoom-in" style={{paddingBottom:"100px"}}>
+        <section id="pricing" style={{ paddingBottom: "100px" }}>
           <div className="content">
-            <div className="card-heading">
+            <ScrollReveal className="card-heading" variant="fadeUp" duration={0.8}>
               <p className="pre-para semibold">Our Portable Pricing System</p>
               <h2>
                 Here is our <span>Pricing Plan</span>
               </h2>
-            </div>
+            </ScrollReveal>
 
-            <div className="row g-4" data-aos="zoom-in">
+            <div className="row g-4">
               {plans.map((plan, index) => (
-                <div key={index} className="offer-card-container col-lg-4">
+                <ScrollReveal
+                  key={index}
+                  className="offer-card-container col-lg-4"
+                  variant="rise"
+                  delay={0.1 + index * 0.12}
+                  duration={0.9}
+                >
                   <div className="offer-card">
                     <div className="offer-card-head">
                       <h4 className="offer-plan-name">{plan.name}</h4>
@@ -462,17 +484,17 @@ const PreLogin = () => {
                       Get Started
                     </button>
                   </div>
-                </div>
+                </ScrollReveal>
               ))}
             </div>
           </div>
         </section>
 
         {/* --- Banner Section --- */}
-        <section data-aos="zoom-in" className="prelogin-banner-section">
+        <section className="prelogin-banner-section">
           <div className="content">
             <div className="row main-banner">
-              <div className="banner-left col-12 col-lg-6">
+              <ScrollReveal className="banner-left col-12 col-lg-6" variant="fadeUp" duration={0.95}>
                 <div className="banner-left-top">
                   <h2>
                     <span>Seamless Productivity</span>
@@ -533,17 +555,19 @@ const PreLogin = () => {
                     </a>
                   </div>
                 </div>
-              </div>
+              </ScrollReveal>
 
-              <div className="banner-right col-12 col-lg-6">
-                <img src={bannerImg} alt="banner" className="img-fluid" />
-              </div>
+              <ScrollReveal className="banner-right col-12 col-lg-6" variant="fadeUp" delay={0.14} duration={0.95}>
+                <div className="banner-phones">
+                  <img src={bannerImg} alt="Stolity mobile app preview" className="img-fluid banner-phones-img" />
+                </div>
+              </ScrollReveal>
             </div>
           </div>
         </section>
       </main>
 
-      <footer className="content" data-aos="zoom-in">
+      <ScrollReveal as="footer" className="content" variant="fadeSoft" duration={0.7}>
         <p>© 2026 Stolity. All rights reserved.</p>
 
         <ul className="footer-right">
@@ -557,7 +581,7 @@ const PreLogin = () => {
             <a href="/privacy-policy">Cookies</a>
           </li>
         </ul>
-      </footer>
+      </ScrollReveal>
     </div>
   );
 };
