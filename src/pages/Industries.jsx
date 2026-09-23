@@ -3,6 +3,7 @@ import { useNavigate } from "react-router-dom";
 import PreloginHeader from "../components/PreloginHeader";
 import ScrollReveal from "../components/ScrollReveal";
 import "./prelogin.css";
+import "./homeTheme.css";
 import "./industries.css";
 
 const businessServices = [

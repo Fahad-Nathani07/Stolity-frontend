@@ -24,6 +24,7 @@ import UploadProgressModal from './pages/UploadProgressModal';
 import UserProfile from './pages/UserProfile'
 import { GoogleOAuthProvider } from '@react-oauth/google';
 import PreLogin from './pages/PreLogin';
+import Home1 from './pages/Home1';
 import Industries from './pages/Industries';
 import IndustryDetail from './pages/IndustryDetail';
 import { DownloadProvider } from './pages/DownloadContext';
@@ -199,12 +200,15 @@ const {
               <Route path="/ForgotPassword" element={<ForgotPassword />} />
               <Route path="/SignupWithGoogle" element={<SignupWithGoogle />} />
               <Route path="/pre-login" element={<PreLogin />} />
+              <Route path="/Home" element={<Home1 />} />
               <Route path="/Industries" element={<Industries />} />
               <Route path="/Industries/:slug" element={<IndustryDetail />} />
               <Route path="/terms-and-conditions" element={<TermsAndConditions />} />
               <Route path="/privacy-policy" element={<PrivacyPolicy />} />
               <Route path="/:companySlug/careers" element={<CareerJobListing />} />
-              <Route path="/" element={<PreLogin />} />
+              {/* <Route path="/" element={<PreLogin />} /> */}
+              <Route path="/" element={<Home1 />} />
+
 
               {/* Protected routes — require sessionStorage email */}
               <Route element={<PrivateRoute />}>

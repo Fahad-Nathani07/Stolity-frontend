@@ -16,8 +16,10 @@ import IconAI from "../images/IconAI.svg";
 import IconFigma from "../images/IconFigma.svg";
 import IconFolder from "../images/folder.svg";
 import VideoPlayer from "../components/VideoPlayer";
-import { buildVideoStreamUrl } from "../utils/videoPlayer";
+import { resolveVideoPlayUrl } from "../utils/videoPlayer";
 import { buildFileStreamUrl, preloadStreamedImage } from "../utils/fileStream";
+import { resolveMediaPlayUrl } from "../utils/mediaPlayUrl";
+import { resolveDocumentBlobUrl } from "../utils/documentPreview";
 import Avatar1 from "../images/Avatar1.svg";
 import AvatarDefault from "../images/AvatarDefault.jpg";
 import Avatar2 from "../images/Avatar2.svg";
@@ -1032,6 +1034,7 @@ const UserProfile = () => {
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
   const [showImage, setShowImage] = useState(false);
   const [videoSrc, setVideoSrc] = useState("");
+  const [resolvedVideoUrl, setResolvedVideoUrl] = useState("");
   const [imageSrc, setImageSrc] = useState("");
   const [pdfSrc, setPdfSrc] = useState("");
   const [audioSrc, setAudioSrc] = useState("");
@@ -1044,12 +1047,46 @@ const UserProfile = () => {
     setIsProgressVisible(false);
   });
 
+  useEffect(() => {
+    if (!videoSrc || !apiUrl || !token) {
+      setResolvedVideoUrl("");
+      return undefined;
+    }
+    if (String(videoSrc).startsWith("blob:")) {
+      setResolvedVideoUrl(videoSrc);
+      return undefined;
+    }
+    let cancelled = false;
+    const controller =
+      typeof AbortController !== "undefined" ? new AbortController() : null;
+    setResolvedVideoUrl("");
+    resolveVideoPlayUrl(apiUrl, token, videoSrc, {
+      signal: controller?.signal,
+    })
+      .then((url) => {
+        if (!cancelled) setResolvedVideoUrl(url);
+      })
+      .catch((err) => {
+        if (!cancelled && err?.name !== "AbortError") {
+          console.error("Video play URL failed", err);
+        }
+      });
+    return () => {
+      cancelled = true;
+      controller?.abort?.();
+    };
+  }, [videoSrc, apiUrl, token]);
+
   //Image getting function
   const getImageInfo = async (filename) => {
     setIsProgressVisible(true);
     setImageSrc("");
     try {
-      const url = buildFileStreamUrl(apiUrl, token, filename);
+      const url = await resolveMediaPlayUrl({
+        apiUrl,
+        token,
+        filePath: filename,
+      });
       await preloadStreamedImage(url);
       setImageSrc(url);
     } catch (error) {
@@ -1061,19 +1098,12 @@ const UserProfile = () => {
   //Audio getting function
   const getAudioInfo = async (filename) => {
     try {
-      const res = await axios.get(`${apiUrl}getFile`, {
-        params: {
-          filePath: filename,
-        },
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
-        responseType: "arraybuffer",
+      const url = await resolveMediaPlayUrl({
+        apiUrl,
+        token,
+        filePath: filename,
       });
       setIsProgressVisible(false);
-      const fileType = res.headers["content-type"];
-      const blob = new Blob([res.data], { type: fileType });
-      const url = window.URL.createObjectURL(blob);
       setAudioSrc(url);
     } catch (error) {
       console.error(error);
@@ -1082,23 +1112,18 @@ const UserProfile = () => {
 
   //Pdf getting function
   const getPdfInfo = async (filename) => {
+    setIsProgressVisible(true);
     try {
-      const res = await axios.get(`${apiUrl}getFile`, {
-        params: {
-          filePath: filename,
-        },
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
-        responseType: "arraybuffer",
+      const url = await resolveDocumentBlobUrl({
+        apiUrl,
+        token,
+        filePath: filename,
       });
-      setIsProgressVisible(false);
-      const fileType = res.headers["content-type"];
-      const blob = new Blob([res.data], { type: fileType });
-      const url = window.URL.createObjectURL(blob);
       setPdfSrc(url);
     } catch (error) {
       console.error(error);
+    } finally {
+      setIsProgressVisible(false);
     }
   };
   function arrayBufferToBase64(buffer) {
@@ -1117,7 +1142,7 @@ const UserProfile = () => {
 
   useEffect(() => {
     return () => {
-      if (audioSrc) {
+      if (audioSrc && String(audioSrc).startsWith("blob:")) {
         URL.revokeObjectURL(audioSrc);
       }
     };
@@ -2844,11 +2869,14 @@ const UserProfile = () => {
                   transition: "transform 0.25s ease",
                 }}
               >
-                {videoSrc ? (
+                {videoSrc && resolvedVideoUrl ? (
                   <VideoPlayer
-                    url={buildVideoStreamUrl(apiUrl, token, videoSrc)}
+                    key={resolvedVideoUrl}
+                    url={resolvedVideoUrl}
                     fileName={videoSrc}
                   />
+                ) : videoSrc ? (
+                  <Loader2 />
                 ) : pdfSrc ? (
                   <iframe
                     src={pdfSrc}

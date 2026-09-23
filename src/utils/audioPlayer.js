@@ -1,3 +1,6 @@
+import { resolveMediaPlayUrl } from "./mediaPlayUrl";
+import { buildFileStreamUrl } from "./fileStream";
+
 const AUDIO_EXTENSIONS = new Set(["mp3", "m4a", "wav", "ogg", "aac"]);
 
 export function isAudioExtension(fileType) {
@@ -18,19 +21,30 @@ export function buildAudioQueueFromFiles(files, currentFileName) {
   };
 }
 
+/** @deprecated Prefer resolveAudioPlayUrl (presigned Spaces). */
 export function buildAudioStreamUrl(
   apiUrl,
   token,
   filePath,
   { shared = false, sharedName = "" } = {}
 ) {
-  const params = new URLSearchParams();
-  params.set("token", token || "");
-  params.set("filePath", filePath || "");
-  if (shared && sharedName) {
-    params.set("shared", sharedName);
-  }
-  return `${apiUrl}getFileDefault?${params.toString()}`;
+  return buildFileStreamUrl(apiUrl, token, filePath, { shared, sharedName });
+}
+
+export async function resolveAudioPlayUrl(
+  apiUrl,
+  token,
+  filePath,
+  { shared = false, sharedName = "", signal } = {}
+) {
+  return resolveMediaPlayUrl({
+    apiUrl,
+    token,
+    filePath,
+    shared,
+    sharedName,
+    signal,
+  });
 }
 
 /** Favourites / RecycleBin: full list may be filtered, not the paginated slice. */

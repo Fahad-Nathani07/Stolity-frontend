@@ -39,6 +39,8 @@ import Logo from "../images/logo.png";
 import sharedIcon from "../images/shared_icon.svg";
 import { resolveFileIconPath } from "../utils/fileIcon";
 import { buildFileStreamUrl, preloadStreamedImage } from "../utils/fileStream";
+import { resolveMediaPlayUrl } from "../utils/mediaPlayUrl";
+import { resolveDocumentBlobUrl } from "../utils/documentPreview";
 import FileInfoModal from "../components/FileInfoModal";
 import GoogleAuthRequiredModal from "../components/GoogleAuthRequiredModal";
 import {
@@ -126,7 +128,7 @@ import { UploadContext } from "./UploadContext";
 import { Modal as BootstrapModal } from "react-bootstrap";
 
 import VideoPlayer from "../components/VideoPlayer";
-import { buildVideoStreamUrl } from "../utils/videoPlayer";
+import { resolveVideoPlayUrl } from "../utils/videoPlayer";
 import SideNav from "../components/SideNav";
 import Footer from "../components/Footer";
 import ToggleNav from "../components/ToggleNav";
@@ -225,6 +227,7 @@ const DefaultFolder = () => {
   const [imageSrc, setImageSrc] = useState("");
   const [errorMessage, setErrorMessage] = useState("");
   const [videoSrc, setVideoSrc] = useState("");
+  const [resolvedVideoUrl, setResolvedVideoUrl] = useState("");
   const [isProgressVisible, setIsProgressVisible] = useState(false);
   const [dragPop, setDragPop] = useState(false);
   const [dragFile, setDragFile] = useState({});
@@ -1004,7 +1007,11 @@ const DefaultFolder = () => {
     setIsProgressVisible(true);
     setImageSrc("");
     try {
-      const url = buildFileStreamUrl(apiUrl, token, filename);
+      const url = await resolveMediaPlayUrl({
+        apiUrl,
+        token,
+        filePath: filename,
+      });
       await preloadStreamedImage(url);
       setImageSrc(url);
     } catch (error) {
@@ -1013,22 +1020,46 @@ const DefaultFolder = () => {
       setIsProgressVisible(false);
     }
   };
+
+  useEffect(() => {
+    if (!videoSrc || !apiUrl || !token) {
+      setResolvedVideoUrl("");
+      return undefined;
+    }
+    if (String(videoSrc).startsWith("blob:")) {
+      setResolvedVideoUrl(videoSrc);
+      return undefined;
+    }
+    let cancelled = false;
+    const controller =
+      typeof AbortController !== "undefined" ? new AbortController() : null;
+    setResolvedVideoUrl("");
+    resolveVideoPlayUrl(apiUrl, token, videoSrc, {
+      signal: controller?.signal,
+    })
+      .then((url) => {
+        if (!cancelled) setResolvedVideoUrl(url);
+      })
+      .catch((err) => {
+        if (!cancelled && err?.name !== "AbortError") {
+          console.error("Video play URL failed", err);
+        }
+      });
+    return () => {
+      cancelled = true;
+      controller?.abort?.();
+    };
+  }, [videoSrc, apiUrl, token]);
+
   //Audio getting function
   const getAudioInfo = async (filename) => {
     try {
-      const res = await axios.get(`${apiUrl}getFile`, {
-        params: {
-          filePath: filename,
-        },
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
-        responseType: "arraybuffer",
+      const url = await resolveMediaPlayUrl({
+        apiUrl,
+        token,
+        filePath: filename,
       });
       setIsProgressVisible(false);
-      const fileType = res.headers["content-type"];
-      const blob = new Blob([res.data], { type: fileType });
-      const url = window.URL.createObjectURL(blob);
       setAudioSrc(url);
     } catch (error) {
       console.error(error);
@@ -1037,23 +1068,18 @@ const DefaultFolder = () => {
 
   //Pdf getting function
   const getPdfInfo = async (filename) => {
+    setIsProgressVisible(true);
     try {
-      const res = await axios.get(`${apiUrl}getFile`, {
-        params: {
-          filePath: filename,
-        },
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
-        responseType: "arraybuffer",
+      const url = await resolveDocumentBlobUrl({
+        apiUrl,
+        token,
+        filePath: filename,
       });
-      setIsProgressVisible(false);
-      const fileType = res.headers["content-type"];
-      const blob = new Blob([res.data], { type: fileType });
-      const url = window.URL.createObjectURL(blob);
       setPdfSrc(url);
     } catch (error) {
       console.error(error);
+    } finally {
+      setIsProgressVisible(false);
     }
   };
 
@@ -1089,9 +1115,13 @@ const DefaultFolder = () => {
           fileType === "video/ogg" ||
           fileType === "video/quicktime"
         ) {
-          setIsOpen(!isOpen);
-          setVideoSrc(url);
+          setModalFile(file.fileName);
+          handleImageShow();
+          setVideoSrc(file.fileName);
           setisVideo(true);
+          if (url && String(url).startsWith("blob:")) {
+            try { URL.revokeObjectURL(url); } catch (_) { /* ignore */ }
+          }
         } else {
           setErrorMessage(
             "This video format is not supported by your browser."
@@ -1144,7 +1174,7 @@ const DefaultFolder = () => {
 
   useEffect(() => {
     return () => {
-      if (audioSrc) {
+      if (audioSrc && String(audioSrc).startsWith("blob:")) {
         URL.revokeObjectURL(audioSrc);
       }
     };
@@ -4797,11 +4827,14 @@ const DefaultFolder = () => {
                   transition: "transform 0.2s ease-in-out",
                 }}
               >
-                {videoSrc ? (
+                {videoSrc && resolvedVideoUrl ? (
                   <VideoPlayer
-                    url={buildVideoStreamUrl(apiUrl, token, videoSrc)}
+                    key={resolvedVideoUrl}
+                    url={resolvedVideoUrl}
                     fileName={videoSrc}
                   />
+                ) : videoSrc ? (
+                  <DualRingMark size={40} />
                 ) : pdfSrc ? (
                   <iframe
                     src={pdfSrc}

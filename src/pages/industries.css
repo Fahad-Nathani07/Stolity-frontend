@@ -1,5 +1,5 @@
 .industries-page {
-  background: #fff;
+  background: #fffbf8;
   min-height: 100vh;
   overflow-x: clip;
 }
@@ -23,7 +23,7 @@
   position: relative;
   padding: 4.75rem 0 3.75rem;
   text-align: center;
-  background: linear-gradient(180deg, #fdf8f4 0%, #ffffff 72%);
+  background: linear-gradient(180deg, #fffbf8 0%, #ffffff 72%);
   overflow: hidden;
 }
 
@@ -36,7 +36,7 @@
   width: min(720px, 90vw);
   height: min(720px, 90vw);
   border-radius: 50%;
-  background: radial-gradient(circle, #fff0e0 0%, rgba(255, 240, 224, 0) 70%);
+  background: radial-gradient(circle, #fff1e8 0%, rgba(255, 240, 224, 0) 70%);
   pointer-events: none;
   z-index: 0;
   animation: industries-orb-pulse 8s ease-in-out infinite;
@@ -68,35 +68,35 @@
 
 .industries-badge {
   display: inline-block;
-  background: #fff0e0;
-  color: #e8892d;
+  background: #fff1e8;
+  color: #e5660f;
   font-size: 0.92rem;
   font-weight: 600;
   padding: 0.55rem 1.15rem;
   border-radius: 999px;
   margin-bottom: 1.75rem;
-  font-family: "SF Pro", "SFProText", "Urbanist", sans-serif;
-  border: 1px solid #ffe4c4;
+  font-family: "Plus Jakarta Sans", sans-serif;
+  border: 1px solid #f3d2b8;
 }
 
 .industries-hero-title {
-  font-family: "SF Pro", Inter, "Urbanist", sans-serif;
-  font-weight: 590;
+  font-family: "Plus Jakarta Sans", sans-serif;
+  font-weight: 700;
   font-size: 64px !important;
   line-height: 1.15;
-  letter-spacing: 0.01em;
+  letter-spacing: -0.02em;
   text-align: center;
-  color: #1e293b;
+  color: #0b1c30;
   margin: 0 0 1rem;
 }
 
 .industries-hero-subtitle {
-  font-family: "SF Pro", Inter, "Urbanist", sans-serif;
+  font-family: "Plus Jakarta Sans", sans-serif;
   font-weight: 400;
   font-size: clamp(1.05rem, 2vw, 1.35rem);
   line-height: 1.55;
   text-align: center;
-  color: #45556c;
+  color: #5A4138;
   margin: 0 0 2.25rem;
   max-width: 640px;
 }
@@ -142,10 +142,10 @@
   padding: 1rem 1.5rem 1rem 3.35rem;
   font-size: 1.02rem;
   line-height: 1.4;
-  color: #0f172a;
+  color: #0b1c30;
   background: #ffffff;
   outline: none;
-  font-family: "SF Pro", "SFProText", "Urbanist", sans-serif;
+  font-family: "Plus Jakarta Sans", sans-serif;
   font-weight: 450;
   box-shadow:
     0 1px 2px rgba(15, 23, 42, 0.04),
@@ -170,14 +170,14 @@
 
 .industries-search:focus {
   border-color: #ffc27a;
-  background: #fffefb;
+  background: #fffbf8;
   box-shadow:
-    0 0 0 4px rgba(255, 171, 73, 0.14),
-    0 10px 28px -10px rgba(255, 171, 73, 0.2);
+    0 0 0 4px rgba(196, 35, 28, 0.14),
+    0 10px 28px -10px rgba(196, 35, 28, 0.2);
 }
 
 .industries-search-wrap:focus-within .industries-search-icon {
-  color: #ffab49;
+  color: #e5660f;
 }
 
 .industries-search::-webkit-search-cancel-button {
@@ -205,10 +205,10 @@
 }
 
 .industries-category-title {
-  font-family: "SF Pro", Inter, "Urbanist", sans-serif;
+  font-family: "Plus Jakarta Sans", sans-serif;
   font-size: clamp(1.5rem, 2.4vw, 2rem);
-  font-weight: 600;
-  color: #0f172b;
+  font-weight: 800;
+  color: #0b1c30;
   margin: 0 0 1.5rem;
   position: relative;
   display: inline-block;
@@ -216,7 +216,7 @@
 
 .industries-category-accent {
   position: relative;
-  color: #0f172b;
+  color: #0b1c30;
 }
 
 .industries-category-accent::after {
@@ -226,7 +226,7 @@
   bottom: -10px;
   width: 100%;
   height: 4px;
-  background: linear-gradient(90deg, #ffab49, #ff8e20);
+  background: linear-gradient(90deg, #e5660f 0%, #c4231c 100%);
   border-radius: 4px;
 }
 
@@ -251,7 +251,7 @@
   box-sizing: border-box;
   border-radius: 20px;
   padding: 1.85rem 1.7rem 1.55rem;
-  border: 1px solid #f8f2eb;
+  border: 1px solid #f0e4d8;
   background: #fff;
   min-height: 230px;
   cursor: pointer;
@@ -282,11 +282,11 @@
 
 .industries-card:hover {
   transform: translateY(-8px);
-  border-color: #ffd7a8;
-  background: #fffcf8;
+  border-color: #f0b48a;
+  background: #fffbf8;
   box-shadow:
     0 4px 10px rgba(100, 100, 100, 0.05),
-    0 16px 36px -12px rgba(255, 171, 73, 0.2),
+    0 16px 36px -12px rgba(196, 35, 28, 0.2),
     0 24px 40px -18px rgba(120, 120, 120, 0.08);
 }
 
@@ -295,13 +295,13 @@
 }
 
 .industries-card:hover .industries-card-icon {
-  background: #ffab49;
+  background: #e5660f;
   color: #fff;
-  box-shadow: 0 8px 16px rgba(255, 171, 73, 0.3);
+  box-shadow: 0 8px 16px rgba(196, 35, 28, 0.3);
 }
 
 .industries-card:focus-visible {
-  outline: 2px solid #ffab49;
+  outline: 2px solid #e5660f;
   outline-offset: 3px;
 }
 
@@ -313,8 +313,8 @@
   max-width: 48px;
   max-height: 48px;
   border-radius: 14px;
-  background: #fff4e8;
-  color: #e8892d;
+  background: #fff1e8;
+  color: #e5660f;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -338,32 +338,32 @@
 
 .industries-card-title {
   margin: 0 0 0.55rem;
-  font-family: "SF Pro", Inter, "Urbanist", sans-serif;
-  font-weight: 600;
+  font-family: "Plus Jakarta Sans", sans-serif;
+  font-weight: 700;
   font-size: 1.2rem;
   line-height: 1.4;
-  color: #0f172b;
+  color: #0b1c30;
 }
 
 .industries-card-desc {
-  font-family: "SF Pro", Inter, "Urbanist", sans-serif;
+  font-family: "Plus Jakarta Sans", sans-serif;
   font-weight: 400;
   font-size: 0.925rem;
   line-height: 1.6;
-  color: #45556c;
+  color: #5A4138;
   margin: 0;
   padding-right: 0.5rem;
 }
 
 .industries-empty {
-  color: #64748b;
+  color: #5A4138;
   font-size: 1rem;
   margin-top: 1rem;
   text-align: center;
   padding: 2rem 1rem;
   border: 1px dashed #f8f2eb;
   border-radius: 16px;
-  background: #fffcf8;
+  background: #fffbf8;
 }
 
 @media (prefers-reduced-motion: reduce) {

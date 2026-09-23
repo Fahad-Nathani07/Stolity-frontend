@@ -14,6 +14,11 @@ import {
   getZipSuccessMessage,
 } from "../utils/zipUnzipRequest";
 import { uploadFolderViaMultipart } from "../utils/uploadFolderViaMultipart";
+import {
+  uploadOneFileDirect,
+  abortMultipartUploadDirect,
+  DIRECT_UPLOAD_GAP_MS,
+} from "../utils/uploadFileDirect";
 import { DownloadContext } from "./DownloadContext";
 import { resolveFileIconPath, normalizeFolderFilesForPreview } from "../utils/fileIcon";
 import { endUserSession } from "../utils/endUserSession";
@@ -23,7 +28,9 @@ import {
   normalizeMovePath,
   resolveNestedDropTargetPath,
 } from "../utils/movePath";
-import { buildFileStreamUrl, preloadStreamedImage } from "../utils/fileStream";
+import { preloadStreamedImage } from "../utils/fileStream";
+import { resolveMediaPlayUrl } from "../utils/mediaPlayUrl";
+import { resolveDocumentBlobUrl } from "../utils/documentPreview";
 import {
   validateItemName,
   isRenameNameTaken,
@@ -1750,7 +1757,10 @@ const isFileFavorited = (fileName) => {
     setIsProgressVisible(true);
     setImageSrc("");
     try {
-      const url = buildFileStreamUrl(apiUrl, token, filename, {
+      const url = await resolveMediaPlayUrl({
+        apiUrl,
+        token,
+        filePath: filename,
         shared: isSharedValue,
         sharedName: filenameRedux,
       });
@@ -1766,180 +1776,71 @@ const isFileFavorited = (fileName) => {
   // Audio getting function
   const getAudioInfo = async (filename) => {
     try {
-      const params = {
-        filePath: filename,
-      };
-
-      if (isSharedValue) {
-        params.shared = filenameRedux;
-      }
       setIsProgressVisible(true);
-
-      console.log("aaaa audio params", params)
-
-      const res = await axios.get(`${apiUrl}getFile`, {
-        params: params,
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
-        responseType: "arraybuffer",
+      const url = await resolveMediaPlayUrl({
+        apiUrl,
+        token,
+        filePath: filename,
+        shared: isSharedValue,
+        sharedName: filenameRedux,
       });
       setIsProgressVisible(false);
-      const fileType = res.headers["content-type"];
-      const blob = new Blob([res.data], { type: fileType });
-      const url = window.URL.createObjectURL(blob);
       setAudioSrc(url);
     } catch (error) {
+      setIsProgressVisible(false);
       console.error(error);
     }
   };
 
   // Pdf getting function
   const getPdfInfo = async (filename) => {
+    setIsProgressVisible(true);
     try {
-      const params = {
+      const url = await resolveDocumentBlobUrl({
+        apiUrl,
+        token,
         filePath: filename,
-      };
-
-      if (isSharedValue) {
-        params.shared = filenameRedux;
-      }
-      setIsProgressVisible(true);
-
-      const res = await axios.get(`${apiUrl}getFile`, {
-        params: params,
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
-        responseType: "arraybuffer",
+        shared: isSharedValue,
+        sharedName: filenameRedux,
       });
-      setIsProgressVisible(false);
-      const fileType = res.headers["content-type"];
-      const blob = new Blob([res.data], { type: fileType });
-      const url = window.URL.createObjectURL(blob);
       setPdfSrc(url);
     } catch (error) {
       console.error(error);
+      showToast?.("error", "Failed to load PDF preview");
+    } finally {
+      setIsProgressVisible(false);
     }
   };
 
-const getDocInfo = async (filename) => {
-  try {
-    console.log("getDocInfo: start ->", filename);
-    setIsProgressVisible(true);
-
-    const clearOtherViewers = () => {
-      setImageSrc("");
-      setVideoSrc("");
-      setAudioSrc("");
-      setPdfSrc("");
-    };
-
-    const applyDocStreamUrl = (filePath) => {
-      clearOtherViewers();
-      const streamingUrl = buildFileStreamUrl(apiUrl, token, filePath, {
-        shared: Boolean(isSharedValue),
-        sharedName: filenameRedux,
-      });
-      setDocSrc(streamingUrl);
-      console.log("getDocInfo: set docSrc -> (streaming) ", streamingUrl);
-    };
-
-    // Shared folders: getFileDefault only (getFile was wrong bucket/creds; images already use this)
-    if (isSharedValue) {
-      setDocSrc("");
-      applyDocStreamUrl(filename);
-      setIsProgressVisible(false);
-      return;
-    }
-
-    const params = { filePath: filename };
-
-    // Helper: map extension -> likely mime-type
-    const extToMime = {
-      doc: "application/msword",
-      docx: "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
-      ppt: "application/vnd.ms-powerpoint",
-      pptx: "application/vnd.openxmlformats-officedocument.presentationml.presentation",
-      xls: "application/vnd.ms-excel",
-      xlsx: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-      csv: "text/csv",
-      odt: "application/vnd.oasis.opendocument.text",
-      ods: "application/vnd.oasis.opendocument.spreadsheet",
-      odp: "application/vnd.oasis.opendocument.presentation",
-      pdf: "application/pdf",
-      txt: "text/plain"
-    };
-
-    // Try protected fetch (arraybuffer -> File)
+  const getDocInfo = async (filename) => {
     try {
-      const res = await axios.get(`${apiUrl}getFile`, {
-        params,
-        headers: { Authorization: `Bearer ${token}` },
-        responseType: "arraybuffer",
-      });
+      setIsProgressVisible(true);
 
-      console.log("getDocInfo: axios success, headers:", res.headers);
-
-      // compute filename to attach
-      let filenameClean = filename.split("/").pop();
-      const contentDisp = res.headers["content-disposition"];
-      if (contentDisp) {
-        const match = contentDisp.match(/filename\*?=(?:UTF-8'')?["']?([^;"']+)["']?/i);
-        if (match && match[1]) {
-          try { filenameClean = decodeURIComponent(match[1]); } catch (e) { filenameClean = match[1]; }
-        }
-      }
-
-      // Determine extension and prefer mapped mime
-      const parts = filenameClean.split(".");
-      const ext = (parts.length > 1 ? parts.pop().toLowerCase() : "");
-      const mappedMime = extToMime[ext] || null;
-      const serverMime = res.headers["content-type"] || "application/octet-stream";
-      const finalMime = mappedMime || serverMime;
-
-      // Create a File with the chosen MIME and proper filename
-      const fileObject = new File([res.data], filenameClean, { type: finalMime });
-
-      // revoke previous blob url if any
       if (docBlobRef.current && typeof docBlobRef.current === "string" && docBlobRef.current.startsWith("blob:")) {
         try { URL.revokeObjectURL(docBlobRef.current); } catch (e) { /* ignore */ }
       }
 
-      const url = window.URL.createObjectURL(fileObject);
+      const url = await resolveDocumentBlobUrl({
+        apiUrl,
+        token,
+        filePath: filename,
+        shared: isSharedValue,
+        sharedName: filenameRedux,
+      });
       docBlobRef.current = url;
 
-      // clear other viewers & set docSrc
-      clearOtherViewers();
+      setImageSrc("");
+      setVideoSrc("");
+      setAudioSrc("");
+      setPdfSrc("");
       setDocSrc(url);
-
-      console.log("getDocInfo: set docSrc -> (blob-file) ", url, " filename:", filenameClean, " chosen-mime:", finalMime);
-
-    
-
+    } catch (error) {
+      console.error("getDocInfo: final error ->", error);
+      showToast?.("error", "Failed to load document preview");
+    } finally {
       setIsProgressVisible(false);
-      return;
-    } catch (firstErr) {
-      console.warn("getDocInfo: arraybuffer->file fetch failed, will fallback to streaming URL", firstErr);
-      // continue to fallback
     }
-
-    // Fallback: streaming URL (getFileDefault)
-    try {
-      applyDocStreamUrl(filename);
-      setIsProgressVisible(false);
-      return;
-    } catch (fallbackErr) {
-      console.error("getDocInfo: streaming fallback failed", fallbackErr);
-      setIsProgressVisible(false);
-      showToast?.("error", "Failed to load document preview (fallback).");
-    }
-  } catch (error) {
-    console.error("getDocInfo: final error ->", error);
-    setIsProgressVisible(false);
-    showToast?.("error", "Failed to load document preview");
-  }
-};
+  };
 
   // Anurag View Image, Video
   const openFile = async (file) => {
@@ -1975,9 +1876,13 @@ const getDocInfo = async (filename) => {
             "This video format is not supported by your browser."
           );
         } else {
-          setIsOpen(!isOpen);
-          setVideoSrc(url);
+          setModalFile(file.fileName);
+          handleImageShow();
+          setVideoSrc(file.fileName);
           setisVideo(true);
+          if (url && String(url).startsWith("blob:")) {
+            try { URL.revokeObjectURL(url); } catch (_) { /* ignore */ }
+          }
         }
       } else if (fileType === "application/pdf") {
         // console.log("Handling pdf...");
@@ -2020,7 +1925,7 @@ const getDocInfo = async (filename) => {
 
   useEffect(() => {
     return () => {
-      if (audioSrc) {
+      if (audioSrc && String(audioSrc).startsWith("blob:")) {
         URL.revokeObjectURL(audioSrc);
       }
     };
@@ -3421,189 +3326,7 @@ useEffect(() => {
 //   }
 // };
 
-  // ================= CONFIG =================
-  // const PART_SIZE = 5 * 1024 * 1024; // 5 MB per part
-  // const PART_SIZE = 55 * 1024 * 1024; // 5 MB per part
-  const PART_SIZE = 10 * 1024 * 1024; // 5 MB per part
-  // ==========================================
-
-  // Safe URL builder to avoid duplicated 'aws' segments
-  const buildAwsUrl = (apiUrlRaw, endpointPath) => {
-    const base = apiUrlRaw.replace(/\/+$/, "");
-    const ep = endpointPath.replace(/^\/+/, "");
-    if (base.match(/\/aws(\/|$)/)) {
-      return `${base}/${ep}`;
-    }
-    return `${base}/aws/${ep}`;
-  };
-
-  // START multipart (sends basename and optional folderPath)
-  // const startMultipart = async (fileName, folderPath) => {
-  //   const url = buildAwsUrl(apiUrl, "start-multipart-upload");
-  //   const basename = fileName.replace(/^.*[\\/]/, "");
-  //   // const payload = folderPath ? { fileName: basename, folderPath, ACL: "public", } : { fileName: basename, ACL: "public", };
-  //   const payload = folderPath ? { fileName: basename, folderPath, targetVisibility: "public", } : { fileName: basename, targetVisibility: "public", ACL: "public", acl: "public", };
-  //   const resp = await axios.post(url, payload, {
-  //     headers: {
-  //       Authorization: `Bearer ${token}`,
-  //       "Content-Type": "application/json",
-  //     },
-  //   });
-  //   return resp.data;
-  // };
-  const startMultipart = async (fileName, folderPath) => {
-  const url = buildAwsUrl(apiUrl, "start-multipart-upload");
-  const basename = fileName.replace(/^.*[\\/]/, "");
-  
-  // Shared folder handling (matching createJustFolder logic)
-  let adjustedFolderPath = folderPath;
-  let params = {};
-  
- if (isSharedValue) {
-  const relativePath = folderPath
-    .replace(new RegExp(`^${filenameRedux}(/|$)`), "") // ✅ FIXED
-    .replace(/\/$/, "")
-    .replace(/\/+/g, "/");
-
-  adjustedFolderPath = relativePath || "";
-  params.shared = filenameRedux;
-
-  console.log("relativePathrelativePath folderPath", folderPath);
-  console.log("relativePathrelativePath", relativePath);
-}
-  
-  const payload = adjustedFolderPath ? { 
-    fileName: basename, 
-    folderPath: adjustedFolderPath,   // ← Now relative in shared mode
-    visibility: pubpri, 
-  } : { 
-    fileName: basename, 
-    visibility: pubpri, 
-  };
-  
-  const resp = await axios.post(url, payload, {
-    headers: {
-      Authorization: `Bearer ${token}`,
-      "Content-Type": "application/json",
-    },
-    params,  // ← Adds ?shared=infomanav.in in shared mode
-  });
-  
-  return resp.data;
-};
-
-  /**
-   * uploadPart now accepts an optional `signal` (from AbortController).
-   * axios supports the `signal` option which will abort the request if controller.abort() is called.
-   */
-  // const uploadPart = async ({ partNumber, uploadId, key, chunk, fileType, signal }) => {
-  //   const encodedKey = encodeURIComponent(key);
-  //   const url = buildAwsUrl(apiUrl, `upload-part?partNumber=${partNumber}&uploadId=${encodeURIComponent(uploadId)}&key=${encodedKey}`);
-
-  //   // POST binary chunk (change to PUT if backend expects PUT)
-  //   const resp = await axios.post(url, chunk, {
-  //     headers: {
-  //       Authorization: `Bearer ${token}`,
-  //       "Content-Type": fileType || "application/octet-stream",
-  //     },
-  //     signal, // <-- wire AbortController.signal here
-  //     maxContentLength: Infinity,
-  //     maxBodyLength: Infinity,
-  //   });
-
-  //   const etag =
-  //     (resp.headers && (resp.headers.etag || resp.headers.ETag)) ||
-  //     (resp.data && (resp.data.ETag || resp.data.etag)) ||
-  //     null;
-
-  //   return { etag, resp };
-  // };
-
-  const uploadPart = async ({ partNumber, uploadId, key, chunk, fileType, signal }) => {
-  const encodedKey = encodeURIComponent(key);
-  const url = buildAwsUrl(
-    apiUrl,
-    `upload-part?partNumber=${partNumber}&uploadId=${encodeURIComponent(uploadId)}&key=${encodedKey}`
-  );
-
-  try {
-    // console.log("bbbbb axios upload START", 
-    //   {
-    //   partNumber,
-    //   chunkSize: chunk?.size ?? chunk?.byteLength,
-    //   isAborted: signal?.aborted,
-    // });
-
-    const resp = await axios.post(url, chunk, {
-      headers: {
-        Authorization: `Bearer ${token}`,
-        "Content-Type": fileType || "application/octet-stream",
-      },
-      signal,
-      maxContentLength: Infinity,
-      maxBodyLength: Infinity,
-    });
-
-    // console.log("bbbbb axios upload SUCCESS");
-    // console.log("bbbbb response status:", resp.status);
-    // console.log("bbbbb response headers:", resp.headers);
-    // console.log("bbbbb response data:", resp.data);
-
-    const etag =
-      (resp.headers && (resp.headers.etag || resp.headers.ETag)) ||
-      (resp.data && (resp.data.ETag || resp.data.etag)) ||
-      null;
-
-    // console.log("bbbbb extracted ETag:", etag);
-
-    return { etag, resp };
-  } catch (error) {
-    // console.error("bbbbb axios upload FAILED");
-    // console.error("bbbbb partNumber:", partNumber);
-    // console.error("bbbbb chunk size (bytes):", chunk?.size ?? chunk?.byteLength);
-    // console.error("bbbbb error message:", error?.message);
-    // console.error("bbbbb error response:", error?.response);
-    // console.error("bbbbb error response data:", error?.response?.data);
-    // console.error("bbbbb error response status:", error?.response?.status);
-
-    throw error;
-  }
-};
-
-  const completeMultipart = async ({ key, uploadId, parts }) => {
-    const url = buildAwsUrl(apiUrl, "complete-multipart-upload");
-    const resp = await axios.post(
-      url,
-      { key, uploadId, parts },
-      {
-        headers: {
-          Authorization: `Bearer ${token}`,
-          "Content-Type": "application/json",
-        },
-      }
-    );
-
-    // setTriggerDataSize((x) => x + 1)
-    return resp.data;
-  };
-
-  const abortMultipart = async ({ key, uploadId }) => {
-    const url = buildAwsUrl(apiUrl, "abort-multipart-upload");
-    try {
-      await axios.post(
-        url,
-        { key, uploadId },
-        {
-          headers: {
-            Authorization: `Bearer ${token}`,
-            "Content-Type": "application/json",
-          },
-        }
-      );
-    } catch (e) {
-      console.error("Abort multipart failed", e);
-    }
-  };
+  // ================= Direct Spaces upload (<100MB PUT, else multipart) =================
 
   // -------------------- Updated handleFileUpload --------------------
 
@@ -3692,7 +3415,7 @@ useEffect(() => {
       });
 
       // Sequential upload: one file at a time (0.9s gap between files to avoid rate limits)
-      const MULTI_UPLOAD_GAP_MS = 900;
+      const MULTI_UPLOAD_GAP_MS = DIRECT_UPLOAD_GAP_MS;
       const delay = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
       const results = [];
       let batchCanceled = false;
@@ -3737,57 +3460,8 @@ useEffect(() => {
         try {
           const cleanPath = (path || "").replace(/^\/+|\/+$/g, "");
           const basename = sanitizedName.replace(/^.*[\\/]/, "");
+          const sharedRoot = isSharedValue ? filenameRedux : undefined;
 
-          // 1) Start multipart upload
-          let startResp;
-          try {
-            startResp = await startMultipart(basename, cleanPath || undefined);
-          } catch (err) {
-            console.log("Removing upload due to error:", uploadUiId); // Log removeUpload
-            removeUpload(uploadUiId);
-            results.push({ status: "rejected", reason: err });
-            if (i < uploadEntries.length - 1 && getUpload?.(uploadEntries[i + 1]?.uploadUiId)) {
-              await delay(MULTI_UPLOAD_GAP_MS);
-            }
-            continue;
-          }
-
-          if (!getUpload?.(uploadUiId)) {
-            try {
-              const keyEarly = startResp.key || startResp.data?.key;
-              const uploadIdEarly = startResp.uploadId || startResp.data?.uploadId;
-              if (keyEarly && uploadIdEarly) {
-                await abortMultipart({ key: keyEarly, uploadId: uploadIdEarly });
-              }
-            } catch { }
-            results.push({ status: "fulfilled", value: "canceled" });
-            const anyLeft = uploadEntries
-              .slice(i + 1)
-              .some((e) => getUpload?.(e.uploadUiId));
-            if (!anyLeft) {
-              for (let j = i + 1; j < uploadEntries.length; j++) {
-                results.push({ status: "fulfilled", value: "canceled" });
-              }
-              batchCanceled = true;
-              break;
-            }
-            continue;
-          }
-
-          const key = startResp.key || startResp.data?.key;
-          const uploadId = startResp.uploadId || startResp.data?.uploadId;
-
-          if (!key || !uploadId) {
-            console.log("Removing upload due to invalid response:", uploadUiId); // Log removeUpload
-            removeUpload(uploadUiId);
-            results.push({ status: "rejected", reason: new Error("Invalid start-multipart response") });
-            if (i < uploadEntries.length - 1 && getUpload?.(uploadEntries[i + 1]?.uploadUiId)) {
-              await delay(MULTI_UPLOAD_GAP_MS);
-            }
-            continue;
-          }
-
-          // Never reuse an aborted controller (pause may have aborted the original)
           const ctxController = getUpload?.(uploadUiId)?.controller;
           const liveController =
             ctxController && !ctxController.signal?.aborted
@@ -3797,141 +3471,94 @@ useEffect(() => {
                 : typeof AbortController !== "undefined"
                   ? new AbortController()
                   : null;
-          updateUploadMeta(uploadUiId, {
-            key,
-            uploadId,
-            controller: liveController,
-            currentPart: 1,
-          });
+          updateUploadMeta(uploadUiId, { controller: liveController });
 
-          // 2) Upload parts sequentially
-          const totalSize = file.size;
-          const partSize = PART_SIZE;
-          const partsCount = Math.ceil(totalSize / partSize);
-          const partsArray = [];
-          let partFailed = false;
+          let activeKey = null;
+          let activeUploadId = null;
+          let activeMode = null;
 
-          for (let pi = 0; pi < partsCount; pi++) {
-            if (!getUpload?.(uploadUiId) && !(isPausing?.(uploadUiId))) {
-              try {
-                await abortMultipart({ key, uploadId });
-              } catch { }
-              results.push({ status: "fulfilled", value: "canceled" });
-              partFailed = true;
-              batchCanceled = true;
-              break;
-            }
-
-            const start = pi * partSize;
-            const end = Math.min(start + partSize, totalSize);
-            const chunk = file.slice(start, end);
-            const partNumber = pi + 1;
-
-            try {
-              const currentController =
-                (getUpload && getUpload(uploadUiId) && getUpload(uploadUiId).controller)
-                  ? getUpload(uploadUiId).controller
-                  : controller;
-
-              const { etag } = await uploadPart({
-                partNumber,
-                uploadId,
-                key,
-                chunk,
-                fileType: file.type,
-                signal: currentController ? currentController.signal : undefined,
-              });
-
-              if (!etag) throw new Error("No ETag returned for uploaded part");
-
-              partsArray.push({
-                ETag: etag,
-                PartNumber: partNumber,
-              });
-
-              const uploadedBytes = end;
-              const progress = Math.round((uploadedBytes * 100) / totalSize);
-              console.log("Updating progress:", uploadUiId, progress); // Log updateUploadProgress
-              updateUploadProgress(uploadUiId, progress);
-              updateUploadMeta(uploadUiId, { currentPart: partNumber + 1 });
-            } catch (err) {
-              const isCanceled =
-                err &&
+          try {
+            await uploadOneFileDirect({
+              apiUrl,
+              token,
+              file,
+              fileName: basename,
+              folderPath: cleanPath || undefined,
+              visibility: pubpri,
+              shared: sharedRoot,
+              getSignal: () => getUpload?.(uploadUiId)?.controller?.signal,
+              onProgress: (pct) => updateUploadProgress(uploadUiId, pct),
+              onMeta: ({ key, uploadId, mode, needsNewController }) => {
+                activeKey = key;
+                activeUploadId = uploadId;
+                if (mode) activeMode = mode;
+                let nextController =
+                  getUpload?.(uploadUiId)?.controller || liveController;
+                if (
+                  needsNewController ||
+                  nextController?.signal?.aborted
+                ) {
+                  nextController =
+                    typeof AbortController !== "undefined"
+                      ? new AbortController()
+                      : nextController;
+                }
+                updateUploadMeta(uploadUiId, {
+                  key,
+                  uploadId,
+                  mode,
+                  controller: nextController,
+                });
+              },
+              shouldAbort: () =>
+                !getUpload?.(uploadUiId) && !isPausing?.(uploadUiId),
+              waitIfPaused: () => waitUntilResumed(uploadUiId),
+            });
+            updateUploadProgress(uploadUiId, 100);
+            results.push({ status: "fulfilled", value: "success" });
+          } catch (err) {
+            const canceled =
+              err?.name === "UploadCanceled" ||
+              err?.message === "upload-removed" ||
+              (err &&
                 (err.name === "CanceledError" ||
                   err.code === "ERR_CANCELED" ||
                   /canceled/i.test(err.message || "") ||
-                  /abort/i.test(err.message || ""));
+                  /abort/i.test(err.message || "")));
 
-              if (isCanceled) {
-                const maybeUpload = getUpload ? getUpload(uploadUiId) : null;
-                const pausingIntent = isPausing ? isPausing(uploadUiId) : false;
-
-                if ((maybeUpload && maybeUpload.paused) || pausingIntent) {
-                  try {
-                    await waitUntilResumed(uploadUiId);
-                    pi = pi - 1; // retry same part after resume
-                    continue;
-                  } catch {
-                    try {
-                      await abortMultipart({ key, uploadId });
-                    } catch { }
-                    console.log("Removing upload due to cancel:", uploadUiId); // Log removeUpload
-                    removeUpload(uploadUiId);
-                    results.push({ status: "fulfilled", value: "canceled" });
-                    partFailed = true;
-                    break;
-                  }
-                }
-
-                try {
-                  await abortMultipart({ key, uploadId });
-                } catch { }
-                removeUpload(uploadUiId);
-                results.push({ status: "fulfilled", value: "canceled" });
-                partFailed = true;
-                batchCanceled = true;
-                break;
+            if (canceled) {
+              if (activeKey && activeUploadId) {
+                await abortMultipartUploadDirect({
+                  apiUrl,
+                  token,
+                  key: activeKey,
+                  uploadId: activeUploadId,
+                  shared: sharedRoot,
+                  mode: activeMode,
+                });
               }
-
-              try {
-                await abortMultipart({ key, uploadId });
-              } catch { }
-
-              console.log("Removing upload due to error:", uploadUiId); // Log removeUpload
               removeUpload(uploadUiId);
-              results.push({ status: "rejected", reason: err });
-              partFailed = true;
-              break;
-            }
-          }
-
-          if (batchCanceled) {
-            for (let j = i + 1; j < uploadEntries.length; j++) {
               results.push({ status: "fulfilled", value: "canceled" });
-            }
-            break;
-          }
-
-          if (!partFailed) {
-            // 3) Complete multipart upload
-            try {
-              await completeMultipart({ key, uploadId, parts: partsArray });
-              updateUploadProgress(uploadUiId, 100);
-              results.push({ status: "fulfilled", value: "success" });
-            } catch (err) {
-              try {
-                await abortMultipart({ key, uploadId });
-              } catch { }
-              console.log("Removing upload due to error:", uploadUiId); // Log removeUpload
+              const anyLeft = uploadEntries
+                .slice(i + 1)
+                .some((e) => getUpload?.(e.uploadUiId));
+              if (!anyLeft) {
+                batchCanceled = true;
+                for (let j = i + 1; j < uploadEntries.length; j++) {
+                  results.push({ status: "fulfilled", value: "canceled" });
+                }
+              }
+            } else {
               removeUpload(uploadUiId);
               results.push({ status: "rejected", reason: err });
             }
           }
+
+          if (batchCanceled) break;
         } catch (err) {
           results.push({ status: "rejected", reason: err });
         }
 
-        // Wait before next file's start-multipart-upload (avoids "Too many calls")
         if (
           i < uploadEntries.length - 1 &&
           getUpload?.(uploadEntries[i + 1]?.uploadUiId)

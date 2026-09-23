@@ -13,7 +13,7 @@ import { FaArrowsRotate } from "react-icons/fa6";
 import { RiDeleteBinFill } from "react-icons/ri";
 import VideoPlayer from "../components/VideoPlayer";
 import ImageZoomViewer from "../components/ImageZoomViewer";
-import { buildVideoStreamUrl } from "../utils/videoPlayer";
+import { resolveVideoPlayUrl } from "../utils/videoPlayer";
 // import DocViewer, { DocViewerRenderers } from '@cyntler/react-doc-viewer';
 import * as mammoth from "mammoth";
 // import * as XLSX from "xlsx";
@@ -95,7 +95,8 @@ export default function CustomFileModal({
   const [renderError, setRenderError] = useState("");
   const pptxMountRef = useRef(null);
   const [imageZoom, setImageZoom] = useState(1);    // stable mount for pptx-preview
-  
+  const [resolvedVideoUrl, setResolvedVideoUrl] = useState("");
+  const [videoUrlLoading, setVideoUrlLoading] = useState(false);
 
 useEffect(()=>{
   console.log("modalFile123456",modalFile)
@@ -106,6 +107,39 @@ useEffect(()=>{
 useEffect(() => {
   setImageZoom(1);
 }, [imageSrc]);
+
+useEffect(() => {
+  if (!videoSrc || !apiUrl || !token) {
+    setResolvedVideoUrl("");
+    setVideoUrlLoading(false);
+    return undefined;
+  }
+  let cancelled = false;
+  const controller =
+    typeof AbortController !== "undefined" ? new AbortController() : null;
+  setVideoUrlLoading(true);
+  setResolvedVideoUrl("");
+  resolveVideoPlayUrl(apiUrl, token, videoSrc, {
+    shared: isSharedValue,
+    sharedName: filenameRedux,
+    signal: controller?.signal,
+  })
+    .then((url) => {
+      if (!cancelled) setResolvedVideoUrl(url);
+    })
+    .catch((err) => {
+      if (!cancelled && err?.name !== "AbortError") {
+        console.error("Video play URL failed", err);
+      }
+    })
+    .finally(() => {
+      if (!cancelled) setVideoUrlLoading(false);
+    });
+  return () => {
+    cancelled = true;
+    controller?.abort?.();
+  };
+}, [videoSrc, apiUrl, token, isSharedValue, filenameRedux]);
 
 useEffect(() => {
   console.log("ddddd CustomFileModal props:", {
@@ -199,7 +233,11 @@ useEffect(() => {
       try {
         const XLSX = await import("xlsx");
         console.log("CustomFileModal: fetching docSrc ->", docSrc);
-        const resp = await fetch(docSrc, { method: "GET", credentials: "same-origin" });
+        const resp = await fetch(docSrc, {
+          method: "GET",
+          mode: "cors",
+          credentials: "omit",
+        });
         console.log("Fetch status:", resp.status);
         if (!resp.ok) throw new Error(`Failed to fetch docSrc: ${resp.status}`);
         const arrayBuffer = await resp.arrayBuffer();
@@ -874,18 +912,15 @@ const handleMove = async (selectedOption) => {
           >
             <IoChevronForward />
           </button>
-        {isProgressVisible ? (
+        {isProgressVisible || (videoSrc && videoUrlLoading) ? (
           <div className="cfm-loader">
             <DualRingMark size={44} />
           </div>
-        ) : videoSrc ? (
+        ) : videoSrc && resolvedVideoUrl ? (
           <VideoPlayer
-            key={videoSrc}
+            key={resolvedVideoUrl}
             fitToFrame
-            url={buildVideoStreamUrl(apiUrl, token, videoSrc, {
-              shared: isSharedValue,
-              sharedName: filenameRedux,
-            })}
+            url={resolvedVideoUrl}
             fileName={fileName || videoSrc}
           />
         ) : pdfSrc ? (

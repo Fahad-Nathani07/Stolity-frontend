@@ -4,6 +4,7 @@ import ScrollReveal from "../components/ScrollReveal";
 import PreloginHeader from "../components/PreloginHeader";
 import { getIndustryDetail } from "../data/industries";
 import "./prelogin.css";
+import "./homeTheme.css";
 import "./industryDetail.css";
 
 const BadgeHeartIcon = () => (
