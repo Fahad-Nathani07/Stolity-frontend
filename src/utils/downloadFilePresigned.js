@@ -4,6 +4,7 @@ import {
   DISK_STREAM_THRESHOLD_BYTES,
   triggerNativeUrlDownload,
 } from "./downloadWithProgress";
+import { queueActivityStatus } from "./activityReport";
 
 /** Small files: a few at once. Large files: only 1 (fetch + save). */
 const MULTI_DOWNLOAD_CONCURRENCY = 3;
@@ -300,6 +301,7 @@ async function fetchFileResponse({
             sizeBytes,
             mode: "presigned",
             heldLargeSlot,
+            activityEventId: meta.activityEventId || null,
           };
         } catch (err) {
           if (isAbortLike(err)) throw err;
@@ -339,6 +341,7 @@ async function fetchFileResponse({
       sizeBytes,
       mode: "proxy",
       heldLargeSlot,
+      activityEventId: meta?.activityEventId || null,
     };
   } catch (err) {
     if (heldLargeSlot) releaseLargeSlot();
@@ -408,13 +411,17 @@ export async function downloadFileNativeBrowser({
   const name = meta.fileName || baseFileName(filePath);
   triggerNativeUrlDownload(meta.url, name);
 
-  if (typeof onProgress === "function") onProgress(100);
+  // Do not report 100% — browser is still downloading; app cannot confirm finish.
+  if (typeof onProgress === "function") onProgress(1);
 
+  // Native browser download: leave status REQUESTED (cannot confirm completion).
   return {
     mode: "native",
     filePath,
     handedToBrowser: true,
     fileName: name,
+    activityEventId: meta.activityEventId || null,
+    downloadStatus: "REQUESTED",
   };
 }
 
@@ -455,6 +462,16 @@ export async function downloadFilePresigned({
     estimatedBytes,
   });
 
+  const eventId = fetched.activityEventId || null;
+  if (eventId) {
+    queueActivityStatus({
+      apiUrl,
+      token,
+      eventId,
+      status: "STARTED",
+    });
+  }
+
   try {
     const name = saveAsName || fetched.fileName || baseFileName(filePath);
     await writeResponseToDirectory({
@@ -464,12 +481,34 @@ export async function downloadFilePresigned({
       onProgress,
       signal,
     });
+    if (eventId) {
+      queueActivityStatus({
+        apiUrl,
+        token,
+        eventId,
+        status: "COMPLETED",
+      });
+    }
     return {
       mode: fetched.mode === "proxy" ? "proxy-dir" : "presigned-dir",
       filePath,
       handedToBrowser: false,
       fileName: name,
+      activityEventId: eventId,
+      downloadStatus: "COMPLETED",
     };
+  } catch (err) {
+    if (eventId) {
+      const cancelled = isDownloadCancelledError(err) || err?.name === "AbortError";
+      queueActivityStatus({
+        apiUrl,
+        token,
+        eventId,
+        status: cancelled ? "CANCELLED" : "FAILED",
+        errorMessage: err?.message,
+      });
+    }
+    throw err;
   } finally {
     if (fetched.heldLargeSlot) releaseLargeSlot();
   }
@@ -616,6 +655,7 @@ export async function fetchFolderEntryResponse({
           mode: "presigned",
           heldLargeSlot,
           releaseLargeSlot: release,
+          activityEventId: entry?.activityEventId || null,
         };
       } catch (err) {
         if (isAbortLike(err)) throw err;
@@ -643,6 +683,7 @@ export async function fetchFolderEntryResponse({
       mode: "proxy",
       heldLargeSlot,
       releaseLargeSlot: release,
+      activityEventId: entry?.activityEventId || null,
     };
   } catch (err) {
     release();

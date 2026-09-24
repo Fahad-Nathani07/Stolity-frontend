@@ -4,7 +4,7 @@
  * Images: public/images/industries/law-firms/
  *   hero.png
  *   why-choose-bg.jpg
- *   why-card-1.png … why-card-5.png
+ *   (why cards are coded — only `label` / `icon` in data)
  *   document-management.jpg
  *   vault-protection.png
  *   team-collaboration.jpg
@@ -39,26 +39,11 @@ const lawFirms = {
     subtitle: "Built specifically for your industry workflows",
     backgroundImage: "/images/industries/law-firms/why-choose-bg.jpg",
     cards: [
-      {
-        label: "Protect Important Case Files",
-        image: "/images/industries/law-firms/why-card-1.png",
-      },
-      {
-        label: "Control File Access",
-        image: "/images/industries/law-firms/why-card-2.png",
-      },
-      {
-        label: "Share Files Securely",
-        image: "/images/industries/law-firms/why-card-3.png",
-      },
-      {
-        label: "Work Together Easily",
-        image: "/images/industries/law-firms/why-card-4.png",
-      },
-      {
-        label: "Keep Client Information Private",
-        image: "/images/industries/law-firms/why-card-5.png",
-      },
+      { label: "Protect Important Case Files", icon: "lock" },
+      { label: "Control File Access", icon: "search-file" },
+      { label: "Share Files Securely", icon: "users" },
+      { label: "Work Together Easily", icon: "cloud-upload" },
+      { label: "Keep Client Information Private", icon: "cabinet" },
     ],
   },
 
@@ -114,30 +99,12 @@ const lawFirms = {
     testimonialImage: "/images/industries/law-firms/everything-testimonial.png",
     ratingImage: "/images/industries/law-firms/everything-rating.png",
     features: [
-      {
-        label: "Black Hole Vault",
-        image: "/images/industries/law-firms/everything-feature-1.png",
-      },
-      {
-        label: "Access Control",
-        image: "/images/industries/law-firms/everything-feature-2.png",
-      },
-      {
-        label: "Time-Limited Sharing",
-        image: "/images/industries/law-firms/everything-feature-3.png",
-      },
-      {
-        label: "File Compression",
-        image: "/images/industries/law-firms/everything-feature-4.png",
-      },
-      {
-        label: "Secure Links",
-        image: "/images/industries/law-firms/everything-feature-5.png",
-      },
-      {
-        label: "ZIP & UnZIP Files",
-        image: "/images/industries/law-firms/everything-feature-6.png",
-      },
+      { label: "Black Hole Vault", icon: "lock" },
+      { label: "Encrypted Storage", icon: "lock" },
+      { label: "Access Control", icon: "activity" },
+      { label: "File Compression", icon: "archive" },
+      { label: "Secure Links", icon: "share" },
+      { label: "ZIP & UnZIP Files", icon: "file-check" },
     ],
   },
 

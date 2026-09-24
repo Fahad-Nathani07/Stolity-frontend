@@ -34,7 +34,7 @@ import {
   FOLDER_EXISTS_MESSAGE,
 } from "../utils/validateItemName";
 import { getApiErrorMessage } from "../utils/handleS3CopyError";
-import { streamDownloadResponse, ensureDownloadWritable, estimateDownloadBytes, isDownloadCancelledError, scheduleDownloadRemoval, toastBatchDownloadSummary } from "../utils/downloadWithProgress";
+import { streamDownloadResponse, ensureDownloadWritable, estimateDownloadBytes, isDownloadCancelledError, scheduleDownloadRemoval, toastBatchDownloadSummary, NATIVE_BROWSER_DOWNLOAD_TOAST } from "../utils/downloadWithProgress";
 import { downloadFolderNoZip, downloadMultipleFoldersToDirectory } from "../utils/downloadFolderNoZip";
 import { downloadFileNativeBrowser, downloadMultipleFilesToDirectory, ensureSaveDirectory } from "../utils/downloadFilePresigned";
 import FileInfoModal from "../components/FileInfoModal";
@@ -1207,6 +1207,7 @@ function debounce(fn, delay) {
       let succeeded = 0;
       let cancelled = 0;
       let failed = 0;
+      let nativeHandedOff = false;
 
       // Folder pick only when multi-file Direct Stream and/or folders need it.
       // Single file uses Native Browser Download (no picker).
@@ -1252,8 +1253,11 @@ function debounce(fn, delay) {
               updateDownloadProgress(item.downloadId, percent);
             },
           });
-          updateDownloadProgress(item.downloadId, 100);
+          nativeHandedOff = true;
           succeeded += 1;
+          scheduleDownloadRemoval(removeDownload, item.downloadId, {
+            delayMs: 0,
+          });
         } catch (err) {
           if (isDownloadCancelledError(err)) cancelled += 1;
           else failed += 1;
@@ -1377,6 +1381,7 @@ function debounce(fn, delay) {
         succeeded,
         cancelled,
         failed,
+        nativeHandedOff,
       });
       cleanupProgress();
     } catch (err) {
@@ -2890,6 +2895,7 @@ const handleConfirmDownload = async () => {
     const downloadId = Date.now();
     const abortController = new AbortController();
     let succeeded = false;
+    let handedToBrowser = false;
 
     addDownload(downloadId, fileName, abortController, isFolder);
     setDownloadpopup(false);
@@ -2907,6 +2913,9 @@ const handleConfirmDownload = async () => {
             updateDownloadProgress(downloadId, percent);
           },
         });
+        succeeded = true;
+        setProgress(100);
+        updateDownloadProgress(downloadId, 100);
       } else {
         await downloadFileNativeBrowser({
           apiUrl,
@@ -2918,11 +2927,10 @@ const handleConfirmDownload = async () => {
             updateDownloadProgress(downloadId, percent);
           },
         });
+        succeeded = true;
+        handedToBrowser = true;
+        showToast("info", NATIVE_BROWSER_DOWNLOAD_TOAST);
       }
-
-      succeeded = true;
-      setProgress(100);
-      updateDownloadProgress(downloadId, 100);
     } catch (error) {
       if (isDownloadCancelledError(error)) {
         console.warn("Download canceled by user");
@@ -2934,7 +2942,7 @@ const handleConfirmDownload = async () => {
     } finally {
       isSetLoading(false);
       scheduleDownloadRemoval(removeDownload, downloadId, {
-        delayMs: succeeded ? 500 : 0,
+        delayMs: succeeded && !handedToBrowser ? 500 : 0,
       });
 
       // Batch remainder: files use download-file-url; folders try no-zip then zip

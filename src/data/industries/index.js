@@ -10,10 +10,30 @@
  */
 import lawFirms from "./law-firms";
 import hospitals from "./hospitals";
+import accountingFirms from "./accounting-firms";
+import marketingAgencies from "./marketing-agencies";
+import itServices from "./it-services";
+import consultingFirms from "./consulting-firms";
+import hrAgencies from "./hr-agencies";
+import clinics from "./clinics";
+import diagnosticCenters from "./diagnostic-centers";
+import medicalLabs from "./medical-labs";
+import wellnessCenters from "./wellness-centers";
+import constructionCompanies from "./construction-companies";
 
 export const industryDetails = {
   [lawFirms.slug]: lawFirms,
   [hospitals.slug]: hospitals,
+  [accountingFirms.slug]: accountingFirms,
+  [marketingAgencies.slug]: marketingAgencies,
+  [itServices.slug]: itServices,
+  [consultingFirms.slug]: consultingFirms,
+  [hrAgencies.slug]: hrAgencies,
+  [clinics.slug]: clinics,
+  [diagnosticCenters.slug]: diagnosticCenters,
+  [medicalLabs.slug]: medicalLabs,
+  [wellnessCenters.slug]: wellnessCenters,
+  [constructionCompanies.slug]: constructionCompanies,
 };
 
 export const getIndustryDetail = (slug) => industryDetails[slug] || null;

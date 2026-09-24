@@ -31,6 +31,7 @@ import {
   ensureDownloadWritable,
   isDownloadCancelledError,
   scheduleDownloadRemoval,
+  NATIVE_BROWSER_DOWNLOAD_TOAST,
 } from "../utils/downloadWithProgress";
 import { downloadFileNativeBrowser } from "../utils/downloadFilePresigned";
 import { Prism as SyntaxHighlighter } from "react-syntax-highlighter";
@@ -1555,6 +1556,7 @@ const DefaultFolder = () => {
     const downloadId = Date.now();
     const abortController = new AbortController();
     let succeeded = false;
+    let handedToBrowser = false;
 
     addDownload(downloadId, fileName, abortController, isFolder);
     setDownloadpopup(false);
@@ -1590,6 +1592,9 @@ const DefaultFolder = () => {
             updateDownloadProgress(downloadId, percent);
           },
         });
+        succeeded = true;
+        setProgress(100);
+        updateDownloadProgress(downloadId, 100);
       } else {
         await downloadFileNativeBrowser({
           apiUrl,
@@ -1601,22 +1606,25 @@ const DefaultFolder = () => {
             updateDownloadProgress(downloadId, percent);
           },
         });
+        succeeded = true;
+        handedToBrowser = true;
+        showToast("info", NATIVE_BROWSER_DOWNLOAD_TOAST);
       }
-
-      succeeded = true;
-      setProgress(100);
-      updateDownloadProgress(downloadId, 100);
     } catch (error) {
       if (isDownloadCancelledError(error)) {
         console.warn("Download canceled by user");
+        showToast("info", "Download cancelled.");
       } else {
         console.error("Download error:", error);
-        alert(error.message || "Error downloading file. Please try again.");
+        showToast(
+          "error",
+          error.message || "Error downloading file. Please try again."
+        );
       }
     } finally {
       isSetLoading(false);
       scheduleDownloadRemoval(removeDownload, downloadId, {
-        delayMs: succeeded ? 500 : 0,
+        delayMs: succeeded && !handedToBrowser ? 500 : 0,
       });
     }
   };

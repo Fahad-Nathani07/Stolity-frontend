@@ -27,6 +27,85 @@ const PlayIcon = () => (
   </svg>
 );
 
+const WHY_CARD_ICONS = {
+  lock: (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+      <rect x="5" y="11" width="14" height="10" rx="2" />
+      <path d="M8 11V8a4 4 0 0 1 8 0v3" />
+    </svg>
+  ),
+  "search-file": (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+      <path d="M8 3h6l4 4v14H8a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2z" />
+      <path d="M14 3v4h4" />
+      <circle cx="12" cy="14" r="3" />
+      <path d="M14.2 16.2L16.5 18.5" />
+    </svg>
+  ),
+  users: (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+      <circle cx="9" cy="8" r="3" />
+      <circle cx="16" cy="9" r="2.5" />
+      <path d="M3.5 19c.8-3 2.8-4.5 5.5-4.5S14 16 14.8 19" />
+      <path d="M14 14.5c1.6-.4 3.2 0 4.5 1.5.7.8 1.2 1.8 1.5 3" />
+    </svg>
+  ),
+  "cloud-upload": (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+      <path d="M7 18a4.5 4.5 0 0 1 .4-9 5.5 5.5 0 0 1 10.6 1.5A3.5 3.5 0 0 1 18 18H7z" />
+      <path d="M12 15V9" />
+      <path d="M9.5 11.5L12 9l2.5 2.5" />
+    </svg>
+  ),
+  cabinet: (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+      <rect x="4" y="3" width="16" height="18" rx="2" />
+      <path d="M4 12h16" />
+      <path d="M10 7.5h4" />
+      <path d="M10 16.5h4" />
+    </svg>
+  ),
+};
+
+const DEFAULT_WHY_ICONS = ["lock", "search-file", "users", "cloud-upload", "cabinet"];
+
+const EVERYTHING_FEATURE_ICONS = {
+  lock: (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+      <rect x="5" y="11" width="14" height="10" rx="2" />
+      <path d="M8 11V8a4 4 0 0 1 8 0v3" />
+    </svg>
+  ),
+  activity: (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+      <path d="M3 12h4l2.5-6 4 12L16 12h5" />
+    </svg>
+  ),
+  archive: (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+      <rect x="3" y="4" width="18" height="4" rx="1" />
+      <path d="M5 8v10a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8" />
+      <path d="M10 13h4" />
+    </svg>
+  ),
+  share: (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+      <path d="M4 14v4a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-4" />
+      <path d="M12 4v12" />
+      <path d="M8 8l4-4 4 4" />
+    </svg>
+  ),
+  "file-check": (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+      <path d="M8 3h6l4 4v14H8a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2z" />
+      <path d="M14 3v4h4" />
+      <path d="M9 15l2 2 4-4" />
+    </svg>
+  ),
+};
+
+const DEFAULT_EVERYTHING_ICONS = ["lock", "lock", "activity", "archive", "share", "file-check"];
+
 const IndustryDetail = () => {
   const navigate = useNavigate();
   const { slug } = useParams();
@@ -236,18 +315,30 @@ const IndustryDetail = () => {
                   <h2 className="industry-why-title">{whyChoose.title}</h2>
                   <p className="industry-why-subtitle">{whyChoose.subtitle}</p>
                   <div className="industry-why-cards">
-                    {whyChoose.cards.map((card, index) => (
-                      <article
-                        key={card.label}
-                        className={`industry-why-card industry-why-card--${index + 1}`}
-                      >
-                        <img
-                          src={card.image}
-                          alt={card.label}
-                          className="industry-why-card-img"
-                        />
-                      </article>
-                    ))}
+                    {whyChoose.cards.map((card, index) => {
+                      const iconKey = card.icon || DEFAULT_WHY_ICONS[index] || "lock";
+                      const cardNum = index + 1;
+                      return (
+                        <article
+                          key={card.label}
+                          className={`industry-why-card industry-why-card--${cardNum}`}
+                        >
+                          <div
+                            className="industry-why-card-decor"
+                            aria-hidden="true"
+                            style={{
+                              backgroundImage: `url(/images/industries/why-cards/decor-${cardNum}.png)`,
+                            }}
+                          />
+                          <div className="industry-why-card-body">
+                            <span className="industry-why-card-icon">
+                              {WHY_CARD_ICONS[iconKey] || WHY_CARD_ICONS.lock}
+                            </span>
+                            <p className="industry-why-card-label">{card.label}</p>
+                          </div>
+                        </article>
+                      );
+                    })}
                   </div>
                 </div>
               </div>
@@ -346,15 +437,17 @@ const IndustryDetail = () => {
                   </div>
                 </div>
                 <div className="industry-everything-features">
-                  {everythingYouNeed.features.map((item) => (
-                    <div key={item.label} className="industry-everything-feature">
-                      <img
-                        src={item.image}
-                        alt={item.label}
-                        className="industry-everything-feature-img"
-                      />
-                    </div>
-                  ))}
+                  {everythingYouNeed.features.map((item, index) => {
+                    const iconKey = item.icon || DEFAULT_EVERYTHING_ICONS[index] || "lock";
+                    return (
+                      <div key={item.label} className="industry-everything-feature">
+                        <span className="industry-everything-feature-icon">
+                          {EVERYTHING_FEATURE_ICONS[iconKey] || EVERYTHING_FEATURE_ICONS.lock}
+                        </span>
+                        <span className="industry-everything-feature-label">{item.label}</span>
+                      </div>
+                    );
+                  })}
                 </div>
               </div>
             </div>

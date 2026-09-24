@@ -160,6 +160,7 @@ export function scheduleDownloadRemoval(
 /**
  * One toast for a multi-file download batch (avoids N "cancelled" toasts).
  * Already-saved files count as completed even if the user hits Cancel all after.
+ * Native browser handoff (single file) cannot confirm finish — say "started" instead.
  */
 export function toastBatchDownloadSummary(showToast, counts = {}) {
   if (typeof showToast !== "function") return;
@@ -168,6 +169,7 @@ export function toastBatchDownloadSummary(showToast, counts = {}) {
   const failed = Number(counts.failed) || 0;
   const total =
     Number(counts.total) || succeeded + cancelled + failed;
+  const nativeHandedOff = Boolean(counts.nativeHandedOff);
 
   if (total <= 0) return;
 
@@ -182,6 +184,10 @@ export function toastBatchDownloadSummary(showToast, counts = {}) {
   }
 
   if (cancelled === 0 && failed === 0) {
+    if (nativeHandedOff && total === 1) {
+      showToast("info", NATIVE_BROWSER_DOWNLOAD_TOAST);
+      return;
+    }
     showToast(
       "success",
       total === 1 ? "Download complete." : "All downloads processed."
@@ -192,7 +198,11 @@ export function toastBatchDownloadSummary(showToast, counts = {}) {
   const parts = [];
   if (succeeded > 0) {
     parts.push(
-      succeeded === 1 ? "1 downloaded" : `${succeeded} downloaded`
+      succeeded === 1
+        ? nativeHandedOff
+          ? "1 started in browser"
+          : "1 downloaded"
+        : `${succeeded} downloaded`
     );
   }
   if (cancelled > 0) {
@@ -205,6 +215,10 @@ export function toastBatchDownloadSummary(showToast, counts = {}) {
   }
   showToast(failed > 0 ? "error" : "info", `${parts.join(", ")}.`);
 }
+
+export const NATIVE_BROWSER_DOWNLOAD_TOAST =
+  "File download started successfully.";
+
 
 /**
  * Ask user for a save path (folder zip only).

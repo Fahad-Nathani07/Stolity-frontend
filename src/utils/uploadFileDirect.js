@@ -1,4 +1,5 @@
 import axios from "axios";
+import { queueActivityStatus, queueDeleteActivityEvent } from "./activityReport";
 
 /** Files smaller than this try single PUT first; otherwise multipart direct. */
 export const DIRECT_PUT_MAX_BYTES = 100 * 1024 * 1024;
@@ -586,10 +587,42 @@ async function uploadViaDirectSpaces({
           },
         });
         if (onProgress) onProgress(100);
+        if (start.activityEventId) {
+          queueActivityStatus({
+            apiUrl,
+            token,
+            eventId: start.activityEventId,
+            status: "COMPLETED",
+          });
+        }
         return "success";
       } catch (err) {
-        const action = await handlePauseOrCancel(err);
-        if (action === "retry") continue;
+        // Attach id so outer proxy-fallback can delete the REQUESTED row.
+        if (start?.activityEventId) {
+          err.activityEventId = start.activityEventId;
+        }
+
+        if (isCanceledError(err)) {
+          const action = await handlePauseOrCancel(err);
+          if (action === "retry") continue;
+          if (start?.activityEventId) {
+            queueDeleteActivityEvent({
+              apiUrl,
+              token,
+              eventId: start.activityEventId,
+            });
+          }
+          throw err;
+        }
+
+        // CORS / network → will fall back to proxy; drop the direct REQUESTED event.
+        if (start?.activityEventId) {
+          queueDeleteActivityEvent({
+            apiUrl,
+            token,
+            eventId: start.activityEventId,
+          });
+        }
         throw err;
       }
     }
@@ -819,6 +852,13 @@ export async function uploadOneFileDirect({
 
     // CORS / Spaces / network → proxy multipart
     if (shouldFallbackToProxy(err)) {
+      if (err?.activityEventId) {
+        queueDeleteActivityEvent({
+          apiUrl,
+          token,
+          eventId: err.activityEventId,
+        });
+      }
       return runProxyFallback(err?.message || err);
     }
 

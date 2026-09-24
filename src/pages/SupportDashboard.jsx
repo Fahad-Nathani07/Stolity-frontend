@@ -20,15 +20,18 @@ import {
 import SideNav from "../components/SideNav";
 import { showToast } from "../components/ToastProvider";
 import SupportQuestionsPane from "./SupportQuestionsPane";
+import SupportActivityPane from "./SupportActivityPane";
 import SupportFilterSelect, {
   SupportMultiFilterSelect,
   markPaneScrolling,
 } from "../components/SupportFilterSelect";
+import { canViewFileActivity } from "../config/fileActivityAccess";
 import "../css/SupportDashboard.css";
 
-const TABS = [
+const ALL_TABS = [
   { id: "callbacks", label: "Callbacks", enabled: true },
   { id: "questions", label: "Questions", enabled: true },
+  { id: "activity", label: "File Activity", enabled: true },
 ];
 
 const STATUS_OPTIONS = [
@@ -133,9 +136,16 @@ export default function SupportDashboard() {
   const myId = userProfile.userId || "";
 
   const isInfomanav = email.includes("infomanav");
+  const showFileActivity = canViewFileActivity(email);
+  const tabs = useMemo(
+    () =>
+      ALL_TABS.filter((tab) => tab.id !== "activity" || showFileActivity),
+    [showFileActivity]
+  );
 
   const [activeTab, setActiveTab] = useState("callbacks");
   const [questionsCount, setQuestionsCount] = useState(0);
+  const [activityCount, setActivityCount] = useState(0);
   const [items, setItems] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
@@ -158,6 +168,12 @@ export default function SupportDashboard() {
   const savingRef = useRef(false);
   const claimingRef = useRef(false);
   const selectedIdRef = useRef(null);
+
+  useEffect(() => {
+    if (!showFileActivity && activeTab === "activity") {
+      setActiveTab("callbacks");
+    }
+  }, [showFileActivity, activeTab]);
 
   useEffect(() => {
     noteDraftRef.current = noteDraft;
@@ -722,7 +738,7 @@ export default function SupportDashboard() {
   return (
     <div className="ssd-shell">
       <SideNav />
-      <div className="ssd-page">
+      <div className={`ssd-page${activeTab === "activity" ? " ssd-page--activity" : ""}`}>
         <header className="ssd-header" data-aos="zoom-out">
           <div className="ssd-header-left">
             <p className="ssd-breadcrumb">
@@ -765,7 +781,7 @@ export default function SupportDashboard() {
 
         <div className="ssd-chrome" data-aos="zoom-in">
           <div className="ssd-tabs" role="tablist">
-            {TABS.map((tab) => (
+            {tabs.map((tab) => (
               <button
                 key={tab.id}
                 type="button"
@@ -789,6 +805,9 @@ export default function SupportDashboard() {
                 )}
                 {tab.id === "questions" && (
                   <span className="ssd-tab-count">{questionsCount}</span>
+                )}
+                {tab.id === "activity" && (
+                  <span className="ssd-tab-count">{activityCount}</span>
                 )}
                 {!tab.enabled && <span className="ssd-soon">Soon</span>}
               </button>
@@ -849,6 +868,16 @@ export default function SupportDashboard() {
               myId={myId}
               token={token}
               onItemCountChange={setQuestionsCount}
+            />
+          </div>
+        )}
+
+        {activeTab === "activity" && showFileActivity && (
+          <div className="ssd-activity-host">
+            <SupportActivityPane
+              apiUrl={apiUrl}
+              authHeaders={authHeaders}
+              onItemCountChange={setActivityCount}
             />
           </div>
         )}

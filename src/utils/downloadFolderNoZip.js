@@ -13,6 +13,7 @@ import {
   isDownloadCancelledError,
   DISK_STREAM_THRESHOLD_BYTES,
 } from "./downloadWithProgress";
+import { queueActivityStatus } from "./activityReport";
 
 const ENTRY_CONCURRENCY = 1;
 const MAX_FILE_RETRIES = 3;
@@ -226,6 +227,15 @@ export async function downloadFolderNoZip({
       let fetched = null;
       try {
         fetched = await fetchEntry(entry);
+        const eventId = fetched?.activityEventId || entry?.activityEventId;
+        if (eventId) {
+          queueActivityStatus({
+            apiUrl,
+            token,
+            eventId,
+            status: "STARTED",
+          });
+        }
         await writeEntryToFolder({
           response: fetched.response,
           folderHandle,
@@ -233,12 +243,40 @@ export async function downloadFolderNoZip({
           onBytes: trackBytes,
           signal,
         });
+        if (eventId) {
+          queueActivityStatus({
+            apiUrl,
+            token,
+            eventId,
+            status: "COMPLETED",
+          });
+        }
         if (isLargeFile(entry.size || fetched.sizeBytes)) {
           await delay(LARGE_FILE_GAP_MS);
         }
       } catch (err) {
         if (isDownloadCancelledError(err) || err?.name === "AbortError") {
+          const eventId = fetched?.activityEventId || entry?.activityEventId;
+          if (eventId) {
+            queueActivityStatus({
+              apiUrl,
+              token,
+              eventId,
+              status: "CANCELLED",
+              errorMessage: err?.message,
+            });
+          }
           throw err;
+        }
+        const eventId = fetched?.activityEventId || entry?.activityEventId;
+        if (eventId) {
+          queueActivityStatus({
+            apiUrl,
+            token,
+            eventId,
+            status: "FAILED",
+            errorMessage: err?.message,
+          });
         }
         console.error("Folder file download failed:", entry.relativePath, err);
         failures.push({

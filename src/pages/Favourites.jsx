@@ -34,7 +34,7 @@ import {
   FOLDER_EXISTS_MESSAGE,
 } from "../utils/validateItemName";
 import { getApiErrorMessage } from "../utils/handleS3CopyError";
-import { streamDownloadResponse, ensureDownloadWritable, estimateDownloadBytes, isDownloadCancelledError, scheduleDownloadRemoval, toastBatchDownloadSummary } from "../utils/downloadWithProgress";
+import { streamDownloadResponse, ensureDownloadWritable, estimateDownloadBytes, isDownloadCancelledError, scheduleDownloadRemoval, toastBatchDownloadSummary, NATIVE_BROWSER_DOWNLOAD_TOAST } from "../utils/downloadWithProgress";
 import { downloadFolderNoZip, downloadMultipleFoldersToDirectory } from "../utils/downloadFolderNoZip";
 import { downloadFileNativeBrowser, downloadMultipleFilesToDirectory, ensureSaveDirectory } from "../utils/downloadFilePresigned";
 import FileInfoModal from "../components/FileInfoModal";
@@ -773,6 +773,7 @@ const handleMulDownload = async () => {
     let succeeded = 0;
     let cancelled = 0;
     let failed = 0;
+    let nativeHandedOff = false;
 
     let sharedDirHandle = null;
     const needsDirectStreamDir =
@@ -815,8 +816,11 @@ const handleMulDownload = async () => {
             updateDownloadProgress(item.downloadId, percent);
           },
         });
-        updateDownloadProgress(item.downloadId, 100);
+        nativeHandedOff = true;
         succeeded += 1;
+        scheduleDownloadRemoval(removeDownload, item.downloadId, {
+          delayMs: 0,
+        });
       } catch (err) {
         if (isDownloadCancelledError(err)) cancelled += 1;
         else failed += 1;
@@ -933,6 +937,7 @@ const handleMulDownload = async () => {
       succeeded,
       cancelled,
       failed,
+      nativeHandedOff,
     });
     cleanupProgress();
   } catch (err) {
@@ -2226,6 +2231,7 @@ const handleFileDelete = async (file) => {
     const downloadId = Date.now();
     const abortController = new AbortController();
     let succeeded = false;
+    let handedToBrowser = false;
 
     addDownload(downloadId, fileName, abortController, isFolder);
     setDownloadpopup(false);
@@ -2280,6 +2286,9 @@ const handleFileDelete = async (file) => {
             },
           });
         }
+        succeeded = true;
+        setProgress(100);
+        updateDownloadProgress(downloadId, 100);
       } else {
         await downloadFileNativeBrowser({
           apiUrl,
@@ -2291,11 +2300,10 @@ const handleFileDelete = async (file) => {
             updateDownloadProgress(downloadId, percent);
           },
         });
+        succeeded = true;
+        handedToBrowser = true;
+        showToast("info", NATIVE_BROWSER_DOWNLOAD_TOAST);
       }
-
-      succeeded = true;
-      setProgress(100);
-      updateDownloadProgress(downloadId, 100);
     } catch (error) {
       if (isDownloadCancelledError(error)) {
         console.warn("Download canceled by user");
@@ -2307,7 +2315,7 @@ const handleFileDelete = async (file) => {
     } finally {
       isSetLoading(false);
       scheduleDownloadRemoval(removeDownload, downloadId, {
-        delayMs: succeeded ? 500 : 0,
+        delayMs: succeeded && !handedToBrowser ? 500 : 0,
       });
     }
   };

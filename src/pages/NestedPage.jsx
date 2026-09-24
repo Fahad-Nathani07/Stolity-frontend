@@ -39,7 +39,7 @@ import {
   FOLDER_EXISTS_MESSAGE,
 } from "../utils/validateItemName";
 import { getApiErrorMessage } from "../utils/handleS3CopyError";
-import { streamDownloadResponse, ensureDownloadWritable, estimateDownloadBytes, isDownloadCancelledError, scheduleDownloadRemoval, toastBatchDownloadSummary } from "../utils/downloadWithProgress";
+import { streamDownloadResponse, ensureDownloadWritable, estimateDownloadBytes, isDownloadCancelledError, scheduleDownloadRemoval, toastBatchDownloadSummary, NATIVE_BROWSER_DOWNLOAD_TOAST } from "../utils/downloadWithProgress";
 import { downloadFolderNoZip, downloadMultipleFoldersToDirectory } from "../utils/downloadFolderNoZip";
 import { downloadFileNativeBrowser, downloadMultipleFilesToDirectory, ensureSaveDirectory } from "../utils/downloadFilePresigned";
 import FileInfoModal from "../components/FileInfoModal";
@@ -1103,7 +1103,15 @@ const handleMulDelete = async () => {
       showToast("success", toastMessage);
     });
   } catch (error) {
-    showToast("error", "Some error has occurred");
+    const serverMsg =
+      error?.response?.data?.message ||
+      error?.response?.data?.error;
+    showToast(
+      "error",
+      typeof serverMsg === "string" && serverMsg.trim()
+        ? serverMsg
+        : "Some error has occurred"
+    );
     console.error("handleMulDelete (other page) error:", error);
     afterMinLoaderDisplay(loaderStartedAt, () => setLoader_Recycle(false));
   } finally {
@@ -1166,6 +1174,7 @@ const handleMulDownload = async () => {
     let succeeded = 0;
     let cancelled = 0;
     let failed = 0;
+    let nativeHandedOff = false;
 
     let sharedDirHandle = null;
     const needsDirectStreamDir =
@@ -1209,8 +1218,11 @@ const handleMulDownload = async () => {
             updateDownloadProgress(item.downloadId, percent);
           },
         });
-        updateDownloadProgress(item.downloadId, 100);
+        nativeHandedOff = true;
         succeeded += 1;
+        scheduleDownloadRemoval(removeDownload, item.downloadId, {
+          delayMs: 0,
+        });
       } catch (err) {
         if (isDownloadCancelledError(err)) cancelled += 1;
         else failed += 1;
@@ -1329,6 +1341,7 @@ const handleMulDownload = async () => {
       succeeded,
       cancelled,
       failed,
+      nativeHandedOff,
     });
     cleanupProgress();
   } catch (err) {
@@ -2310,10 +2323,16 @@ const handleFileDelete = async (file) => {
     await reloadAfterTast(isSharedValue);
     
   } catch (error) {
-    const errMsg = file?.isFolder
+    const serverMsg =
+      error?.response?.data?.message ||
+      error?.response?.data?.error;
+    const fallback = file?.isFolder
       ? "There's an error while moving folder to recycle bin!"
       : "There's an error while moving file to recycle bin!";
-    showToast("error", errMsg);
+    showToast(
+      "error",
+      typeof serverMsg === "string" && serverMsg.trim() ? serverMsg : fallback
+    );
     console.error("Delete error:", error);
     // dispatch(setLoader(false));
     afterMinLoaderDisplay(loaderStartedAt, () => setLoader_Recycle(false));
@@ -4060,6 +4079,7 @@ useEffect(() => {
     const downloadId = Date.now();
     const abortController = new AbortController();
     let succeeded = false;
+    let handedToBrowser = false;
 
     addDownload(downloadId, fileName, abortController, isFolder);
     setDownloadpopup(false);
@@ -4078,6 +4098,9 @@ useEffect(() => {
             updateDownloadProgress(downloadId, percent);
           },
         });
+        succeeded = true;
+        setProgress(100);
+        updateDownloadProgress(downloadId, 100);
       } else {
         await downloadFileNativeBrowser({
           apiUrl,
@@ -4090,11 +4113,10 @@ useEffect(() => {
             updateDownloadProgress(downloadId, percent);
           },
         });
+        succeeded = true;
+        handedToBrowser = true;
+        showToast("info", NATIVE_BROWSER_DOWNLOAD_TOAST);
       }
-
-      succeeded = true;
-      setProgress(100);
-      updateDownloadProgress(downloadId, 100);
     } catch (error) {
       if (isDownloadCancelledError(error)) {
         console.warn("Download canceled by user");
@@ -4106,7 +4128,7 @@ useEffect(() => {
     } finally {
       isSetLoading(false);
       scheduleDownloadRemoval(removeDownload, downloadId, {
-        delayMs: succeeded ? 500 : 0,
+        delayMs: succeeded && !handedToBrowser ? 500 : 0,
       });
     }
   };
@@ -4660,7 +4682,15 @@ const handleNext = () => {
       showToast("success", "File moved to recycle bin successfully");
     });
   } catch (error) {
-    showToast("error", "There's an error while moving file to recycle bin!");
+    const serverMsg =
+      error?.response?.data?.message ||
+      error?.response?.data?.error;
+    showToast(
+      "error",
+      typeof serverMsg === "string" && serverMsg.trim()
+        ? serverMsg
+        : "There's an error while moving file to recycle bin!"
+    );
     afterMinLoaderDisplay(loaderStartedAt, () => setLoader_Recycle(false));
   }
 };
