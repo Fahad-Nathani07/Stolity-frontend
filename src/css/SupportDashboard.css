@@ -11,7 +11,7 @@
   --ssd-faint: #9ca3af;
   --ssd-border: #e5e7eb;
   --ssd-surface: #ffffff;
-  --ssd-page-bg: #f9fafb;
+  --ssd-page-bg: #fffbf8;
   --ssd-radius: 10px;
   --ssd-radius-sm: 8px;
   --ssd-shadow: 0 1px 2px rgba(15, 23, 42, 0.04);
@@ -386,14 +386,15 @@
 }
 
 .ssd-btn-call {
-  background: var(--ssd-accent);
-  border-color: var(--ssd-accent);
+  background: var(--h1-gradient);
+  /* border-color: var(--ssd-accent); */
   color: #fff;
+  transition: background 0.15s ease, border-color 0.15s ease, color 0.15s ease;
 }
 
 .ssd-btn-call:hover {
-  background: #e05f14;
-  color: #fff;
+  transform: translateY(-1px);
+  color: #FFFFFF;
 }
 
 .ssd-btn-refresh {
@@ -830,7 +831,7 @@
 .ssd-card.is-selected {
   border-color: var(--ssd-accent);
   background: #fff;
-  box-shadow: 0 0 0 1px var(--ssd-accent);
+  /* box-shadow: 0 0 0 1px var(--ssd-accent); */
 }
 
 .ssd-card-row {
@@ -864,9 +865,9 @@
   justify-content: center;
   font-size: 0.75rem;
   font-weight: 750;
-  color: #9a3412;
-  background: #ffedd5;
-  border: 1px solid #fed7aa;
+  color: #dd5413;
+  background: #ffe9d5;
+  border: 1px solid #feb0aa;
 }
 
 .ssd-card--taken .ssd-card-avatar {
@@ -946,6 +947,7 @@
   min-width: 0;
   font-size: 0.75rem;
   color: var(--ssd-muted);
+  font-weight: 500;
 }
 
 .ssd-card-phone span,
@@ -1521,7 +1523,7 @@
 .ssd-fact-primary,
 .ssd-fact-link {
   font-size: 0.875rem;
-  font-weight: 650;
+  font-weight: 600;
   color: var(--ssd-text);
   line-height: 1.35;
   word-break: break-word;
@@ -1630,9 +1632,9 @@
 
 .ssd-chip.is-active {
   border-color: var(--ssd-accent);
-  background: var(--ssd-accent-soft);
-  color: #9a3412;
-  box-shadow: 0 0 0 1px rgba(243, 106, 29, 0.2);
+  background: #ffe9d5;
+  color: #dd5413;
+  /* box-shadow: 0 0 0 1px rgba(243, 106, 29, 0.2); */
 }
 
 .ssd-chip:disabled {
@@ -1877,6 +1879,7 @@
   font-size: 0.6875rem;
   color: var(--ssd-muted);
   line-height: 1.35;
+  font-weight: 500;
 }
 
 .ssd-slot-chip.is-active {
