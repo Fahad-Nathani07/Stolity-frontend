@@ -386,15 +386,15 @@
 }
 
 .ssd-btn-call {
-  background: var(--h1-gradient);
-  /* border-color: var(--ssd-accent); */
-  color: #fff;
+  /* background: var(--h1-gradient); */
+  border-color: var(--ssd-accent);
+  color: var(--ssd-accent);
   transition: background 0.15s ease, border-color 0.15s ease, color 0.15s ease;
 }
 
 .ssd-btn-call:hover {
   transform: translateY(-1px);
-  color: #FFFFFF;
+  color: var(--ssd-accent);
 }
 
 .ssd-btn-refresh {
