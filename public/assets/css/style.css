@@ -32299,8 +32299,9 @@ div.dataTables_wrapper div.dataTables_filter input {
 }
 
 .table p {
-  font-size: 15px;
+  font-size: 13px;
   color: #535353;
+  font-weight: 500;
 }
 
 .table p span {
@@ -34274,6 +34275,7 @@ th.dropdown-processed button {
   font-family: "Plus Jakarta Sans", sans-serif;
   font-size: 14px;
   color: #212529;
+  font-weight: 500;
 }
 
 .table td.fileSizeTL {
