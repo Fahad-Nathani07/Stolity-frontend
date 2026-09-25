@@ -89,7 +89,7 @@
   border: 1px solid #bbf7d0;
   color: #166534;
   font-size: 0.75rem;
-  font-weight: 650;
+  font-weight: 600;
 }
 
 .ssd-live-dot {
@@ -130,7 +130,7 @@
 
 .ssd-duty-row strong {
   font-size: 0.875rem;
-  font-weight: 650;
+  font-weight: 600;
   color: var(--ssd-text);
 }
 
@@ -175,7 +175,7 @@
   border-bottom: 2px solid transparent;
   margin-bottom: -1px;
   padding: 12px 14px;
-  font-weight: 650;
+  font-weight: 600;
   font-size: 0.875rem;
   cursor: pointer;
   display: inline-flex;
@@ -251,7 +251,7 @@
   flex-direction: column;
   gap: 5px;
   font-size: 0.6875rem;
-  font-weight: 650;
+  font-weight: 600;
   color: var(--ssd-muted);
   /* margin-bottom: 0px; */
 }
@@ -352,7 +352,7 @@
   padding: 0 14px;
   font: inherit;
   font-size: 0.8125rem;
-  font-weight: 650;
+  font-weight: 600;
   cursor: pointer;
   border: 1px solid transparent;
   text-decoration: none;
@@ -408,7 +408,7 @@
   color: #b45309;
   font: inherit;
   font-size: 0.8125rem;
-  font-weight: 650;
+  font-weight: 600;
   cursor: pointer;
   text-decoration: underline;
   white-space: nowrap;
@@ -445,7 +445,7 @@
 
 .ssd-filter-select-label {
   font-size: 0.6875rem;
-  font-weight: 650;
+  font-weight: 600;
   color: var(--ssd-muted);
 }
 
@@ -543,7 +543,7 @@
 .ssd-filter-select-option.is-active {
   background: var(--ssd-accent-soft);
   color: #9a3412;
-  font-weight: 650;
+  font-weight: 600;
 }
 
 .ssd-filter-select-option svg {
@@ -585,7 +585,7 @@
   padding: 5px 9px;
   font: inherit;
   font-size: 0.6875rem;
-  font-weight: 650;
+  font-weight: 600;
   color: var(--ssd-text);
   cursor: pointer;
 }
@@ -902,7 +902,7 @@
 
 .ssd-card-name-line strong {
   font-size: 0.875rem;
-  font-weight: 650;
+  font-weight: 600;
   color: var(--ssd-text);
   line-height: 1.3;
   overflow: hidden;
@@ -1036,7 +1036,7 @@
 
 .ssd-card-top strong {
   font-size: 0.875rem;
-  font-weight: 650;
+  font-weight: 600;
   color: var(--ssd-text);
   line-height: 1.3;
 }
@@ -1167,7 +1167,7 @@
   padding: 1px 8px;
   border-radius: 999px;
   font-size: 0.6875rem;
-  font-weight: 650;
+  font-weight: 600;
   text-transform: none;
   letter-spacing: 0;
   line-height: 1.4;
@@ -1343,7 +1343,7 @@
 
 .ssd-ownership-banner em {
   font-style: normal;
-  font-weight: 650;
+  font-weight: 600;
 }
 
 .ssd-owner-actions {
@@ -1402,7 +1402,7 @@
   display: block;
   min-height: 1rem;
   font-size: 0.6875rem;
-  font-weight: 650;
+  font-weight: 600;
   color: var(--ssd-muted);
   line-height: 1rem;
 }
@@ -1507,7 +1507,7 @@
 .ssd-fact dt {
   margin: 0 0 6px;
   font-size: 0.6875rem;
-  font-weight: 650;
+  font-weight: 600;
   color: var(--ssd-muted);
   line-height: 1.2;
 }
@@ -1871,7 +1871,7 @@
 
 .ssd-slot-chip strong {
   font-size: 0.8125rem;
-  font-weight: 650;
+  font-weight: 600;
   color: var(--ssd-text);
 }
 
@@ -2155,7 +2155,7 @@
 .ssd-timeline-subject {
   margin: 0 0 4px;
   font-size: 0.75rem;
-  font-weight: 650;
+  font-weight: 600;
   color: var(--ssd-muted);
   line-height: 1.35;
   word-break: break-word;
@@ -2200,7 +2200,7 @@
 .ssd-timeline-empty p {
   margin: 0;
   font-size: 0.8125rem;
-  font-weight: 650;
+  font-weight: 600;
   color: var(--ssd-text);
 }
 
@@ -2272,7 +2272,7 @@
 
 .ssd-note-top strong {
   font-size: 0.8125rem;
-  font-weight: 650;
+  font-weight: 600;
 }
 
 .ssd-note-top span {
@@ -2382,7 +2382,7 @@
   display: block;
   margin-bottom: 6px;
   font-size: 0.6875rem;
-  font-weight: 650;
+  font-weight: 600;
   color: var(--ssd-muted);
 }
 
@@ -2418,7 +2418,7 @@
 }
 
 .ssd-reply-item-subject {
-  font-weight: 650;
+  font-weight: 600;
   font-size: 0.8125rem;
   margin-bottom: 4px;
 }
@@ -2712,7 +2712,7 @@
 .ssd-activity .ssd-filter-select-label {
   margin: 0;
   font-size: 0.6875rem;
-  font-weight: 650;
+  font-weight: 600;
   letter-spacing: 0.04em;
   text-transform: uppercase;
   color: var(--ssd-muted);
@@ -2887,7 +2887,7 @@
 
 .ssd-activity-user-email {
   font-size: 0.8125rem;
-  font-weight: 650;
+  font-weight: 600;
   color: var(--ssd-text);
   overflow: hidden;
   text-overflow: ellipsis;
@@ -3023,7 +3023,7 @@
   z-index: 2;
   padding: 8px 12px;
   font-size: 0.6875rem;
-  font-weight: 650;
+  font-weight: 600;
   text-transform: uppercase;
   letter-spacing: 0.04em;
   color: var(--ssd-muted);
