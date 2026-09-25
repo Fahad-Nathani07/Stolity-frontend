@@ -528,7 +528,7 @@ const getThisWeekRangeFull = () => {
             right: "1px",
             background: isPast 
               ? (hasPending ? "#ff0000" : "#9e9e9e")   // red if pending, gray if all updated
-              : "#FFAB49",                             // default orange for today/upcoming
+              : "#E5660F",                             // default orange for today/upcoming
             color: "#fff",
             fontSize: "9px",
             fontWeight: 600,
@@ -556,7 +556,7 @@ const getThisWeekRangeFull = () => {
   borderRadius: "16px",
   border: "1px solid #e2e8f0",
   boxShadow: "0 10px 30px rgba(0,0,0,0.05)",
-  fontFamily: '"SF Pro", "SFProText", -apple-system, BlinkMacSystemFont, sans-serif',
+  fontFamily: '"Plus Jakarta Sans", "SF Pro", "SFProText", -apple-system, BlinkMacSystemFont, sans-serif',
   marginBottom: "15px",
 }}>
   <h4 style={{
@@ -596,7 +596,7 @@ const getThisWeekRangeFull = () => {
         width: "14px",
         height: "14px",
         borderRadius: "50%",
-        background: "#FFAB49",
+        background: "#E5660F",
       }} />
       </div>
       <div>
@@ -819,7 +819,7 @@ const getThisWeekRangeFull = () => {
         <div
           className="event-card"
           style={{
-            borderLeft: `4px solid #FFAB49`, // orange for meetings
+            borderLeft: `4px solid #E5660F`, // orange for meetings
           }}
         >
           <div className="event-header">
@@ -941,7 +941,7 @@ const getThisWeekRangeFull = () => {
             top: "8px",
             right: "4px",
             padding: "4px 10px",
-            background: event.category === "Interviews" ? "#FFAB49" : "#6366f1",
+            background: event.category === "Interviews" ? "#E5660F" : "#6366f1",
             color: "white",
             fontSize: "11px",
             fontWeight: 600,
@@ -1075,7 +1075,7 @@ const getThisWeekRangeFull = () => {
                 top: "8px",
                 right: "4px",
                 padding: "4px 10px",
-                background: event.category === "Interviews" ? "#FFAB49" : "#6366f1",
+                background: event.category === "Interviews" ? "#E5660F" : "#6366f1",
                 color: "white",
                 fontSize: "12px",
                 fontWeight: 600,
@@ -1186,7 +1186,7 @@ const getThisWeekRangeFull = () => {
       {/* Header - Premium look (dynamic title) */}
       <div
         style={{
-          background: "#FFAB49",
+          background: "#E5660F",
           color: "white",
           padding: "24px 32px",
           borderRadius: "16px 16px 0 0",
@@ -1483,7 +1483,7 @@ const getThisWeekRangeFull = () => {
                     style={{
                       background: "none",
                       border: "none",
-                      color: "#FFAB49",
+                      color: "#E5660F",
                       fontSize: "14px",
                       cursor: "pointer",
                       padding: 0,
@@ -1544,7 +1544,7 @@ const getThisWeekRangeFull = () => {
                     alignItems: "center",
                     gap: "8px",
                     padding: "12px 24px",
-                    background: "linear-gradient(135deg, #FFAB49, #ff8800)",
+                    background: "linear-gradient(135deg, #E5660F, #c4231c)",
                     color: "white",
                     border: "none",
                     borderRadius: "12px",
@@ -1618,7 +1618,7 @@ const getThisWeekRangeFull = () => {
                     alignItems: "center",
                     gap: "8px",
                     padding: "12px 24px",
-                    background: "linear-gradient(135deg, #FFAB49, #ff8800)",
+                    background: "linear-gradient(135deg, #E5660F, #c4231c)",
                     color: "white",
                     borderRadius: "12px",
                     textDecoration: "none",
@@ -1683,7 +1683,7 @@ const getThisWeekRangeFull = () => {
                     style={{
                       background: "none",
                       border: "none",
-                      color: "#FFAB49",
+                      color: "#E5660F",
                       fontSize: "14px",
                       cursor: "pointer",
                       padding: 0,
@@ -1746,7 +1746,7 @@ const getThisWeekRangeFull = () => {
                 alignItems: "center",
                 gap: "8px",
                 padding: "12px 24px",
-                background: "linear-gradient(135deg, #FFAB49, #ff8800)",
+                background: "linear-gradient(135deg, #E5660F, #c4231c)",
                 color: "white",
                 border: "none",
                 borderRadius: "12px",

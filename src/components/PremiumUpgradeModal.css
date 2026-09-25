@@ -176,7 +176,7 @@
   width: 8px;
   height: 8px;
   border-radius: 50%;
-  background: #ffab49;
+  background: #e5660f;
   box-shadow: 0 0 0 3px rgba(255, 171, 73, 0.18);
 }
 
@@ -216,7 +216,7 @@
 }
 
 .premium-upgrade-btn--primary {
-  background: #ffab49;
+  background: #e5660f;
   color: #1a1208;
   border: 1px solid rgba(255, 138, 32, 0.35);
   box-shadow: 0 8px 18px rgba(255, 138, 32, 0.22);

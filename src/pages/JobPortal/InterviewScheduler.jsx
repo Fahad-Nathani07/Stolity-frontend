@@ -761,10 +761,10 @@ const inputStyleReadOnly = { ...inputStyle, background: '#f3f4f6', cursor: 'not-
 const selectStyle = { ...inputStyle, appearance: 'auto' };
 const textareaStyle = { ...inputStyle, resize: 'vertical', minHeight: '140px' };
 const resetButtonStyle = { marginTop: '8px', padding: '8px 16px', background: '#e5e7eb', border: 'none', borderRadius: '6px', cursor: 'pointer' };
-const scheduleButtonStyle = { width: '100%', padding: '14px', background: '#FFAB49', color: 'white', border: 'none', borderRadius: '8px', fontSize: '16px', fontWeight: '600', cursor: 'pointer' };
+const scheduleButtonStyle = { width: '100%', padding: '14px', background: '#E5660F', color: 'white', border: 'none', borderRadius: '8px', fontSize: '16px', fontWeight: '600', cursor: 'pointer' };
 const modalOverlayStyle = { position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.5)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000 };
 const modalContentStyle = { background: 'white', padding: '24px', borderRadius: '12px', maxWidth: '480px', width: '90%', boxShadow: '0 10px 30px rgba(0,0,0,0.25)' };
 const cancelButtonStyle = { padding: '10px 20px', background: '#e5e7eb', border: 'none', borderRadius: '6px', cursor: 'pointer' };
-const confirmButtonStyle = { padding: '10px 20px', background: '#FFAB49', color: 'white', border: 'none', borderRadius: '6px', cursor: 'pointer', fontWeight: '500' };
+const confirmButtonStyle = { padding: '10px 20px', background: '#E5660F', color: 'white', border: 'none', borderRadius: '6px', cursor: 'pointer', fontWeight: '500' };
 
 export default InterviewScheduler;

@@ -214,10 +214,10 @@ const AssignedUsersToCompany = ({ companyId }) => {
               onClick={() => setPage(page - 1)}
               style={{
                 padding: "10px 20px",
-                border: "1px solid #FFAB49",
+                border: "1px solid #E5660F",
                 borderRadius: "999px",
                 background: "white",
-                color: "#FFAB49",
+                color: "#E5660F",
                 cursor: page === 1 ? "not-allowed" : "pointer",
                 opacity: page === 1 ? 0.5 : 1,
               }}
@@ -231,7 +231,7 @@ const AssignedUsersToCompany = ({ companyId }) => {
                 padding: "10px 20px",
                 border: "none",
                 borderRadius: "999px",
-                background: page === totalPages ? "#ffd699" : "#FFAB49",
+                background: page === totalPages ? "#ffd699" : "#E5660F",
                 color: "white",
                 cursor: page === totalPages ? "not-allowed" : "pointer",
                 opacity: page === totalPages ? 0.6 : 1,

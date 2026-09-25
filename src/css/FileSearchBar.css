@@ -1,7 +1,7 @@
-/* File search — pill input, orange focus ring (#ffab49 theme) */
+/* File search — pill input, orange focus ring (#e5660f theme) */
 
 .file-search-bar {
-  --fsb-accent: #ffab49;
+  --fsb-accent: #e5660f;
   --fsb-accent-soft: rgba(255, 171, 73, 0.16);
   --fsb-border: rgba(28, 25, 23, 0.1);
   --fsb-text: #1e293b;

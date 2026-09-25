@@ -1,6 +1,4 @@
 import React, { useEffect, useState } from "react";
-import AOS from "aos";
-import "aos/dist/aos.css";
 import "../css/PaymentIntegrationPage.css";
 import "../css/SettingsPageBreadcrumb.css";
 import SideNav from "../components/SideNav";
@@ -18,6 +16,7 @@ import { db } from "../firebase"; // adjust path if needed
 
 import { useNavigate } from "react-router-dom";
 import { showToast } from "../components/ToastProvider";
+import ScrollReveal from "../components/ScrollReveal";
 
 
 
@@ -68,21 +67,7 @@ const navigate = useNavigate();
     setEmail(storedEmail);
     setUserName(storedName);
   }, []);
-
-  useEffect(() => {
-    AOS.init({
-      duration: 1000,
-      offset: 80,
-      easing: "ease-in-out",
-      once: true,
-    });
-  }, []);
-
-  useEffect(() => {
-    AOS.refresh();
-  }, [selectedPlan, activePlan, showConfirmModal]);
-
-   useEffect(() => {
+useEffect(() => {
       if (token) {
         // Already loaded in App; force after plan purchase elsewhere
         dispatch(fetchUserSubscription({ token }));
@@ -500,7 +485,7 @@ const handleConfirmPayment = async () => {
 */}
     <div className="faq-main-wrapper2">
       <SideNav />
-      <div className="stolity-settings-header" data-aos="zoom-out">
+      <ScrollReveal as="div" className="stolity-settings-header" variant="fadeSoft" delay={0.05} duration={0.75}>
         <div className="stolity-settings-breadcrumb">
           <span>Settings</span>
           <span className="stolity-settings-breadcrumb-sep" aria-hidden="true">
@@ -508,11 +493,11 @@ const handleConfirmPayment = async () => {
           </span>
           <span className="stolity-settings-breadcrumb-current">Payment</span>
         </div>
-      </div>
+      </ScrollReveal>
 
       <div className="faq-main-wrapper">
         <div className="faqBody">
-         <div data-aos="zoom-in">
+         <ScrollReveal as="div" variant="fadeUp" delay={0.1} duration={0.85}>
           {selectedPlan === "free" && (
             <>
             <h1 className="faq-title" style={{ marginBottom: "0px" }}>
@@ -534,9 +519,9 @@ const handleConfirmPayment = async () => {
             </p>
             </>
           )}
-         </div>
+         </ScrollReveal>
 
-          <div className="faq-content-wrapper" data-aos="zoom-in">
+          <ScrollReveal as="div" className="faq-content-wrapper" variant="fadeUp" delay={0.1} duration={0.85}>
             {/* SCREEN 1: Plan cards + comparison */}
 {selectedPlan === "free" && (
   <div className="plans-screen" key="plans">
@@ -1179,7 +1164,7 @@ Amount: ${
                 
               </>
             )}
-          </div>
+          </ScrollReveal>
         </div>
       </div>
 

@@ -127,7 +127,7 @@ margin-top: 4px;
 .preview-btn2 {    
     font-size: 14px;    
     cursor: pointer;
-    background: #FFAB49;
+    background: #E5660F;
     color: white;
     width: 142; 
     height: 46;
@@ -367,7 +367,7 @@ margin-top: 4px;
 .input-group input:focus,
 .input-group select:focus {
   outline: none;
-  border-color: #FFAB49;
+  border-color: #E5660F;
   background: #fff;
   box-shadow: 0 0 0 3px rgba(249, 115, 22, 0.08);
 }
@@ -502,7 +502,7 @@ margin-top: 4px;
 .responsibility-number {
   width: 24px;
   height: 24px;
-  background: #FFAB49;
+  background: #E5660F;
   color: white;
   border-radius: 50%;
   display: flex;
@@ -524,7 +524,7 @@ margin-top: 4px;
 
 .responsibility-input:focus {
   background: white;
-  box-shadow: 0 0 0 1px #FFAB49;
+  box-shadow: 0 0 0 1px #E5660F;
 }
 
 .add-btn2 {
@@ -575,7 +575,7 @@ margin-top: 4px;
 
 .responsibility-input:focus {
   outline: none;
-  border-color: #FFAB49;
+  border-color: #E5660F;
   box-shadow: 0 0 0 3px rgba(249, 115, 22, 0.08);
 }
 
@@ -601,7 +601,7 @@ margin-top: 4px;
 }
 
 .add-responsibility-btn {
-  background: linear-gradient(135deg, #FFAB49 0%, #ff8c00 100%);
+  background: linear-gradient(135deg, #E5660F 0%, #ff8c00 100%);
   color: white;
   border: none;
   padding: 12px 20px;
@@ -685,7 +685,7 @@ margin-top: 4px;
 }
 
 .preview-chip {
-  background: linear-gradient(135deg, #FFAB49, #ff8c00);
+  background: linear-gradient(135deg, #E5660F, #ff8c00);
   color: white;
   padding: 6px 12px;
   border-radius: 20px;
@@ -846,7 +846,7 @@ margin-top: 4px;
   font-size: 20px;
   color: #111827;
 
-  font-family: "SF Pro", "SFProText", -apple-system, BlinkMacSystemFont, sans-serif;
+  font-family: "Plus Jakarta Sans", "SF Pro", "SFProText", -apple-system, BlinkMacSystemFont, sans-serif;
 font-weight: 700;
 font-style: Bold;
 font-size: 24px;
@@ -918,7 +918,7 @@ vertical-align: middle;
   box-shadow: 
     0 4px 12px rgba(255, 171, 73, 0.18),
     0 2px 6px rgba(0, 0, 0, 0.08);
-  border-color: #FFAB49;
+  border-color: #E5660F;
   background: linear-gradient(145deg, #ffffff, #fff5eb);
 } */
 
@@ -956,7 +956,7 @@ vertical-align: middle;
 
 .chip-close:hover,
 .chip-close:focus {
-  background: #FFAB49;
+  background: #E5660F;
   color: white;
   transform: scale(1.15);
   box-shadow: 0 0 8px rgba(255, 171, 73, 0.4);
@@ -1033,8 +1033,8 @@ vertical-align: middle;
 
 .add-btn:hover {
   background: #fff7eb;           /* very light orange tint on hover */
-  border-color: #FFAB49;
-  color: #FFAB49;
+  border-color: #E5660F;
+  color: #E5660F;
 }
 
 /* Disabled state (when input is empty) */
@@ -1050,7 +1050,7 @@ vertical-align: middle;
 /* Glowing / pulsing when skillInput has content */
 .add-btn.glowing {
   animation: soft-pulse 1.6s infinite alternate;
-  border-color: #FFAB49;
+  border-color: #E5660F;
   color: #f97316;
 }
 
@@ -1062,7 +1062,7 @@ vertical-align: middle;
   animation: none;               /* optional: stop pulsing on hover */
 }
 
-/* Soft pulse animation using #FFAB49 */
+/* Soft pulse animation using #E5660F */
 @keyframes soft-pulse {
   0% {
     box-shadow: 0 0 0 0 rgba(255, 171, 73, 0.5);
@@ -1158,8 +1158,8 @@ vertical-align: middle;
 
 /* Next – white + deep orange accent */
 .btn-action-next {
-  border: 1.5px solid #FFAB49;
-  color: #FFAB49;
+  border: 1.5px solid #E5660F;
+  color: #E5660F;
 }
 
 .btn-action-next:hover:not(:disabled) {
@@ -1167,12 +1167,12 @@ vertical-align: middle;
   border-color: #f59e0b;
 }
 
-/* Publish – full #FFAB49 background (only filled one) */
+/* Publish – full #E5660F background (only filled one) */
 .btn-action-publish {
   padding: 14px 40px;
   font-size: 15px;
   font-weight: 700;
-  background: #FFAB49;
+  background: #E5660F;
   color: white;
   border: none;
   box-shadow: 0 6px 24px rgba(255, 171, 73, 0.3);

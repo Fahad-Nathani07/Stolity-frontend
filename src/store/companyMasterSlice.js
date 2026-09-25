@@ -36,7 +36,7 @@ export const fetchCompanies = createAsyncThunk(
           registrationNumber: data.registrationNumber || "",
           logoUrl: data.logoUrl || "",
           primaryColor: data.primaryColor || "#ffffff",
-          secondaryColor: data.secondaryColor || "#FFAB49",
+          secondaryColor: data.secondaryColor || "#E5660F",
           location: Array.isArray(data.location) ? data.location : [],
           socials: data.socials || {
             linkedin: "",
@@ -101,7 +101,7 @@ export const fetchCompaniesByIds = createAsyncThunk(
           registrationNumber: data.registrationNumber || "",
           logoUrl: data.logoUrl || "",
           primaryColor: data.primaryColor || "#ffffff",
-          secondaryColor: data.secondaryColor || "#FFAB49",
+          secondaryColor: data.secondaryColor || "#E5660F",
           location: Array.isArray(data.location) ? data.location : [],
           socials: data.socials || {
             linkedin: "",

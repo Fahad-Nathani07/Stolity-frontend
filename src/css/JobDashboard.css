@@ -6,7 +6,7 @@
   background-color: #f7f8f8;
   /* background-color: #F0F6FC; */
   min-height: 100vh;
-  font-family: "SF Pro", "SFProText", -apple-system, BlinkMacSystemFont, sans-serif;
+  font-family: "Plus Jakarta Sans", "SF Pro", "SFProText", -apple-system, BlinkMacSystemFont, sans-serif;
 }
 
 /* Header */
@@ -58,7 +58,7 @@ background: white;
 
 .post-job-btn {
   /* background-color: #D67A1F; */
-  background: #FFAB49;
+  background: #E5660F;
 
   color: white;
   border: none;
@@ -267,7 +267,7 @@ background: white;
 
 .action-content p {
   font-size: 12px;
-  color: #FFAB49;
+  color: #E5660F;
   margin: 0;
   font-weight: 600;
   font-style: Semibold;
@@ -398,7 +398,7 @@ background: white;
 
 .schedule-time .period {
   font-size: 12px;
-  color: #FFAB49;
+  color: #E5660F;
 }
 
 /* NEW: Main content area (candidate, position, status) */
@@ -450,7 +450,7 @@ background: white;
 
 /* Keep your button, just make sure it's aligned */
 .add-btn {
-  background-color: #FFAB49;
+  background-color: #E5660F;
   color: white;
   border: none;
   border-radius: 8px;
@@ -509,12 +509,12 @@ background: white;
 .schedule-time .time {
   font-size: 24px;
   font-weight: 600;
-  color: #FFAB49;
+  color: #E5660F;
 }
 
 .schedule-time .period {
   font-size: 12px;
-  color: #FFAB49;
+  color: #E5660F;
 }
 
 .schedule-content {
@@ -540,7 +540,7 @@ background: white;
 }
 
 .add-btn {
-  background-color: #FFAB49;
+  background-color: #E5660F;
   color: white;
   border: none;
   border-radius: 8px;
@@ -568,7 +568,7 @@ background: white;
   color: #000;
   cursor: pointer;
   transition: background-color 0.2s;
-  font-family: "SF Pro", "SFProText", sans-serif;
+  font-family: "Plus Jakarta Sans", sans-serif;
   font-weight: 600;
   font-size: 16px;
   line-height: 22px;
@@ -625,7 +625,7 @@ background: white;
 
 
 .SFProTextClass {
-    font-family: "SF Pro", "SFProText", -apple-system, BlinkMacSystemFont, sans-serif;
+    font-family: "Plus Jakarta Sans", "SF Pro", "SFProText", -apple-system, BlinkMacSystemFont, sans-serif;
 }
 
 .font20{
@@ -666,7 +666,7 @@ background: white;
   color: #d97706 !important;
 }
 .search-input:focus {
-  border-color: #FFAB49 !important;
+  border-color: #E5660F !important;
   box-shadow: 0 0 0 3px rgba(255, 171, 73, 0.1) !important;
 }
 
@@ -705,6 +705,6 @@ background: white;
     top: 0px;
     left: 0;
     border-radius: 10px;
-    border: 1px solid #ffab49;
-    color: #ffab49;
+    border: 1px solid #e5660f;
+    color: #e5660f;
 }

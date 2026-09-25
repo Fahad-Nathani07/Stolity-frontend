@@ -710,7 +710,7 @@ return (
       
       {/* Header */}
       {/* <div style={{ 
-        background: '#FFAB49', 
+        background: '#E5660F', 
         padding: '18px 24px', 
         display: 'flex', 
         justifyContent: 'space-between', 
@@ -758,7 +758,7 @@ return (
   <div style={{display:"flex", justifyContent:"center", alignItems:"center", gap:"10px" }}>
     <div>
       <div style={{padding:"5px", backgroundColor:"#F9F9F9", borderRadius:"10px", display:'flex', justifyContent:"center", alignItems:"center"}}>
-        <FaFileAlt style={{fontSize:"30px", color:"#FFAB49"}} />
+        <FaFileAlt style={{fontSize:"30px", color:"#E5660F"}} />
       </div>
     </div>
     <div>
@@ -812,10 +812,10 @@ return (
       disabled={loading}
       style={{
         padding: '10px 18px',
-        // background: loading ? '#ddd' : (activeTab === 'format' ? '#FFAB49' : '#FFE3CA'),
+        // background: loading ? '#ddd' : (activeTab === 'format' ? '#E5660F' : '#FFF1E8'),
         background: loading ? '#ddd' : (activeTab === 'format' ? 'white' : '#ffffff01'),
         color: loading ? '#999' : (activeTab === 'format' ? '#be1717ff' : '#333'),
-        // border: loading ? '2px solid #ccc' : (activeTab === 'format' ? '2px solid #FFAB49' : '2px solid #FFD5A9'),
+        // border: loading ? '2px solid #ccc' : (activeTab === 'format' ? '2px solid #E5660F' : '2px solid #FFD5A9'),
         borderRadius: '28px',
         cursor: loading ? 'not-allowed' : 'pointer',
         fontSize: '0.95em',
@@ -855,9 +855,9 @@ return (
          background: loading ? '#ddd' : (activeTab === 'compress' ? 'white' : '#ffffff01'),
         color: loading ? '#999' : (activeTab === 'compress' ? '#be1717ff' : '#333'),
 
-        // background: loading ? '#ddd' : (activeTab === 'compress' ? '#FFAB49' : '#FFE3CA'),
+        // background: loading ? '#ddd' : (activeTab === 'compress' ? '#E5660F' : '#FFF1E8'),
         // color: loading ? '#999' : (activeTab === 'compress' ? '#fff' : '#333'),
-        // border: loading ? '2px solid #ccc' : (activeTab === 'compress' ? '2px solid #FFAB49' : '2px solid #FFD5A9'),
+        // border: loading ? '2px solid #ccc' : (activeTab === 'compress' ? '2px solid #E5660F' : '2px solid #FFD5A9'),
         borderRadius: '28px',
         cursor: loading ? 'not-allowed' : 'pointer',
         fontSize: '0.95em',
@@ -897,9 +897,9 @@ return (
          background: loading ? '#ddd' : (activeTab === 'bitrate' ? 'white' : '#ffffff01'),
         color: loading ? '#999' : (activeTab === 'bitrate' ? '#be1717ff' : '#333'),
 
-        // background: loading ? '#ddd' : (activeTab === 'bitrate' ? '#FFAB49' : '#FFE3CA'),
+        // background: loading ? '#ddd' : (activeTab === 'bitrate' ? '#E5660F' : '#FFF1E8'),
         // color: loading ? '#999' : (activeTab === 'bitrate' ? '#fff' : '#333'),
-        // border: loading ? '2px solid #ccc' : (activeTab === 'bitrate' ? '2px solid #FFAB49' : '2px solid #FFD5A9'),
+        // border: loading ? '2px solid #ccc' : (activeTab === 'bitrate' ? '2px solid #E5660F' : '2px solid #FFD5A9'),
         borderRadius: '28px',
         cursor: loading ? 'not-allowed' : 'pointer',
         fontSize: '0.95em',
@@ -961,7 +961,7 @@ return (
       // background: '#f9f9f9',
       background: 'white',
       borderRadius: '12px',
-      border: '1px solid #FFAB49',
+      border: '1px solid #E5660F',
       maxHeight:"110px",
       overflowY:"auto"
     }}>
@@ -972,9 +972,9 @@ return (
           style={{
             padding: '6px 12px',
             border: '1px solid #f0f0f0ff',
-            // borderColor: currentFileIndex === index ? '#FFAB49' : '#e0e0e0',
+            // borderColor: currentFileIndex === index ? '#E5660F' : '#e0e0e0',
             borderRadius: '20px',
-            background: currentFileIndex === index ? '#FFAB49' : '#f9f9f9',
+            background: currentFileIndex === index ? '#E5660F' : '#f9f9f9',
             cursor: 'pointer',
             fontWeight: currentFileIndex === index ? '600' : '500',
             color: currentFileIndex === index ? 'white' : '#686666ff',
@@ -991,8 +991,8 @@ return (
           title={fileData.name}
           // onMouseEnter={(e) => {
           //   if (currentFileIndex !== index) {
-          //     e.target.style.borderColor = '#FFAB49';
-          //     e.target.style.color = '#FFAB49';
+          //     e.target.style.borderColor = '#E5660F';
+          //     e.target.style.color = '#E5660F';
           //   }
           // }}
           // onMouseLeave={(e) => {
@@ -1019,7 +1019,7 @@ return (
   style={{
     marginBottom: '24px',
     background: '#FFFAF5',
-    border: '2px solid #FFAB49',
+    border: '2px solid #E5660F',
     borderRadius: '10px',
     overflow: 'hidden'
   }}
@@ -1037,7 +1037,7 @@ return (
       transition: 'all 0.2s'
     }}
     onMouseEnter={(e) => {
-      // e.currentTarget.style.borderColor = '#FFE3CA';
+      // e.currentTarget.style.borderColor = '#FFF1E8';
       // e.currentTarget.style.background = '#FFFBF7';
     }}
     onMouseLeave={(e) => {
@@ -1228,7 +1228,7 @@ return (
     padding: '24px',
     background: 'white',
     borderRadius: '10px',
-    border: '2px solid #FFE3CA'
+    border: '2px solid #FFF1E8'
   }}>
     {/* FORMAT TAB CONTENT */}
    {activeTab === 'format' && !loading && (
@@ -1274,7 +1274,7 @@ return (
               width: '18px',
               height: '18px',
               cursor: 'pointer',
-              accentColor: '#FFAB49',
+              accentColor: '#E5660F',
               marginRight: '8px',
               flexShrink: 0
             }}
@@ -1295,7 +1295,7 @@ return (
         width: '170px',
         // padding: '14px 20px',
         padding: '8px 12px',
-        background: selectedFormat ? '#FFAB49' : '#E0E0E0',
+        background: selectedFormat ? '#E5660F' : '#E0E0E0',
         color: selectedFormat ? 'white' : '#999',
         border: 'none',
         borderRadius: '25px',
@@ -1312,7 +1312,7 @@ return (
       }}
       onMouseLeave={(e) => {
         if (selectedFormat) {
-          e.target.style.background = '#FFAB49';
+          e.target.style.background = '#E5660F';
         }
       }}
     >
@@ -1385,10 +1385,10 @@ return (
         }}>Compression Quality *</label>
         <div style={{
           padding: '4px 12px',
-          background: '#FFE3CA',
+          background: '#FFF1E8',
           borderRadius: '12px',
           fontSize: '0.75em',
-          color: '#FFAB49',
+          color: '#E5660F',
           fontWeight: '700'
         }}>
           {qualityLevels[qualityLevel].label}
@@ -1405,7 +1405,7 @@ return (
           cursor: 'pointer',
           height: '6px',
           borderRadius: '3px',
-          accentColor: '#FFAB49'
+          accentColor: '#E5660F'
         }}
       />
       <div style={{
@@ -1434,10 +1434,10 @@ return (
         }}>Maximum Width</label>
         <div style={{
           padding: '4px 12px',
-          background: '#FFE3CA',
+          background: '#FFF1E8',
           borderRadius: '12px',
           fontSize: '0.75em',
-          color: '#FFAB49',
+          color: '#E5660F',
           fontWeight: '700'
         }}>
           {maxWidth} px
@@ -1455,7 +1455,7 @@ return (
           cursor: 'pointer',
           height: '6px',
           borderRadius: '3px',
-          accentColor: '#FFAB49'
+          accentColor: '#E5660F'
         }}
       />
       <div style={{
@@ -1484,10 +1484,10 @@ return (
         }}>Maximum Width</label>
         <div style={{
           padding: '4px 12px',
-          background: '#FFE3CA',
+          background: '#FFF1E8',
           borderRadius: '12px',
           fontSize: '0.75em',
-          color: '#FFAB49',
+          color: '#E5660F',
           fontWeight: '700'
         }}>
           {maxHeight} px
@@ -1505,7 +1505,7 @@ return (
           cursor: 'pointer',
           height: '6px',
           borderRadius: '3px',
-          accentColor: '#FFAB49'
+          accentColor: '#E5660F'
         }}
       />
       <div style={{
@@ -1526,7 +1526,7 @@ return (
       style={{
         width: '170px',
         padding: '8px 12px',
-        background: '#FFAB49',
+        background: '#E5660F',
         color: 'white',
         border: 'none',
         borderRadius: '25px',
@@ -1540,7 +1540,7 @@ return (
         e.target.style.background = '#FF9830';
       }}
       onMouseLeave={(e) => {
-        e.target.style.background = '#FFAB49';
+        e.target.style.background = '#E5660F';
       }}
     >
       Compress Image
@@ -1619,7 +1619,7 @@ return (
                   width: '18px',
                   height: '18px',
                   cursor: 'pointer',
-                  accentColor: '#FFAB49',
+                  accentColor: '#E5660F',
                   marginRight: '8px',
                   flexShrink: 0
                 }}
@@ -1638,7 +1638,7 @@ return (
           style={{
             width: '100%',
             padding: '14px 20px',
-            background: selectedBitrate && ffmpegReady ? '#FFAB49' : '#E0E0E0',
+            background: selectedBitrate && ffmpegReady ? '#E5660F' : '#E0E0E0',
             color: selectedBitrate && ffmpegReady ? 'white' : '#999',
             border: 'none',
             borderRadius: '25px',
@@ -1655,7 +1655,7 @@ return (
           }}
           onMouseLeave={(e) => {
             if (selectedBitrate && ffmpegReady) {
-              e.target.style.background = '#FFAB49';
+              e.target.style.background = '#E5660F';
             }
           }}
         >
@@ -1693,7 +1693,7 @@ return (
       <p className="progress-converting-text" style={{ margin: 0, color: '#333', fontSize: '1em', fontWeight: '600', letterSpacing: '0.5px' }}>
         Converting<span className="progress-loading-dots"></span>
       </p>
-      <p style={{ margin: 0, color: '#FFAB49', fontSize: '1.3em', fontWeight: '700' }}>
+      <p style={{ margin: 0, color: '#E5660F', fontSize: '1.3em', fontWeight: '700' }}>
         {Math.min(progress, 100)}%
       </p>
     </div>
@@ -1704,7 +1704,7 @@ return (
       height: '10px'
     }}>
       <div style={{
-        background: '#FFAB49',
+        background: '#E5660F',
         height: '100%',
         width: `${Math.min(progress, 100)}%`,
         transition: 'width 0.3s ease'
@@ -1775,7 +1775,7 @@ return (
           disabled={loading}
           style={{
             padding: '10px 24px',
-            background: loading ? '#ddd' : '#FFAB49',
+            background: loading ? '#ddd' : '#E5660F',
             color: 'white',
             border: 'none',
             borderRadius: '28px',
@@ -1786,7 +1786,7 @@ return (
             transition: 'all 0.2s'
           }}
           onMouseEnter={(e) => { if (!loading) e.target.style.background = '#ff9a2e'; }}
-          onMouseLeave={(e) => { if (!loading) e.target.style.background = '#FFAB49'; }}
+          onMouseLeave={(e) => { if (!loading) e.target.style.background = '#E5660F'; }}
         >
           {loading ? 'Processing...' : 'Apply & Close'}
         </button>

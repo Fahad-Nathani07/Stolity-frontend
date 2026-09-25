@@ -18,6 +18,7 @@ import { loginUser } from "../store/subscriptionSlice"; // adjust the path if ne
 import { setUserProfileFromUserData, normalizeAvatarUrl } from "../store/userProfileSlice";
 
 import { FaArrowLeft } from "react-icons/fa";
+import "../css/LoginGraphicTip.css";
 
 const REMEMBER_EMAIL_KEY = "stolity_remember_email";
 
@@ -54,7 +55,7 @@ const Login = ({ setSpanExpanded, spanExpanded }) => {
   const [currentSlide, setCurrentSlide] = useState(0);
   const dispatch = useDispatch();
   const navigate = useNavigate();
-const [isPageReady, setIsPageReady] = useState(false); // to avoid flash of form before check
+  const [isPageReady, setIsPageReady] = useState(false); // to avoid flash of form before check
 
   // ────────────────────────────────────────────────
   //   NEW - login attempt & lockout states
@@ -78,7 +79,7 @@ const [isPageReady, setIsPageReady] = useState(false); // to avoid flash of form
   useEffect(() => {
     const interval = setInterval(() => {
       setCurrentSlide((prev) => (prev + 1) % slides.length);
-    }, 3000);
+    }, 4000);
     return () => clearInterval(interval);
   }, []);
 
@@ -132,7 +133,7 @@ const [isPageReady, setIsPageReady] = useState(false); // to avoid flash of form
   // ────────────────────────────────────────────────
   //   Load attempt data when email changes
   // ────────────────────────────────────────────────
-   // Run once on mount — small delay to let persisted email appear
+  // Run once on mount — small delay to let persisted email appear
   useEffect(() => {
     const timer = setTimeout(() => {
       setIsPageReady(true);
@@ -491,7 +492,7 @@ const [isPageReady, setIsPageReady] = useState(false); // to avoid flash of form
 
   return (
     <>
-<div className="form_container">
+      <div className="form_container">
         <button
           type="button"
           className="login-back-btn"
@@ -505,8 +506,18 @@ const [isPageReady, setIsPageReady] = useState(false); // to avoid flash of form
 
         <div className="login_left_col" data-aos="zoom-out">
           <div className="login_graphic_text">
-            <h2>{slides[currentSlide].title}</h2>
-            <p>{slides[currentSlide].text}</p>
+            <div key={currentSlide} className="login_graphic_text_inner">
+              <h2>{slides[currentSlide].title}</h2>
+              <p>{slides[currentSlide].text}</p>
+            </div>
+            <div className="login_graphic_dots" aria-hidden="true">
+              {slides.map((_, i) => (
+                <span
+                  key={i}
+                  className={`login_graphic_dot${i === currentSlide ? " is-active" : ""}`}
+                />
+              ))}
+            </div>
           </div>
           <div className="login_graphic">
             <img src={Illustration} className="img_responsive" alt="" />
@@ -533,166 +544,149 @@ const [isPageReady, setIsPageReady] = useState(false); // to avoid flash of form
             </div>
             <h3 className="mt-4">Welcome Back!</h3>
 
-<form onSubmit={handleSubmit}>
-  <div className="mt-4">
-    {!isPageReady ? (
-      <div style={{ 
-        textAlign: "center", 
-        padding: "80px 20px", 
-        color: "#6b7280",
-        minHeight: "300px",
-        display: "flex",
-        alignItems: "center",
-        justifyContent: "center"
-      }}>
-        Checking your login status...
-      </div>
-    ) : isLocked ? (
-      <div style={{
-        background: "rgba(254, 226, 226, 0.92)",
-        border: "1px solid #fecaca",
-        borderRadius: "12px",
-        padding: "32px 24px",
-        margin: "20px 0 40px 0",
-        textAlign: "center",
-        color: "#991b1b",
-        boxShadow: "0 4px 12px rgba(248, 113, 113, 0.15)",
-      }}>
-        <h4 style={{ 
-          margin: "0 0 16px 0", 
-          fontSize: "1.35rem", 
-          fontWeight: 600 
-        }}>
-          Account Temporarily Locked
-        </h4>
-        <p style={{ 
-          margin: "0 0 20px 0", 
-          fontSize: "1.05rem" 
-        }}>
-          Too many incorrect password attempts.
-        </p>
-        <p style={{ 
-          fontSize: "1.25rem", 
-          fontWeight: 600, 
-          margin: "0 0 24px 0",
-          color: "#7f1d1d"
-        }}>
-          Wait {Math.floor(countdownSeconds / 60)} min {countdownSeconds % 60} sec
-        </p>
-        <p style={{ 
-          color: "#4b5563", 
-          fontSize: "0.98rem", 
-          lineHeight: "1.5"
-        }}>
-          You can sign in right now using your <strong>Google account</strong> below.
-        </p>
-      </div>
-    ) : (
-      <>
-        <div className="form_group">
-          <label className="login_label">Email address</label>
-          <input
-            type="email"
-            className={`form-control form_control ${emailError ? "is-invalid" : ""}`}
-            name="email"
-            placeholder="Enter Email address"
-            value={email}
-            onChange={handleEmail}
-          />
-        </div>
-        {emailError && <div className="error-message">{emailError}</div>}
+            <form onSubmit={handleSubmit}>
+              <div className="mt-4">
+                {!isPageReady ? (
+                  <div style={{
+                    textAlign: "center",
+                    padding: "80px 20px",
+                    color: "#6b7280",
+                    minHeight: "300px",
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "center"
+                  }}>
+                    Checking your login status...
+                  </div>
+                ) : isLocked ? (
+                  <div className="login-lock-alert" role="alert">
+                    <div className="login-lock-alert__icon" aria-hidden="true">
+                      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                        <rect x="5" y="11" width="14" height="10" rx="2" />
+                        <path d="M8 11V8a4 4 0 0 1 8 0v3" />
+                      </svg>
+                    </div>
+                    <h4 className="login-lock-alert__title">Account Temporarily Locked</h4>
+                    <p className="login-lock-alert__desc">
+                      Too many incorrect password attempts.
+                    </p>
+                    <div className="login-lock-alert__timer">
+                      <span className="login-lock-alert__timer-label">Wait</span>
+                      <strong>
+                        {Math.floor(countdownSeconds / 60)} min {String(countdownSeconds % 60).padStart(2, "0")} sec
+                      </strong>
+                    </div>
+                    <p className="login-lock-alert__hint">
+                      You can sign in right now using your{" "}
+                      <strong>Google account</strong> below.
+                    </p>
+                  </div>
+                ) : (
+                  <>
+                    <div className="form_group">
+                      <label className="login_label">Email address</label>
+                      <input
+                        type="email"
+                        className={`form-control form_control ${emailError ? "is-invalid" : ""}`}
+                        name="email"
+                        placeholder="Enter Email address"
+                        value={email}
+                        onChange={handleEmail}
+                      />
+                    </div>
+                    {emailError && <div className="error-message">{emailError}</div>}
 
-        <div className="form_group">
-          <label className="login_label">Password</label>
-          <div className="text_field">
-            <input
-              type={showPassword ? "text" : "password"}
-              className="form-control form_control"
-              placeholder="Enter your Password"
-              value={password}
-              onChange={handlePass}
-            />
-            <div className="icon_field" onClick={togglePasswordVisibility}>
-              {showPassword ? <PasswordShow /> : <PasswordHide />}
-            </div>
-          </div>
-          {passwordError && <div className="error-message">{passwordError}</div>}
-        </div>
+                    <div className="form_group">
+                      <label className="login_label">Password</label>
+                      <div className="text_field">
+                        <input
+                          type={showPassword ? "text" : "password"}
+                          className="form-control form_control"
+                          placeholder="Enter your Password"
+                          value={password}
+                          onChange={handlePass}
+                        />
+                        <div className="icon_field" onClick={togglePasswordVisibility}>
+                          {showPassword ? <PasswordShow /> : <PasswordHide />}
+                        </div>
+                      </div>
+                      {passwordError && <div className="error-message">{passwordError}</div>}
+                    </div>
 
-        <div className="group_flexend mt-2">
-          <div className="radio-buttons custom_radio_btn">
-            <input
-              type="checkbox"
-              id="Remember"
-              checked={rememberMe}
-              onChange={(e) => {
-                const checked = e.target.checked;
-                setRememberMe(checked);
-                if (!checked) {
-                  localStorage.removeItem(REMEMBER_EMAIL_KEY);
-                }
-              }}
-            />
-            <label htmlFor="Remember">Remember me</label>
-          </div>
+                    <div className="group_flexend mt-3">
+                      <div className="radio-buttons custom_radio_btn login-remember">
+                        <input
+                          type="checkbox"
+                          id="Remember"
+                          checked={rememberMe}
+                          onChange={(e) => {
+                            const checked = e.target.checked;
+                            setRememberMe(checked);
+                            if (!checked) {
+                              localStorage.removeItem(REMEMBER_EMAIL_KEY);
+                            }
+                          }}
+                        />
+                        <label htmlFor="Remember">Remember me</label>
+                      </div>
 
-          <div>
-            <Link
-              to="/ForgotPassword"
-              style={{ color: "#FFAB49", textDecoration: "underline", fontSize: "14px" }}
-            >
-              Forgot password?
-            </Link>
-          </div>
-        </div>
+                      <div>
+                        <Link
+                          to="/ForgotPassword"
+                          style={{ color: "#c4231c", textDecoration: "underline", fontSize: "12px" }}
+                        >
+                          Forgot password?
+                        </Link>
+                      </div>
+                    </div>
 
-        <div className="btn_login_group">
-          <button
-            type="submit"
-            className={`btn_login ripple_effect ${buttonClicked ? "btn--clicked" : ""}`}
-            disabled={!canSubmitLogin}
-            aria-disabled={!canSubmitLogin}
-            style={
-              !canSubmitLogin
-                ? { opacity: 0.55, cursor: "not-allowed" }
-                : undefined
-            }
-            title={
-              !email.trim() || !password.trim()
-                ? "Enter email and password to continue"
-                : undefined
-            }
-          >
-            {isLoggingIn ? "Logging in…" : "Login"}
-          </button>
-        </div>
+                    <div className="btn_login_group">
+                      <button
+                        type="submit"
+                        className={`btn_login ripple_effect ${buttonClicked ? "btn--clicked" : ""}`}
+                        disabled={!canSubmitLogin}
+                        aria-disabled={!canSubmitLogin}
+                        style={
+                          !canSubmitLogin
+                            ? { opacity: 0.55, cursor: "not-allowed" }
+                            : undefined
+                        }
+                        title={
+                          !email.trim() || !password.trim()
+                            ? "Enter email and password to continue"
+                            : undefined
+                        }
+                      >
+                        {isLoggingIn ? "Logging in…" : "Login"}
+                      </button>
+                    </div>
 
-        {error && <div className="text-red-500 mt-3">{error}</div>}
-      </>
-    )}
+                    {error && <div className="text-red-500 mt-3">{error}</div>}
+                  </>
+                )}
 
-    <div className="divider">
-      <span>OR</span>
-    </div>
+                <div className="divider">
+                  <span>OR</span>
+                </div>
 
-    <div className="stolity-google-login">
-      <CustomGoogleAuthButton
-        onSuccess={handleSignUpSuccess}
-        onError={handleFailure}
-        label="Continue with Google"
-        text="continue_with"
-        disabled={isGoogleLoggingIn || isLocked}
-      />
-    </div>
+                <div className="stolity-google-login">
+                  <CustomGoogleAuthButton
+                    onSuccess={handleSignUpSuccess}
+                    onError={handleFailure}
+                    label="Continue with Google"
+                    text="continue_with"
+                    disabled={isGoogleLoggingIn || isLocked}
+                  />
+                </div>
 
-    <div className="have_acc mt-3">
-      Don’t have an Account?{" "}
-      <Link to="/Signup" style={{ color: "#E94545" }}>
-        Sign up
-      </Link>
-    </div>
-  </div>
-</form>
+                <div className="have_acc mt-3">
+                  Don’t have an Account?{" "}
+                  <Link to="/Signup" style={{ color: "#c4231c", fontWeight: 500, }}>
+                    Sign up
+                  </Link>
+                </div>
+              </div>
+            </form>
           </div>
         </div>
       </div>

@@ -161,7 +161,7 @@ const StorageWarningModal = () => {
         width: "100%",
         boxShadow: "0 25px 60px rgba(0,0,0,0.25)",
         textAlign: "center",
-        border: "1px solid #FFE3CA",
+        border: "1px solid #FFF1E8",
         animation: "modalFadeIn 0.35s ease"
       }}
     >
@@ -221,7 +221,7 @@ const StorageWarningModal = () => {
             navigate("/Payment");
           }}
           style={{
-            background: "#FFAB49",
+            background: "#E5660F",
             color: "#ffffff",
             padding: "10px 24px",
             borderRadius: "999px",
@@ -247,11 +247,11 @@ const StorageWarningModal = () => {
         <button
           onClick={() => setShowModal(false)}
           style={{
-            background: "#FFE3CA",
+            background: "#FFF1E8",
             color: "#494949",
             padding: "10px 24px",
             borderRadius: "999px",
-            border: "1px solid #FFAB49",
+            border: "1px solid #E5660F",
             fontWeight: 500,
             cursor: "pointer",
             transition: "all 0.25s ease"
@@ -260,7 +260,7 @@ const StorageWarningModal = () => {
             e.target.style.background = "#FDF8F4";
           }}
           onMouseOut={(e) => {
-            e.target.style.background = "#FFE3CA";
+            e.target.style.background = "#FFF1E8";
           }}
         >
           Close

@@ -123,7 +123,7 @@ const PaymentRow = ({ payment, userName, onView , setTriggerUpdate}) => {
             href={paymentScreenshot}
             target="_blank"
             rel="noopener noreferrer"
-            style={{ color: "#FFAB49", textDecoration: "none" }}
+            style={{ color: "#E5660F", textDecoration: "none" }}
           >
             View
           </a>
@@ -144,7 +144,7 @@ const PaymentRow = ({ payment, userName, onView , setTriggerUpdate}) => {
           onClick={onView}
           style={{
             padding: "8px 18px",
-            background: "#FFAB49",
+            background: "#E5660F",
             color: "white",
             border: "none",
             borderRadius: "999px",

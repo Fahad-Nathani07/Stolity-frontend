@@ -283,7 +283,7 @@ const removeSkill = (idx) => {
     control: (provided, state) => ({
       ...provided,
       minHeight: '48px',
-      border: state.isFocused ? '1px solid #FFAB49' : '1px solid #f3f4f6',
+      border: state.isFocused ? '1px solid #E5660F' : '1px solid #f3f4f6',
       boxShadow: state.isFocused ? '0 0 0 3px rgba(249, 115, 22, 0.08)' : 'none',
       borderRadius: '116px',
       fontSize: '16px',
@@ -291,14 +291,14 @@ const removeSkill = (idx) => {
     }),
     option: (provided, state) => ({
       ...provided,
-      backgroundColor: state.isSelected ? '#FFAB49' : state.isFocused ? 'rgba(249, 115, 22, 0.08)' : '#fff',
+      backgroundColor: state.isSelected ? '#E5660F' : state.isFocused ? 'rgba(249, 115, 22, 0.08)' : '#fff',
       color: state.isSelected ? '#fff' : '#333',
       padding: '12px 16px',
       fontSize: '16px'
     }),
     multiValue: (provided) => ({
       ...provided,
-      backgroundColor: '#FFAB49',
+      backgroundColor: '#E5660F',
       borderRadius: '20px',
       padding: '4px 12px'
     }),
@@ -1232,8 +1232,8 @@ const canPublish = () => {
           style={{
             fontSize: "12px",
             fontWeight: 500,
-            color:  "#FFAB49",
-            background: `${"#FFAB49"}22`,
+            color:  "#E5660F",
+            background: `${"#E5660F"}22`,
             padding: "6px 14px",
             borderRadius: "999px",
           }}
@@ -1299,7 +1299,7 @@ const canPublish = () => {
                 style={{
                   background: "none",
                   border: "none",
-                  color:  "#FFAB49",
+                  color:  "#E5660F",
                   fontWeight: 600,
                   cursor: "pointer",
                   padding: 0,
@@ -1328,8 +1328,8 @@ const canPublish = () => {
                 key={idx}
                 style={{
                   padding: "8px 16px",
-                  background: `${"#FFAB49"}22`,
-                  color: "#FFAB49",
+                  background: `${"#E5660F"}22`,
+                  color: "#E5660F",
                   borderRadius: "999px",
                   fontSize: "13px",
                   fontWeight: 500,
@@ -1356,8 +1356,8 @@ const canPublish = () => {
             <span
               style={{
                 padding: "8px 16px",
-                background: `${ "#FFAB49"}22`,
-                color:  "#FFAB49",
+                background: `${ "#E5660F"}22`,
+                color:  "#E5660F",
                 borderRadius: "999px",
                 fontSize: "13px",
                 fontWeight: 500,
@@ -1373,7 +1373,7 @@ const canPublish = () => {
           <button
             style={{
               padding: "12px 24px",
-              background:  "#FFAB49",
+              background:  "#E5660F",
               color: "#fff",
               border: "none",
               borderRadius: "999px",

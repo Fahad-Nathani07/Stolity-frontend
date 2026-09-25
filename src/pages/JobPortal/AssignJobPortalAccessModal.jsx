@@ -196,7 +196,7 @@ const AssignJobPortalAccessModal = ({ activeCompanyId, onClose, activeCompanyNam
             style={{
               padding: "10px 24px",
               borderRadius: "12px",
-              background: loading ? "#ffd6a8" : "#FFAB49",
+              background: loading ? "#ffd6a8" : "#E5660F",
               border: "none",
               color: "white",
               fontWeight: 600,

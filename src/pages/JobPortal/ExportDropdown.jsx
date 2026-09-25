@@ -168,7 +168,7 @@ export default function ExportDropdown({ candidates = [] }) {
     },
 
     headStyles: {
-      fillColor: [255, 171, 73],     // #FFAB49 in RGB
+      fillColor: [255, 171, 73],     // #E5660F in RGB
       textColor: [255, 255, 255],
       fontStyle: 'bold',
       halign: 'center',

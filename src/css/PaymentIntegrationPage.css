@@ -3,15 +3,15 @@
     width: 95%;
     position: absolute;
     right: 0;
-    font-family: "SF Pro", "SFProText", -apple-system, BlinkMacSystemFont, sans-serif !important;
+    font-family: "Plus Jakarta Sans", "SF Pro", "SFProText", -apple-system, BlinkMacSystemFont, sans-serif !important;
 }
 
 .faq-main-wrapper {
   background: #FAFAFA;
       min-height: 90vh;
     padding: 24px 34px 0 34px;
-    font-family: "SF Pro", "SFProText", -apple-system, BlinkMacSystemFont, sans-serif !important;
-  /* font-family: "SF Pro", "SFProText", sans-serif; */
+    font-family: "Plus Jakarta Sans", "SF Pro", "SFProText", -apple-system, BlinkMacSystemFont, sans-serif !important;
+  /* font-family: "Plus Jakarta Sans", sans-serif; */
     
 }
 
@@ -69,7 +69,7 @@
 
 .faq-accordion-item.open {
   box-shadow: 0 4px 24px rgba(255,171,73,0.09);
-  border: 1.5px solid #FFE3CA;
+  border: 1.5px solid #FFF1E8;
 }
 
 /* FAQ question header row */
@@ -97,13 +97,13 @@
   padding: 5px 11px;
   font-size: 24px;
   font-weight: 700;
-  color: #FFAB49;
+  color: #E5660F;
   box-shadow: 0 1px 6px rgba(255,171,73,0.05);
   transition: background 0.2s;
 }
 
 .faq-accordion-toggle.open {
-  background: #FFE3CA;
+  background: #FFF1E8;
   color: #F68D2B;
 }
 
@@ -197,7 +197,7 @@
 .faq-question-input {
   width: 105%;
   padding: 12px 18px;
-  border: 1.5px solid #FFE3CA;
+  border: 1.5px solid #FFF1E8;
   border-radius: 32px;
   font-size: 16px;
   margin-bottom: 18px;
@@ -205,16 +205,16 @@
   outline: none;
   transition: border 0.2s;
   color: #222;
-  font-family: "SF Pro", "SFProText", sans-serif;
+  font-family: "Plus Jakarta Sans", sans-serif;
 }
 
 .faq-question-input:focus {
-  border: 1.5px solid #FFAB49;
+  border: 1.5px solid #E5660F;
 }
 
 .faq-send-btn {
-  /* background: linear-gradient(90deg,#FFAB49 65%,#FFE3CA 120%); */
-  background: #FFAB49 ;
+  /* background: linear-gradient(90deg,#E5660F 65%,#FFF1E8 120%); */
+  background: #E5660F ;
   color: #fff;
   font-weight: 600;
   font-size: 16px;
@@ -231,7 +231,7 @@
 }
 
 .faq-send-btn:hover {
-  background: linear-gradient(90deg,#FFC86A 65%,#FFE3CA 120%);
+  background: linear-gradient(90deg,#FFC86A 65%,#FFF1E8 120%);
 }
 
 /* Responsive */
@@ -347,7 +347,7 @@
 }
 
 .payment-upi-input:focus {
-  border-color: #FFAB49;
+  border-color: #E5660F;
   background: #FFFFFF;
 }
 
@@ -359,7 +359,7 @@
   font-size: 14px;
   font-weight: 600;
   cursor: pointer;
-  background: #FFAB49;
+  background: #E5660F;
   color: #ffffff;
   box-shadow: 0 2px 6px rgba(255, 171, 73, 0.25);
   transition: background 0.15s ease, transform 0.1s ease;
@@ -607,7 +607,7 @@
 /* Header (orange area in mobile) */
 .plan-card-header {
   background: #ffffff;
-  color: #FFAB49;
+  color: #E5660F;
   border-radius: 16px 16px 12px 12px;
   padding: 16px 16px 14px 16px;
   /* margin-bottom: 12px; */
@@ -702,7 +702,7 @@
 
 .plan-cta-btn {
   border-radius: 999px;
-  border: 1px solid #ffab49;
+  border: 1px solid #e5660f;
   padding: 9px 22px;
   font-size: 14px;
   font-weight: 600;
@@ -760,7 +760,7 @@
 }
 
 .payment-text-input:focus {
-  border-color: #ffab49;
+  border-color: #e5660f;
 }
 
 .payment-files-row {
@@ -789,7 +789,7 @@
   padding: 6px 14px;
   font-size: 13px;
   font-weight: 600;
-  background: #ffab49;
+  background: #e5660f;
   color: #ffffff;
   cursor: pointer;
 }
@@ -802,7 +802,7 @@
   padding: 11px 0;
   font-size: 15px;
   font-weight: 600;
-  background: #ffab49;
+  background: #e5660f;
   color: #ffffff;
   cursor: pointer;
 }
@@ -964,7 +964,7 @@
 
 .confirm-btn.confirm {
   /* background: linear-gradient(135deg, #fb923c, #facc15); */
-  background: #ffab49;
+  background: #e5660f;
   color: white;
   box-shadow:
     0 6px 18px rgba(248, 171, 73, 0.45),

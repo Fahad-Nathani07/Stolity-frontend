@@ -188,7 +188,7 @@ section {
   justify-content: center;
   padding: 12px 22px;
   border-radius: 100px;
-  border: 1.5px solid #ffab49;
+  border: 1.5px solid #e5660f;
   background: transparent;
   color: #000;
   font-size: 1rem;
@@ -208,7 +208,7 @@ section {
 }
 
 .get-start-btn {
-  background: #ffab49;
+  background: #e5660f;
   padding: 12px 22px;
   border-radius: 100px;
   color: #000 !important;
@@ -349,7 +349,7 @@ section {
 
 .hero-video:hover {
   transform: translate3d(0, -8px, 0);
-  border-color: #ffd7a8;
+  border-color: #f0b48a;
   box-shadow:
     0 4px 10px rgba(100, 100, 100, 0.06),
     0 14px 32px -12px rgba(120, 120, 120, 0.14),
@@ -441,14 +441,14 @@ section {
 
 .full-screen-content:hover {
   transform: translateY(-2px);
-  background: #FFAB49;
-  border-color: #FFAB49;
+  background: #E5660F;
+  border-color: #E5660F;
   color: #fff;
   box-shadow: 0 12px 24px rgba(255, 171, 73, 0.4);
 }
 
 .full-screen-content:focus-visible {
-  outline: 2px solid #FFAB49;
+  outline: 2px solid #E5660F;
   outline-offset: 3px;
 }
 
@@ -653,7 +653,7 @@ section {
 .offer-btn-wrape {
   display: flex;
   position: relative;
-  background-color: #ffab49;
+  background-color: #e5660f;
   border-radius: 100px;
   padding: 5px;
   width: fit-content;
@@ -731,9 +731,9 @@ section {
 }
 
 .offer-card:hover .checkmark {
-  border: 2px solid #FFAB49;
+  border: 2px solid #E5660F;
   color: #fff;
-  background: #FFAB49;
+  background: #E5660F;
   transition: 0.3s cubic-bezier(0.16, 1, 0.3, 1);
   box-shadow: 0 6px 14px rgba(255, 171, 73, 0.35);
 }
@@ -744,7 +744,7 @@ section {
 }
 
 .offer-plan-name {
-  color: #FFAB49;
+  color: #E5660F;
   font-weight: bold;
   font-size: 1.5rem;
   text-align: left;
@@ -837,7 +837,7 @@ section {
   top: 4px;
   width: 12px;
   height: 12px;
-  background: #FFAB49;
+  background: #E5660F;
   border: 3px solid #FFE7C6;
   border-radius: 50%;
 }
@@ -855,12 +855,12 @@ section {
 .offer-get-started {
   background: #FFF9F1;
   text-align: center;
-  color: #FF8E20;
+  color: #C4231C;
   font-size: 1.25rem;
   font-weight: 600;
   border-radius: 30px;
   padding: 10px 0;
-  border: 2px solid #FFAB49;
+  border: 2px solid #E5660F;
   transition:
     background 0.3s ease,
     color 0.3s ease,
@@ -874,17 +874,17 @@ section {
 }
 
 .offer-get-started:hover {
-  background: #FFAB49;
+  background: #E5660F;
   color: #fff;
-  border-color: #FFAB49;
+  border-color: #E5660F;
   box-shadow: 0 10px 22px rgba(255, 171, 73, 0.4);
   transform: translateY(-1px);
 }
 
 .offer-card:hover .offer-get-started {
-  background: #FFAB49;
+  background: #E5660F;
   color: #fff;
-  border-color: #FFAB49;
+  border-color: #E5660F;
   box-shadow: 0 8px 18px rgba(255, 171, 73, 0.32);
 }
 
@@ -994,7 +994,7 @@ section {
 
 
 .organize-btn {
-  background: #ffab49;
+  background: #e5660f;
   padding: 14px 20px;
   border-radius: 100px;
   color: #000;

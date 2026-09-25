@@ -122,7 +122,7 @@
 
 .cfm-edit-btn:hover {
   background: rgba(255, 171, 73, 0.16);
-  color: #ffab49;
+  color: #e5660f;
 }
 
 .cfm-filename {
@@ -205,7 +205,7 @@
 .cfm-rename-save {
   border: none;
   border-radius: 8px;
-  background: #ffab49;
+  background: #e5660f;
   color: #1a1208;
   font-weight: 600;
   font-size: 13px;
@@ -266,7 +266,7 @@
 }
 
 .cfm-acl-badge--private {
-  color: #ffab49;
+  color: #e5660f;
   background: rgba(255, 171, 73, 0.14);
   border: 1px solid rgba(255, 171, 73, 0.32);
 }
@@ -557,7 +557,7 @@
 }
 
 .cfm-folder-opt--on {
-  color: #ffab49;
+  color: #e5660f;
   font-weight: 600;
 }
 
@@ -574,8 +574,8 @@
 }
 
 .cfm-folder-opt--on .cfm-folder-dot {
-  border-color: #ffab49;
-  background: #ffab49;
+  border-color: #e5660f;
+  background: #e5660f;
 }
 
 .cfm-folder-dot-inner {
@@ -597,7 +597,7 @@
   bottom: calc(100% + 8px);
   transform: translateX(-50%);
   background: rgba(12, 14, 20, 0.96);
-  color: #ffab49;
+  color: #e5660f;
   padding: 7px 14px;
   font-weight: 600;
   font-size: 12px;
@@ -684,7 +684,7 @@
 
 .cfm-tool-btn:hover {
   background: rgba(255, 171, 73, 0.16);
-  color: #ffab49;
+  color: #e5660f;
 }
 
 .cfm-tool-btn:disabled {

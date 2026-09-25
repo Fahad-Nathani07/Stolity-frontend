@@ -30,7 +30,7 @@ const InfoLine = ({ icon: Icon, label, value, accent = false }) => (
     padding: "12px 0",
     borderBottom: "1px solid rgba(226, 232, 240, 0.7)",
   }}>
-    {Icon && <Icon size={18} style={{ color: accent ? "#FFAB49" : "#FFAB49", minWidth: 20 }} />}
+    {Icon && <Icon size={18} style={{ color: accent ? "#E5660F" : "#E5660F", minWidth: 20 }} />}
     <div style={{ flex: 1 }}>
       <div style={{ fontSize: 12.5, color: "#000000", fontWeight: 500, marginBottom: 3 }}>
         {label}
@@ -74,7 +74,7 @@ const CircularScore = ({ score = 0, label = "Score" }) => {
         <defs>
           <linearGradient id="grad" x1="0%" y1="0%" x2="100%" y2="100%">
             <stop offset="0%" stopColor="#ffc98b" />
-            <stop offset="100%" stopColor="#FFAB49" />
+            <stop offset="100%" stopColor="#E5660F" />
           </linearGradient>
         </defs>
       </svg>
@@ -87,7 +87,7 @@ const CircularScore = ({ score = 0, label = "Score" }) => {
         justifyContent: "center",
         fontSize: 22,
         fontWeight: 700,
-        color: "#FFAB49",
+        color: "#E5660F",
       }}>
         {percentage}
         <span style={{ fontSize: 13, color: "#4e4e4e", marginTop: 2 }}>{label}</span>
@@ -103,10 +103,10 @@ const Tag = ({ children, variant = "default" }) => (
     fontSize: 13,
     fontWeight: 500,
     background: variant === "accent" 
-      ? "linear-gradient(135deg, #ffcf98, #FFAB49)" 
+      ? "linear-gradient(135deg, #ffcf98, #E5660F)" 
       : "#f8f9fa",
     color: variant === "accent" ? "#ffffff" : "#4e4e4e",
-    border: variant === "accent" ? "1px solid #FFAB49" : "1px solid #e2e8f0",
+    border: variant === "accent" ? "1px solid #E5660F" : "1px solid #e2e8f0",
     boxShadow: "0 1px 3px rgba(0,0,0,0.05)",
   }}>
     {children}
@@ -128,12 +128,12 @@ const Section = ({ icon: Icon, title, children, highlight = false }) => (
       gap: 12,
       // marginBottom: 20,
     }}>
-      {Icon && <Icon size={20} style={{ color: highlight ? "#FFAB49" : "#FFAB49" }} />}
+      {Icon && <Icon size={20} style={{ color: highlight ? "#E5660F" : "#E5660F" }} />}
       <h3 style={{
         margin: 0,
         fontSize: 18,
         fontWeight: 600,
-        color: highlight ? "#ff8800" : "#1e293b",
+        color: highlight ? "#c4231c" : "#1e293b",
       }}>
         {title}
       </h3>
@@ -293,7 +293,7 @@ const ResumePreviewModal = ({
                     marginTop: 6,
                     fontSize: 13,
                     fontWeight: 600,
-                    color: "#FFAB49",
+                    color: "#E5660F",
                   }}>
                     AI ATS Score
                   </div>
@@ -391,8 +391,8 @@ const ResumePreviewModal = ({
                     padding: "8px 0",
                     fontSize: 15,
                     fontWeight: 600,
-                    color: activeTab === tab ? "#ff8800" : "#475569",
-                    borderBottom: activeTab === tab ? "3px solid #ff8800" : "3px solid transparent",
+                    color: activeTab === tab ? "#c4231c" : "#475569",
+                    borderBottom: activeTab === tab ? "3px solid #c4231c" : "3px solid transparent",
                     cursor: "pointer",
                     transition: "all 0.2s",
                   }}
@@ -449,7 +449,7 @@ const ResumePreviewModal = ({
                     <button
                       onClick={handleViewResume}
                       style={{
-                        background: "linear-gradient(135deg, #FFAB49, #ff8800)",
+                        background: "linear-gradient(135deg, #E5660F, #c4231c)",
                         color: "white",
                         border: "none",
                         borderRadius: 12,
@@ -483,8 +483,8 @@ const ResumePreviewModal = ({
                       borderRadius: 24,
                       padding: "32px 36px",
                       margin: "0 0 36px 0",
-                      // borderLeft: "5px solid #FFAB49",
-                      border: "1px solid #FFAB49",
+                      // borderLeft: "5px solid #E5660F",
+                      border: "1px solid #E5660F",
                       boxShadow: "0 12px 32px rgba(255, 171, 73, 0.12)",
                       position: "relative",
                       overflow: "hidden",
@@ -512,7 +512,7 @@ const ResumePreviewModal = ({
                       position: "relative",
                     }}>
                       <div style={{
-                        background: "#FFAB49",
+                        background: "#E5660F",
                         borderRadius: "50%",
                         width: 48,
                         height: 48,
@@ -559,7 +559,7 @@ const ResumePreviewModal = ({
                         value={
                           <a 
                             href={`mailto:${parsed.contact.email}`} 
-                            style={{ color: "#FFAB49", textDecoration: "none" }}
+                            style={{ color: "#E5660F", textDecoration: "none" }}
                             target="_blank" 
                             rel="noopener noreferrer"
                           >
@@ -578,7 +578,7 @@ const ResumePreviewModal = ({
                         value={
                           <a 
                             href={`tel:${parsed.contact.phone.replace(/\s+/g, '')}`} 
-                            style={{ color: "#FFAB49", textDecoration: "none" }}
+                            style={{ color: "#E5660F", textDecoration: "none" }}
                           >
                             {parsed.contact.phone}
                           </a>
@@ -599,7 +599,7 @@ const ResumePreviewModal = ({
                               : `https://${parsed.contact.linkedin}`} 
                             target="_blank" 
                             rel="noopener noreferrer"
-                            style={{ color: "#FFAB49", textDecoration: "none" }}
+                            style={{ color: "#E5660F", textDecoration: "none" }}
                           >
                             {parsed.contact.linkedin}
                           </a>
@@ -620,7 +620,7 @@ const ResumePreviewModal = ({
                               : `https://${parsed.contact.github}`} 
                             target="_blank" 
                             rel="noopener noreferrer"
-                            style={{ color: "#FFAB49", textDecoration: "none" }}
+                            style={{ color: "#E5660F", textDecoration: "none" }}
                           >
                             {parsed.contact.github}
                           </a>
@@ -641,7 +641,7 @@ const ResumePreviewModal = ({
                               : `https://${parsed.contact.portfolio}`} 
                             target="_blank" 
                             rel="noopener noreferrer"
-                            style={{ color: "#FFAB49", textDecoration: "none" }}
+                            style={{ color: "#E5660F", textDecoration: "none" }}
                           >
                             {parsed.contact.portfolio}
                           </a>
@@ -684,7 +684,7 @@ const ResumePreviewModal = ({
                     {/* Technical Skills */}
                     {parsed.skills?.technical?.length > 0 && (
                       <div style={{ marginBottom: 24 }}>
-                        <div style={{ fontSize: 15, fontWeight: 600, color: "#FFAB49", marginBottom: 10 }}>
+                        <div style={{ fontSize: 15, fontWeight: 600, color: "#E5660F", marginBottom: 10 }}>
                           Technical Skills
                         </div>
                         <div style={{ display: "flex", flexWrap: "wrap", gap: 10 }}>
@@ -700,7 +700,7 @@ const ResumePreviewModal = ({
                     {/* Databases */}
                     {parsed.skills?.databases?.length > 0 && (
                       <div style={{ marginBottom: 24 }}>
-                        <div style={{ fontSize: 15, fontWeight: 600, color: "#FFAB49", marginBottom: 10 }}>
+                        <div style={{ fontSize: 15, fontWeight: 600, color: "#E5660F", marginBottom: 10 }}>
                           Databases
                         </div>
                         <div style={{ display: "flex", flexWrap: "wrap", gap: 10 }}>
@@ -714,7 +714,7 @@ const ResumePreviewModal = ({
                     {/* Frameworks */}
                     {parsed.skills?.frameworks?.length > 0 && (
                       <div style={{ marginBottom: 24 }}>
-                        <div style={{ fontSize: 15, fontWeight: 600, color: "#FFAB49", marginBottom: 10 }}>
+                        <div style={{ fontSize: 15, fontWeight: 600, color: "#E5660F", marginBottom: 10 }}>
                           Frameworks
                         </div>
                         <div style={{ display: "flex", flexWrap: "wrap", gap: 10 }}>
@@ -730,7 +730,7 @@ const ResumePreviewModal = ({
                     {/* Languages */}
                     {parsed.skills?.languages?.length > 0 && (
                       <div style={{ marginBottom: 24 }}>
-                        <div style={{ fontSize: 15, fontWeight: 600, color: "#FFAB49", marginBottom: 10 }}>
+                        <div style={{ fontSize: 15, fontWeight: 600, color: "#E5660F", marginBottom: 10 }}>
                           Programming Languages
                         </div>
                         <div style={{ display: "flex", flexWrap: "wrap", gap: 10 }}>
@@ -744,7 +744,7 @@ const ResumePreviewModal = ({
                     {/* Tools */}
                     {parsed.skills?.tools?.length > 0 && (
                       <div style={{ marginBottom: 24 }}>
-                        <div style={{ fontSize: 15, fontWeight: 600, color: "#FFAB49", marginBottom: 10 }}>
+                        <div style={{ fontSize: 15, fontWeight: 600, color: "#E5660F", marginBottom: 10 }}>
                           Tools & Technologies
                         </div>
                         <div style={{ display: "flex", flexWrap: "wrap", gap: 10 }}>
@@ -758,7 +758,7 @@ const ResumePreviewModal = ({
                     {/* Soft Skills */}
                     {parsed.skills?.soft?.length > 0 && (
                       <div style={{ marginBottom: 24 }}>
-                        <div style={{ fontSize: 15, fontWeight: 600, color: "#FFAB49", marginBottom: 10 }}>
+                        <div style={{ fontSize: 15, fontWeight: 600, color: "#E5660F", marginBottom: 10 }}>
                           Soft Skills
                         </div>
                         <div style={{ display: "flex", flexWrap: "wrap", gap: 10 }}>
@@ -846,7 +846,7 @@ const ResumePreviewModal = ({
                           {/* Title + Company */}
                           <div style={{ fontSize: 17, fontWeight: 600, color: "#1e293b", marginBottom: 6 }}>
                             {title}
-                            {company && <span style={{ color: "#FFAB49", fontWeight: 500 }}> at {company}</span>}
+                            {company && <span style={{ color: "#E5660F", fontWeight: 500 }}> at {company}</span>}
                           </div>
 
                           {/* Location + Dates */}
@@ -1106,12 +1106,12 @@ const ResumePreviewModal = ({
                     </div>
                     {parsed.resume_score.score_breakdown && (
                       <div style={{ marginTop: 24 }}>
-                        <div style={{ fontSize: 15, fontWeight: 600, color: "#FFAB49", marginBottom: 12 }}>Breakdown</div>
+                        <div style={{ fontSize: 15, fontWeight: 600, color: "#E5660F", marginBottom: 12 }}>Breakdown</div>
                         <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
                           {Object.entries(parsed.resume_score.score_breakdown).map(([key, val]) => (
                             <div key={key} style={{ background: "#fffaf0", padding: 12, borderRadius: 12, border: "1px solid #ffe8cc" }}>
                               <div style={{ fontSize: 13, color: "#64748b" }}>{key.replace(/_/g, " ")}</div>
-                              <div style={{ fontSize: 18, fontWeight: 700, color: "#FFAB49" }}>{val}</div>
+                              <div style={{ fontSize: 18, fontWeight: 700, color: "#E5660F" }}>{val}</div>
                             </div>
                           ))}
                         </div>

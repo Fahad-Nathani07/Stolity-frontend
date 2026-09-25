@@ -135,7 +135,7 @@
   appearance: none;
   border: none;
   background: transparent;
-  color: #ffab49;
+  color: #e5660f;
   font-size: 0.8125rem;
   font-weight: 650;
   padding: 8px 10px;
@@ -224,7 +224,7 @@
 }
 
 .bulk-selection-toolbar__action-btn:hover {
-  color: #ffab49;
+  color: #e5660f;
 }
 
 .bulk-selection-toolbar__action-btn--danger:hover {

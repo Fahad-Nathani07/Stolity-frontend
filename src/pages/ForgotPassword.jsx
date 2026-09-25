@@ -14,6 +14,7 @@ import IconMail from "../images/iconMail.svg";
 import IconLock from "../images/iconLock.svg";
 import IconLGoogle from "../images/iconGLogin.svg";
 import { Link } from "react-router-dom";
+import "../css/LoginGraphicTip.css";
 import LogoMini from "../images/logo-mini.svg";
 import NewLogo from "../images/NewLogo.svg";
 import { motion } from "framer-motion";
@@ -352,7 +353,7 @@ const ForgotPassword = () => {
             letterSpacing: "2px",
           }}
           onFocus={(e) => {
-            e.target.style.borderColor = "#FFAB49";
+            e.target.style.borderColor = "#E5660F";
             e.target.style.backgroundColor = "#FFF9F0";
             e.target.style.transform = "scale(1.05)";
             e.target.style.boxShadow = "0 4px 12px rgba(255, 171, 73, 0.15)";
@@ -455,7 +456,7 @@ const ForgotPassword = () => {
      <img src={protectionIcon} className="img_responsive" alt="Illustration" />
   </div>
   <div style={{textAlign: "left"}}>
-    <span style={{ color: '#FFAB49', fontWeight: 600, fontSize: '18px' }}>Enter the 6-digit code</span><br />
+    <span style={{ color: '#E5660F', fontWeight: 600, fontSize: '18px' }}>Enter the 6-digit code</span><br />
     <span style={{ color: '#494949', fontSize: '15px' }}>
       {/* A reset link has been sent to <b>{maskEmail(email)}</b> */}
       
@@ -485,7 +486,7 @@ const ForgotPassword = () => {
                 className="btn_login ripple_effect"
                 disabled={isLoading}
                 style={{
-                  background: "linear-gradient(135deg, #FFAB49 0%, #FF8C42 100%)",
+                  background: "linear-gradient(135deg, #E5660F 0%, #FF8C42 100%)",
                   border: "none",
                   boxShadow: "0 4px 15px rgba(255, 171, 73, 0.3)",
                 }}
@@ -519,7 +520,7 @@ const ForgotPassword = () => {
       onClick={handleResendOtp}
       disabled={isLoading}
       style={{
-        color: "#FFAB49",
+        color: "#E5660F",
         background: "none",
         border: "none",
         textDecoration: "underline",
@@ -792,11 +793,13 @@ if (step === 3) {
 
         <div className="login_left_col">
           <div className="login_graphic_text">
-            <h2>Upload Files</h2>
-            <p>
-              Store upto 5GB data in a centralised location for easy access and
-              management.
-            </p>
+            <div className="login_graphic_text_inner">
+              <h2>Upload Files</h2>
+              <p>
+                Store upto 5GB data in a centralised location for easy access and
+                management.
+              </p>
+            </div>
           </div>
           <div className="login_graphic">
             <img src={Illustration} className="img_responsive" alt="Illustration" />
@@ -818,7 +821,7 @@ if (step === 3) {
           }`}
         data-value="1"
         style={{
-          background: `conic-gradient(from 0deg at 50% 50%, #E5252A 0deg, #E7400C 120deg, #FFAB49 240deg, #E5252A 360deg)`,
+          background: `conic-gradient(from 0deg at 50% 50%, #E5252A 0deg, #E7400C 120deg, #E5660F 240deg, #E5252A 360deg)`,
         }}
       >
         <div className="logo__load" style={{ width: "100px", height: "100px" }}>

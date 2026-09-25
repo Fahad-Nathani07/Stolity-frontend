@@ -15,37 +15,37 @@ import "./FolderDestinationModal.css";
 const VARIANT_META = {
   move: {
     icon: FiMove,
-    accent: "#FFAB49",
+    accent: "#E5660F",
     actionVerb: "move",
   },
   copy: {
     icon: FiCopy,
-    accent: "#FFAB49",
+    accent: "var(--h1-gradient)",
     actionVerb: "copy",
   },
   "move-folder": {
     icon: FiFolder,
-    accent: "#FFAB49",
+    accent: "var(--h1-gradient)",
     actionVerb: "move",
   },
   restore: {
     icon: RotateCcwClock,
-    accent: "#FFAB49",
+    accent: "var(--h1-gradient)",
     actionVerb: "restore",
   },
   zip: {
     icon: FiPackage,
-    accent: "#FFAB49",
+    accent: "var(--h1-gradient)",
     actionVerb: "zip",
   },
   unzip: {
     icon: FiPackage,
-    accent: "#FFAB49",
+    accent: "var(--h1-gradient)",
     actionVerb: "unzip",
   },
   download: {
     icon: FiDownload,
-    accent: "#FFAB49",
+    accent: "var(--h1-gradient)",
     actionVerb: "download",
   },
 };
@@ -201,11 +201,10 @@ export default function FolderDestinationModal({
                       </span>
                     ) : (
                       <span
-                        className={`fdm-crumb ${
-                          originalIndex === breadcrumbParts.length - 1
-                            ? "is-active"
-                            : ""
-                        }`}
+                        className={`fdm-crumb ${originalIndex === breadcrumbParts.length - 1
+                          ? "is-active"
+                          : ""
+                          }`}
                         title={folder}
                       >
                         {folder}

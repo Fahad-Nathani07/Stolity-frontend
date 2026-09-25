@@ -84,7 +84,7 @@
 }
 
 .new-event-btn {
-  background: #FFAB49;
+  background: #E5660F;
   color: white;
   border: none;
   padding: 10px 20px;
@@ -250,7 +250,7 @@ color: #101828;
 }
 
 .schedule-badge {
-    background: #FFAB49;
+    background: #E5660F;
     color: white;
     padding: 4px 9px;
     border-radius: 51px;
@@ -278,7 +278,7 @@ color: #101828;
   margin-top: 4px;
 }
 
-.event-indicator.orange { background: #FFAB49; }
+.event-indicator.orange { background: #E5660F; }
 .event-indicator.green { background: #10b981; }
 .event-indicator.blue { background: #3b82f6; }
 
@@ -406,7 +406,7 @@ color: #101828;
   background: #FFF6ED !important;
   color: #ff8e0b !important;
   font-size: 16px !important;
-  border: 1px solid #FFAB49 !important;
+  border: 1px solid #E5660F !important;
 }
 
 
@@ -508,19 +508,19 @@ color: #101828;
 
 .event-category-tag.orange {
   background: #FFF6ED;
-  color: #FFAB49;
+  color: #E5660F;
   border-radius: 4px;
   padding: 8px 12px;
 }
 .event-category-tag.green {
   background: #FFF6ED;
-  color: #FFAB49;
+  color: #E5660F;
   border-radius: 4px;
   padding: 8px 12px;
 }
 .event-category-tag.blue {
   background: #FFF6ED;
-  color: #FFAB49;
+  color: #E5660F;
   border-radius: 4px;
   padding: 8px 12px;
 }
@@ -652,14 +652,14 @@ color: #101828;
 .time-hour {
   font-size: 16px;
   font-weight: 700;
-  color: #FFAB49;
+  color: #E5660F;
   line-height: 1;
 }
 
 .time-period {
   font-size: 12px;
   font-weight: 600;
-  color: #FFAB49;
+  color: #E5660F;
   line-height: 1;
 }
 

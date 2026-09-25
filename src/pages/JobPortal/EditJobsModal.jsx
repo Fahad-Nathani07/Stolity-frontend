@@ -340,7 +340,7 @@ const removeSkill = (index) => {
     control: (provided, state) => ({
       ...provided,
       minHeight: '48px',
-      border: state.isFocused ? '1px solid #FFAB49' : '1px solid #f3f4f6',
+      border: state.isFocused ? '1px solid #E5660F' : '1px solid #f3f4f6',
       boxShadow: state.isFocused ? '0 0 0 3px rgba(249, 115, 22, 0.08)' : 'none',
       borderRadius: '116px',
       fontSize: '16px',
@@ -348,14 +348,14 @@ const removeSkill = (index) => {
     }),
     option: (provided, state) => ({
       ...provided,
-      backgroundColor: state.isSelected ? '#FFAB49' : state.isFocused ? 'rgba(249, 115, 22, 0.08)' : '#fff',
+      backgroundColor: state.isSelected ? '#E5660F' : state.isFocused ? 'rgba(249, 115, 22, 0.08)' : '#fff',
       color: state.isSelected ? '#fff' : '#333',
       padding: '12px 16px',
       fontSize: '16px'
     }),
     multiValue: (provided) => ({
       ...provided,
-      backgroundColor: '#FFAB49',
+      backgroundColor: '#E5660F',
       borderRadius: '20px',
       padding: '4px 12px'
     }),

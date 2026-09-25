@@ -77,7 +77,7 @@ const CompanyRow = ({ name, slug, email, mobile, website, isConfigured, softBanS
     href={getFullUrl(website)}
     target="_blank"
     rel="noopener noreferrer"
-    style={{ color: "#FFAB49" }}
+    style={{ color: "#E5660F" }}
   >
     Visit
   </a>
@@ -165,7 +165,7 @@ const colStyles = {
 
 const manageButtonStyle = {
   padding: "8px 18px",
-  background: "#FFAB49",
+  background: "#E5660F",
   color: "#FFFFFF",
   border: "none",
   borderRadius: "999px",

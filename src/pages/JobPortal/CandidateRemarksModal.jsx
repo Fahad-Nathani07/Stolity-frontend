@@ -131,7 +131,7 @@ const CandidateRemarksModal = ({
         border: "1px solid rgba(255,171,73,0.10)",
         display: "flex",
         flexDirection: "column",
-        fontFamily: '"SF Pro", "SFProText", -apple-system, BlinkMacSystemFont, sans-serif',
+        fontFamily: '"Plus Jakarta Sans", "SF Pro", "SFProText", -apple-system, BlinkMacSystemFont, sans-serif',
       }}
     >
       {/* Header */}
@@ -180,7 +180,7 @@ const CandidateRemarksModal = ({
               width: "48px",
               height: "48px",
               fontSize: "32px",
-              color: "#FFAB49",
+              color: "#E5660F",
               cursor: "pointer",
               display: "flex",
               alignItems: "center",
@@ -386,7 +386,7 @@ const CandidateRemarksModal = ({
           height: "44px",                    // fixed height for consistency
         }}
         onFocus={(e) => {
-          e.target.style.borderColor = "#FFAB49";
+          e.target.style.borderColor = "#E5660F";
           e.target.style.boxShadow = "0 0 0 3px rgba(255,171,73,0.14)";
         }}
         onBlur={(e) => {
@@ -435,7 +435,7 @@ const CandidateRemarksModal = ({
           transition: "all 0.2s ease",
         }}
         onFocus={(e) => {
-          e.target.style.borderColor = "#FFAB49";
+          e.target.style.borderColor = "#E5660F";
           e.target.style.boxShadow = "0 0 0 3px rgba(255,171,73,0.14)";
         }}
         onBlur={(e) => {
@@ -454,7 +454,7 @@ const CandidateRemarksModal = ({
         padding: "11px 36px",                  // smaller button
         background: loading || !remarkText.trim()
           ? "#e5e7eb"
-          : "linear-gradient(135deg, #FFAB49 0%, #f97316 100%)",
+          : "linear-gradient(135deg, #E5660F 0%, #f97316 100%)",
         color: "white",
         border: "none",
         borderRadius: "12px",

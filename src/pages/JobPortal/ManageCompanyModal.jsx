@@ -18,8 +18,8 @@ const ManageCompanyModal = ({ company, onClose }) => {
   if (!company) return null;
 
   const navItems = [
-    { id: "overview", label: "Overview", color: "#FFAB49" },
-    { id: "edit", label: "Edit Details", color: "#FFAB49" },
+    { id: "overview", label: "Overview", color: "#E5660F" },
+    { id: "edit", label: "Edit Details", color: "#E5660F" },
     { id: "users", label: "Assigned Users", color: "#4CAF50" },
     { id: "jobs", label: "Posted Jobs", color: "#2196F3" },
     { id: "branding", label: "Branding", color: "#9C27B0" },
@@ -135,7 +135,7 @@ const ManageCompanyModal = ({ company, onClose }) => {
 }}>
   <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "16px", textAlign: "center" }}>
     <div>
-      <div style={{ fontSize: "20px", fontWeight: 700, color: "#FFAB49" }}>
+      <div style={{ fontSize: "20px", fontWeight: 700, color: "#E5660F" }}>
         {company.isConfigured ? "Yes" : "No"}
       </div>
       <div style={{ fontSize: "13px", color: "#666" }}>Configured</div>
@@ -404,7 +404,7 @@ const EditSection = ({ company, onClose }) => {
     registrationNumber: latestCompany.registrationNumber || "",
     logoUrl: latestCompany.logoUrl || "",
     primaryColor: latestCompany.primaryColor || "#ffffff",
-    secondaryColor: latestCompany.secondaryColor || "#FFAB49",
+    secondaryColor: latestCompany.secondaryColor || "#E5660F",
     socials: {
       facebook: latestCompany.socials?.facebook || "",
       instagram: latestCompany.socials?.instagram || "",
@@ -426,7 +426,7 @@ const EditSection = ({ company, onClose }) => {
       registrationNumber: latestCompany.registrationNumber || "",
       logoUrl: latestCompany.logoUrl || "",
       primaryColor: latestCompany.primaryColor || "#ffffff",
-      secondaryColor: latestCompany.secondaryColor || "#FFAB49",
+      secondaryColor: latestCompany.secondaryColor || "#E5660F",
       socials: {
         facebook: latestCompany.socials?.facebook || "",
         instagram: latestCompany.socials?.instagram || "",
@@ -710,7 +710,7 @@ const EditSection = ({ company, onClose }) => {
             padding: "14px 36px",
             border: "none",
             borderRadius: "999px",
-            background: saving ? "#ffd699" : "#FFAB49",
+            background: saving ? "#ffd699" : "#E5660F",
             color: "white",
             fontWeight: 600,
             fontSize: "15px",
@@ -738,7 +738,7 @@ const inputStyle = {
   background: "#ffffff",
   boxShadow: "0 1px 4px rgba(0,0,0,0.04)",
   "&:focus": {
-    borderColor: "#FFAB49",
+    borderColor: "#E5660F",
     boxShadow: "0 0 0 3px rgba(255,171,73,0.15)",
   },
 };
@@ -801,7 +801,7 @@ const InfoItem = ({ label, value, link }) => (
     </div>
     <div style={{ fontSize: "15px", fontWeight: 500, color: "#1a1a1a" }}>
       {link ? (
-        <a href={link} target="_blank" rel="noopener noreferrer" style={{ color: "#FFAB49", textDecoration: "none" }}>
+        <a href={link} target="_blank" rel="noopener noreferrer" style={{ color: "#E5660F", textDecoration: "none" }}>
           {value || (<span style={{ 
               color: '#999', 
               fontStyle: 'italic', 

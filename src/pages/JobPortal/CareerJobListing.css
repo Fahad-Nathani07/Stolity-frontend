@@ -1,5 +1,5 @@
 .career-page {
-  font-family: "SF Pro", "SFProText", sans-serif;
+  font-family: "Plus Jakarta Sans", sans-serif;
   background: #fafafa;
   color: #222;
 }
@@ -34,9 +34,9 @@
 }
 
 .career-hero h1 {
-  color: #FFAB49;
-  /* font-family: "SF Pro", "SFProText", -apple-system, BlinkMacSystemFont, sans-serif; */
-  font-family: "SF Pro", "SFProText", -apple-system, BlinkMacSystemFont, sans-serif;
+  color: #E5660F;
+  /* font-family: "Plus Jakarta Sans", "SF Pro", "SFProText", -apple-system, BlinkMacSystemFont, sans-serif; */
+  font-family: "Plus Jakarta Sans", "SF Pro", "SFProText", -apple-system, BlinkMacSystemFont, sans-serif;
 font-weight: 700;
 font-style: Bold;
 font-size: 48px;
@@ -159,9 +159,9 @@ text-align: center;
 }
 
 .page-btn.active {
-  background: #ffab49;
+  background: #e5660f;
   color: #fff;
-  border-color: #ffab49;
+  border-color: #e5660f;
 }
 
 .page-btn:hover,
@@ -232,7 +232,7 @@ text-align: center;
 .career-tabs .active {
   background: white;
   /* color: #fff; */
-  color: #FFAB49;
+  color: #E5660F;
   /* border-color: #ff9f43; */
 }
 
@@ -396,8 +396,8 @@ text-align: center;
 
 .filter-btn.active {
   background: #ededed;
-  color: #ffab49;
-  border: 1px solid #ffab49;
+  color: #e5660f;
+  border: 1px solid #e5660f;
 }
 
 
@@ -414,8 +414,8 @@ text-align: center;
 
 .filter-btn.active {
   background: #ededed;
-  color: #ffab49;
-  border: 1px solid #ffab49;
+  color: #e5660f;
+  border: 1px solid #e5660f;
 }
 
 .filter-btn .arrow {
@@ -439,7 +439,7 @@ text-align: center;
 }
 
 .read-more {
-  color: #ffab49;
+  color: #e5660f;
   font-size: 14px;
   font-weight: 500;
   cursor: pointer;
@@ -464,7 +464,7 @@ text-align: center;
   padding-right: 17.6px;
   padding-bottom: 11px;
   padding-left: 17.6px;
-  background-color: #FFAB49;
+  background-color: #E5660F;
   color: white;
   font-weight: 700;
   font-style: Bold;
@@ -490,7 +490,7 @@ text-align: center;
   line-height: 64px;
   letter-spacing: 0%;
   text-align: center;
-  color: #FFAB49;
+  color: #E5660F;
 }
 
 
@@ -525,7 +525,7 @@ text-align: center;
 .resume-btn {
   padding: 10px 18px;
   border-radius: 999px;
-  background: #ffab49;
+  background: #e5660f;
   color: white;
   border: none;
   font-weight: 600;
@@ -535,8 +535,8 @@ text-align: center;
   padding: 10px 18px;
   border-radius: 999px;
   background: white;
-  border: 1px solid #ffab49;
-  color: #ffab49;
+  border: 1px solid #e5660f;
+  color: #e5660f;
   font-weight: 600;
 }
 
@@ -559,9 +559,9 @@ text-align: center;
   border-width: 0.64px;
   padding: 10px 24px;
   gap: 10.27px;
-  background-color: #FFAB49;
+  background-color: #E5660F;
   color: white;
-  border: 0.64px solid #FFAB49;
+  border: 0.64px solid #E5660F;
   font-weight: 600;
   font-style: Bold;
   font-size: 18px;
@@ -592,7 +592,7 @@ input[type="range"]::-webkit-slider-thumb {
   height: 14px;
   width: 14px;
   border-radius: 50%;
-  background: #FFAB49;
+  background: #E5660F;
   cursor: pointer;
   border: none;
 }
@@ -601,7 +601,7 @@ input[type="range"]::-moz-range-thumb {
   height: 14px;
   width: 14px;
   border-radius: 50%;
-  background: #FFAB49;
+  background: #E5660F;
   cursor: pointer;
   border: none;
 }

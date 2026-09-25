@@ -8,7 +8,7 @@ const RoleBadge = ({ role }) => {
       style={{
         padding: "4px 10px",
         borderRadius: "999px",
-        background: role === "SUPER_ADMIN" ? "#FFAB49" : "#FFE3CA",
+        background: role === "SUPER_ADMIN" ? "#E5660F" : "#FFF1E8",
         color: role === "SUPER_ADMIN" ? "#fff" : "#494949",
         fontSize: "12px",
         fontWeight: 500,

@@ -64,7 +64,7 @@
 .bl-dual::before {
   inset: 0;
   border-top-color: #e5252a;
-  border-right-color: #ffab49;
+  border-right-color: #e5660f;
   animation: bl-spin 0.95s linear infinite;
 }
 
@@ -112,7 +112,7 @@
 }
 
 .bl-orbit-dot:nth-child(3) {
-  background: #ffab49;
+  background: #e5660f;
   animation-delay: -1.06s;
 }
 
@@ -194,7 +194,7 @@
   height: 100%;
   width: 38%;
   border-radius: inherit;
-  background: linear-gradient(90deg, #ffab49 0%, #e7400c 50%, #e5252a 100%);
+  background: linear-gradient(90deg, #e5660f 0%, #e7400c 50%, #e5252a 100%);
   animation: bl-progress-slide 1.35s ease-in-out infinite;
 }
 

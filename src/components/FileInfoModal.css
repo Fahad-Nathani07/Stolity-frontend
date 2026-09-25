@@ -68,8 +68,8 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  background: rgba(255, 171, 73, 0.14);
-  color: #ffab49;
+  background: #feeadf;
+  color: #d44315;
   font-size: 20px;
 }
 
@@ -126,8 +126,8 @@
   margin: 0 0 14px;
   padding: 12px 14px;
   border-radius: 12px;
-  background: #f8fafc;
-  border: 1px solid #e2e8f0;
+  background: #fdf7f3;
+  border: 1px solid #f4d9ca;
 }
 
 .fim-file-chip-icon {
@@ -285,7 +285,7 @@
 
 .fim-btn--primary {
   border: none;
-  background: #ffab49;
+  background: #e5660f;
   color: #fff;
 }
 
@@ -364,6 +364,7 @@
 }
 
 @media (prefers-reduced-motion: reduce) {
+
   .fim-overlay,
   .fim-dialog {
     transition: none !important;

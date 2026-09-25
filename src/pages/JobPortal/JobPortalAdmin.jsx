@@ -1,6 +1,4 @@
 import { useEffect, useMemo, useState } from "react";
-import AOS from "aos";
-import "aos/dist/aos.css";
 import UsersTab from "./UsersTab";
 import SideNav from "../../components/SideNav";
 import { fetchCompanies } from "../../store/companyMasterSlice";
@@ -10,6 +8,7 @@ import CompaniesTab from "./CompaniesTab";
 import PaymentRow from "./PaymentRow";           // ← new component
 import PaymentDetailModal from "./PaymentDetailModal"; // ← new modal
 import SubscriptionPaymentsTab from "./SubscriptionPaymentsTab"; // ← new modal
+import ScrollReveal from "../../components/ScrollReveal";
 
 const PAGE_SIZES = [5, 10, 20, 50, 100];
 
@@ -45,7 +44,7 @@ const primaryButton = (disabled) => ({
   padding: "8px 16px",
   borderRadius: "999px",
   border: "none",
-  background: disabled ? "#FFD7A8" : "#FFAB49",
+  background: disabled ? "#F0B48A" : "#E5660F",
   color: "white",
   cursor: disabled ? "not-allowed" : "pointer",
 });
@@ -53,7 +52,7 @@ const primaryButton = (disabled) => ({
 const outlineButton = (disabled) => ({
   padding: "8px 16px",
   borderRadius: "999px",
-  border: "1px solid #FFAB49",
+  border: "1px solid #E5660F",
   background: "white",
   color: "#494949",
   cursor: disabled ? "not-allowed" : "pointer",
@@ -67,21 +66,7 @@ const JobPortalAdmin = () => {
   useEffect(() => {
     dispatch(fetchCompanies());
   }, [dispatch]);
-
-  useEffect(() => {
-    AOS.init({
-      duration: 1000,
-      offset: 80,
-      easing: "ease-in-out",
-      once: true,
-    });
-  }, []);
-
-  useEffect(() => {
-    AOS.refresh();
-  }, [activeTab]);
-
-  const email = sessionStorage.getItem("email");
+const email = sessionStorage.getItem("email");
   const { role, companies: assignedCompanyIds } = useSelector(
     (state) => state.jobPortal
   );
@@ -113,7 +98,7 @@ const JobPortalAdmin = () => {
           }}
         >
           {/* Header */}
-          <div className="dashboard-header bgwhite" data-aos="zoom-out">
+          <ScrollReveal as="div" className="dashboard-header bgwhite" variant="fadeSoft" delay={0.05} duration={0.75}>
             <div className="breadcrumb SFProTextClass font20">
               <span>Jobs</span>
               <span className="separator fontW500" style={{ color: "#E94545" }}>
@@ -121,14 +106,14 @@ const JobPortalAdmin = () => {
               </span>
               <span
                 className="current fontW500"
-                style={{ fontFamily: '"SF Pro", "SFProText", -apple-system, BlinkMacSystemFont, sans-serif', color: "#E94545" }}
+                style={{ fontFamily: '"Plus Jakarta Sans", "SF Pro", "SFProText", -apple-system, BlinkMacSystemFont, sans-serif', color: "#E94545" }}
               >
                 Admin Dashboard
               </span>
             </div>
-          </div>
+          </ScrollReveal>
 
-          <div style={{ padding: "24px" }} data-aos="zoom-in">
+          <ScrollReveal as="div" style={{ padding: "24px" }} variant="fadeUp" delay={0.1} duration={0.85}>
             <h2 style={{ fontWeight: 600 }}>Job Portal Administration</h2>
             <p style={{ color: "#777", marginBottom: "24px" }}>
               Manage job portal access, roles, and companies
@@ -160,12 +145,12 @@ const JobPortalAdmin = () => {
             </div>
 
             {/* Tab Content */}
-            <div style={{ paddingTop: "24px" }} data-aos="zoom-in" key={activeTab}>
+            <ScrollReveal as="div" style={{ paddingTop: "24px" }} key={activeTab} variant="fadeUp" delay={0.1} duration={0.85}>
               {activeTab === "users" && <UsersTab />}
               {activeTab === "companies" && <CompaniesTab />}
               {activeTab === "subscription-payments" && <SubscriptionPaymentsTab />}
-            </div>
-          </div>
+            </ScrollReveal>
+          </ScrollReveal>
         </div>
       </div>
     </div>
@@ -179,7 +164,7 @@ const TabButton = ({ label, active, onClick }) => (
       padding: "10px 16px",
       border: "none",
       background: "transparent",
-      borderBottom: active ? "3px solid #FFAB49" : "3px solid transparent",
+      borderBottom: active ? "3px solid #E5660F" : "3px solid transparent",
       color: active ? "#000" : "#777",
       fontWeight: 500,
       cursor: "pointer",

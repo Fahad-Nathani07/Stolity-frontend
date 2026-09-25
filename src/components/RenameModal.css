@@ -52,7 +52,7 @@
   align-items: center;
   justify-content: center;
   background: rgba(255, 171, 73, 0.14);
-  color: #ffab49;
+  color: #e5660f;
   font-size: 20px;
 }
 
@@ -149,7 +149,7 @@
 }
 
 .rename-modal-input-row:focus-within {
-  border-color: #ffab49;
+  border-color: #e5660f;
   box-shadow: 0 0 0 3px rgba(255, 171, 73, 0.18);
 }
 
@@ -227,7 +227,7 @@
 
 .rename-modal-btn--primary {
   border: none;
-  background: #ffab49;
+  background: var(--h1-gradient);
   color: #fff;
   min-width: 110px;
 }
@@ -240,6 +240,7 @@
   from {
     opacity: 0;
   }
+
   to {
     opacity: 1;
   }
@@ -250,6 +251,7 @@
     opacity: 0;
     transform: translateY(14px) scale(0.98);
   }
+
   to {
     opacity: 1;
     transform: translateY(0) scale(1);

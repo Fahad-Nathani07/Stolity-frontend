@@ -6,6 +6,8 @@ import React, {
   useRef,
   useMemo,
 } from "react";
+import { createPortal } from "react-dom";
+import { useFtFilterPopupStyle } from "../hooks/useFtFilterPopupStyle";
 import { LONG_RUNNING_AWS_REQUEST_OPTIONS } from "../utils/longRunningAwsRequest";
 import {
   postZipOrUnzip,
@@ -229,6 +231,8 @@ const [showMultiRestoreModal, setShowMultiRestoreModal] = useState(false);
   const [newFileName, setNewFileName] = useState("");
   const [showFTPopup, setShowFTPopup] = useState(false);
   const fileTypeDropdownRef = useRef(null);
+  const ftFilterPopupRef = useRef(null);
+  const ftPopupStyle = useFtFilterPopupStyle(fileTypeDropdownRef, showFTPopup);
   const [customExtInput, setCustomExtInput] = useState("");
   const [entriesnum, setEntriesnum] = useState(0);
   const nav = useNavigate();
@@ -420,8 +424,8 @@ const [folderToRestore, setFolderToRestore] = useState(null);
     if (!showFTPopup) return;
     const handleOutside = (e) => {
       const target = e.target;
-      if (!fileTypeDropdownRef.current) return;
-      if (fileTypeDropdownRef.current.contains(target)) return;
+      if (fileTypeDropdownRef.current?.contains(target)) return;
+      if (ftFilterPopupRef.current?.contains(target)) return;
       setShowFTPopup(false);
     };
     document.addEventListener("mousedown", handleOutside);
@@ -3635,118 +3639,125 @@ const isMultiSizeExceeded = selectedTotalBytes > remainingBytes;
                       >
                       </Dropdown>
 
-                      {showFTPopup && (
-                        <div className="ft-filter-popup ft-filter-popup--end">
-                          <div className="ft-filter-popup-header">
-                            <div className="ft-filter-popup-title">
-                              File Type Filter
+                      {showFTPopup &&
+                        ftPopupStyle &&
+                        createPortal(
+                          <div
+                            className="ft-filter-popup ft-filter-popup--end"
+                            ref={ftFilterPopupRef}
+                            style={ftPopupStyle}
+                          >
+                            <div className="ft-filter-popup-header">
+                              <div className="ft-filter-popup-title">
+                                File Type Filter
+                              </div>
+                              <div className="ft-filter-popup-subtitle">
+                                Choose formats to filter
+                              </div>
                             </div>
-                            <div className="ft-filter-popup-subtitle">
-                              Choose formats to filter
-                            </div>
-                          </div>
 
-                          <div className="ft-custom-ext-card">
-                            <div className="ft-custom-ext-top">
-                              <span className="ft-custom-ext-label">
-                                Custom Extension
-                              </span>
-                            </div>
-                            <p className="ft-custom-ext-hint">
-                              Can’t find your format? Add any extension.
-                            </p>
-                            <div className="ft-custom-ext-row">
-                              <span className="ft-custom-ext-dot">.</span>
-                              <input
-                                type="text"
-                                className="ft-custom-ext-input"
-                                placeholder="docx, csv, zip…"
-                                value={customExtInput}
-                                onChange={(e) =>
-                                  setCustomExtInput(e.target.value)
-                                }
-                                onKeyDown={(e) => {
-                                  if (e.key === "Enter") {
-                                    e.preventDefault();
-                                    addCustomExtension();
+                            <div className="ft-custom-ext-card">
+                              <div className="ft-custom-ext-top">
+                                <span className="ft-custom-ext-label">
+                                  Custom Extension
+                                </span>
+                              </div>
+                              <p className="ft-custom-ext-hint">
+                                Can’t find your format? Add any extension.
+                              </p>
+                              <div className="ft-custom-ext-row">
+                                <span className="ft-custom-ext-dot">.</span>
+                                <input
+                                  type="text"
+                                  className="ft-custom-ext-input"
+                                  placeholder="docx, csv, zip…"
+                                  value={customExtInput}
+                                  onChange={(e) =>
+                                    setCustomExtInput(e.target.value)
                                   }
-                                }}
-                                maxLength={12}
-                              />
+                                  onKeyDown={(e) => {
+                                    if (e.key === "Enter") {
+                                      e.preventDefault();
+                                      addCustomExtension();
+                                    }
+                                  }}
+                                  maxLength={12}
+                                />
+                                <button
+                                  type="button"
+                                  className="ft-custom-ext-add"
+                                  onClick={addCustomExtension}
+                                >
+                                  Add
+                                </button>
+                              </div>
+                              {selectedFileTypes.filter(
+                                (t) => !fileTypes.includes(t)
+                              ).length > 0 && (
+                                <div className="ft-custom-ext-chips">
+                                  {selectedFileTypes
+                                    .filter((t) => !fileTypes.includes(t))
+                                    .map((ext) => (
+                                      <button
+                                        key={ext}
+                                        type="button"
+                                        className="ft-custom-ext-chip"
+                                        onClick={() =>
+                                          handleFTCheckboxChange(ext)
+                                        }
+                                        title="Remove"
+                                      >
+                                        .{ext}
+                                        <span aria-hidden="true">×</span>
+                                      </button>
+                                    ))}
+                                </div>
+                              )}
+                            </div>
+
+                            <div className="ft-filter-popup-list">
+                              {fileTypes.map((fileType) => {
+                                const isSelected =
+                                  selectedFileTypes.includes(fileType);
+                                return (
+                                  <label
+                                    key={fileType}
+                                    className={`ft-filter-type-item${
+                                      isSelected ? " is-selected" : ""
+                                    }`}
+                                  >
+                                    <input
+                                      type="checkbox"
+                                      checked={isSelected}
+                                      onChange={() =>
+                                        handleFTCheckboxChange(fileType)
+                                      }
+                                    />
+                                    <span>{fileType.toUpperCase()}</span>
+                                  </label>
+                                );
+                              })}
+                            </div>
+
+                            <div className="ft-filter-popup-footer">
                               <button
                                 type="button"
-                                className="ft-custom-ext-add"
-                                onClick={addCustomExtension}
+                                className="ft-filter-btn-cancel"
+                                onClick={closeOnlyPopup}
                               >
-                                Add
+                                Done
+                              </button>
+                              <button
+                                type="button"
+                                className="ft-filter-btn-apply"
+                                onClick={clearFileTypeFilter}
+                              >
+                                Clear
                               </button>
                             </div>
-                            {selectedFileTypes.filter(
-                              (t) => !fileTypes.includes(t)
-                            ).length > 0 && (
-                              <div className="ft-custom-ext-chips">
-                                {selectedFileTypes
-                                  .filter((t) => !fileTypes.includes(t))
-                                  .map((ext) => (
-                                    <button
-                                      key={ext}
-                                      type="button"
-                                      className="ft-custom-ext-chip"
-                                      onClick={() =>
-                                        handleFTCheckboxChange(ext)
-                                      }
-                                      title="Remove"
-                                    >
-                                      .{ext}
-                                      <span aria-hidden="true">×</span>
-                                    </button>
-                                  ))}
-                              </div>
-                            )}
-                          </div>
-
-                          <div className="ft-filter-popup-list">
-                            {fileTypes.map((fileType) => {
-                              const isSelected =
-                                selectedFileTypes.includes(fileType);
-                              return (
-                                <label
-                                  key={fileType}
-                                  className={`ft-filter-type-item${
-                                    isSelected ? " is-selected" : ""
-                                  }`}
-                                >
-                                  <input
-                                    type="checkbox"
-                                    checked={isSelected}
-                                    onChange={() =>
-                                      handleFTCheckboxChange(fileType)
-                                    }
-                                  />
-                                  <span>{fileType.toUpperCase()}</span>
-                                </label>
-                              );
-                            })}
-                          </div>
-
-                          <div className="ft-filter-popup-footer">
-                            <button
-                              type="button"
-                              className="ft-filter-btn-cancel"
-                              onClick={closeOnlyPopup}
-                            >
-                              Done
-                            </button>
-                            <button
-                              type="button"
-                              className="ft-filter-btn-apply"
-                              onClick={clearFileTypeFilter}
-                            >
-                              Clear
-                            </button>
-                          </div>
-                        </div>
-                      )}
+                          </div>,
+                          document.body
+                        )}
                       </div>
                     </div>
                   </div>
@@ -5072,7 +5083,7 @@ const isMultiSizeExceeded = selectedTotalBytes > remainingBytes;
   style={{
     padding: "8px 20px",
     borderRadius: "8px",
-    background: "#FFAB49",
+    background: "#E5660F",
     border: "none",
     color: "#fff",
     fontWeight: 600,
@@ -5225,7 +5236,7 @@ const isMultiSizeExceeded = selectedTotalBytes > remainingBytes;
           style={{
             padding: "8px 20px",
             borderRadius: "8px",
-            background: "#FFAB49",
+            background: "#E5660F",
             border: "none",
             color: "#fff",
             fontWeight: 600,

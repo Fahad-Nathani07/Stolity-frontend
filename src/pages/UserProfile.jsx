@@ -1,6 +1,4 @@
 import React, { useEffect, useRef, useState } from "react";
-import AOS from "aos";
-import "aos/dist/aos.css";
 import Logo from "../images/logo.png";
 import SideNav from "../components/SideNav";
 import Footer from "../components/Footer";
@@ -43,6 +41,7 @@ import svgPng from "../images/TypesPng.svg"
 import svgTxt from "../images/TypesTxt.svg"
 import svgZip from "../images/TypesZip.svg"
 import { useDispatch, useSelector } from "react-redux";
+import ScrollReveal from "../components/ScrollReveal";
 // subscription + folder size come from Redux (loaded in App.js)
 import { setUserProfile, normalizeAvatarUrl } from "../store/userProfileSlice";
 import { usePlayAudio } from "../hooks/usePlayAudio";
@@ -124,21 +123,7 @@ const UserProfile = () => {
     }, 1000);
     return () => clearInterval(id);
   }, [resendTimer]);
-
-  useEffect(() => {
-    AOS.init({
-      duration: 1000,
-      offset: 80,
-      easing: "ease-in-out",
-      once: true,
-    });
-  }, []);
-
-  useEffect(() => {
-    AOS.refresh();
-  }, [name, folderSize, subscription]);
-
-  const maskEmail = (value) => {
+const maskEmail = (value) => {
     if (!value || !value.includes("@")) return value || "";
     const [user, domain] = value.split("@");
     const visible = user.slice(0, Math.min(2, user.length));
@@ -1505,7 +1490,7 @@ const UserProfile = () => {
         <div className="main-panel">
           <div className="content-wrapper" style={{ padding: "15px" }}>
             <div className="row">
-              <div className="col-lg-6 mt-2" data-aos="zoom-in">
+              <ScrollReveal as="div" className="col-lg-6 mt-2" variant="fadeUp" delay={0.1} duration={0.85}>
                 <div className="profile_box">
                   <div className="profile_row">
                     <div className="img_profile">
@@ -1557,9 +1542,9 @@ const UserProfile = () => {
                     </div>
                   </div>
                 </div>
-              </div>
+              </ScrollReveal>
 
-              <div className="col-lg-6 mt-2" data-aos="zoom-in">
+              <ScrollReveal as="div" className="col-lg-6 mt-2" variant="fadeUp" delay={0.1} duration={0.85}>
                 <div className="profile_box">
                   <div className="profile_row">
                     <div
@@ -1650,10 +1635,10 @@ const UserProfile = () => {
 
                   </div>
                 </div>
-              </div>
+              </ScrollReveal>
             </div>
 
-            <div className="profile_row" data-aos="zoom-in">
+            <ScrollReveal as="div" className="profile_row" variant="fadeUp" delay={0.1} duration={0.85}>
               <div className="profile_table_box">
                 <div className="profile_table_title_row">
                   <h5>Recent Uploads</h5>
@@ -1821,7 +1806,7 @@ const UserProfile = () => {
                 </div>
               </div>
 
-              <div className="profile_stolity_app" data-aos="zoom-in">
+              <ScrollReveal as="div" className="profile_stolity_app" variant="fadeUp" delay={0.16} duration={0.85}>
                 <h5>
                   Get the Stolity <br />
                   App today!
@@ -1851,8 +1836,8 @@ const UserProfile = () => {
 
                   <img src={ImgStolityApp} className="img_responsive" alt="Stolity app" />
                 </div>
-              </div>
-            </div>
+              </ScrollReveal>
+            </ScrollReveal>
           </div>
           <Footer />
         </div>

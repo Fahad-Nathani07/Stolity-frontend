@@ -51,11 +51,13 @@
   width: 34px;
   height: 34px;
   border: none;
+  display: flex;
+  justify-content: center;
   border-radius: 10px;
   background: #f7f7f8;
   color: #8a8a92;
   font-size: 22px;
-  line-height: 1;
+  line-height: 26px;
   cursor: pointer;
   transition: background 0.15s ease, color 0.15s ease;
 }
@@ -76,7 +78,7 @@
   font-weight: 700;
   letter-spacing: 0.06em;
   text-transform: uppercase;
-  color: #d97706;
+  color: #E5660F;
 }
 
 .vis-title {
@@ -186,8 +188,8 @@
 }
 
 .vis-option.is-selected .vis-option-check {
-  border-color: #ffab49;
-  background: #ffab49;
+  border-color: #e5660f;
+  background: #e5660f;
 }
 
 .vis-option.is-selected .vis-option-check::after {
@@ -230,13 +232,13 @@
 
 .vis-btn-solid {
   border: none;
-  background: #ffab49;
+  background: var(--h1-gradient);
   color: #fff;
   box-shadow: 0 6px 14px rgba(255, 171, 73, 0.28);
 }
 
 .vis-btn-solid:hover {
-  background: #f59e36;
+  background: var(--h1-gradient);
   transform: translateY(-1px);
 }
 
@@ -251,6 +253,7 @@
 }
 
 @media (prefers-reduced-motion: reduce) {
+
   .vis-overlay,
   .vis-modal {
     transition: none !important;

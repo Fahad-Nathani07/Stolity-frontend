@@ -746,7 +746,7 @@ const handleSchedule = async () => {
             setShowSmtpWarning(false);
             setShowSmtpConfig(true);
           }}
-          style={{ padding: '10px 20px', background: '#FFAB49', color: 'white', border: 'none', borderRadius: '8px' }}
+          style={{ padding: '10px 20px', background: '#E5660F', color: 'white', border: 'none', borderRadius: '8px' }}
         >
           Register My SMTP Credentials
         </button>

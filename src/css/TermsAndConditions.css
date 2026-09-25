@@ -15,9 +15,9 @@
 }
 
 .back-button {
-  background: #FFE3CA;
+  background: #FFF1E8;
   color: #494949;
-  border: 1px solid #FFAB49;
+  border: 1px solid #E5660F;
   padding: 10px 24px;
   border-radius: 25px;
   font-size: 14px;
@@ -28,7 +28,7 @@
 }
 
 .back-button:hover {
-  background: #FFAB49;
+  background: #E5660F;
   color: white;
   transform: translateY(-2px);
 }
@@ -62,7 +62,7 @@
 
 
 .terms-section a {
-  color: #FFAB49;
+  color: #E5660F;
   text-decoration: none;
   font-weight: 500;
   transition: color 0.3s ease;
@@ -80,7 +80,7 @@
   background: white;
   padding: 24px 40px;
   border-radius: 8px;
-  border: 1px solid #FFE3CA;
+  border: 1px solid #FFF1E8;
 }
 
 .table-of-contents li {
@@ -112,7 +112,7 @@
   background: white;
   padding: 20px;
   border-radius: 8px;
-  border-left: 4px solid #FFAB49;
+  border-left: 4px solid #E5660F;
 }
 
 .contact-info p {
@@ -169,7 +169,7 @@
   color: #494949;
   margin-bottom: 20px;
   font-weight: 600;
-  border-bottom: 3px solid #FFAB49;
+  border-bottom: 3px solid #E5660F;
   /* padding-bottom: 12px; */
   letter-spacing: 0.5px;
 }
@@ -206,7 +206,7 @@
   margin: 28px 0 8px;
   font-weight: 600;
   padding-left: 12px;
-  border-left: 4px solid #FFAB49;
+  border-left: 4px solid #E5660F;
   line-height: 30px;
 }
 
@@ -243,7 +243,7 @@ strong {
 }
 
 .terms-section ol li::marker {
-  color: #FFAB49;
+  color: #E5660F;
   font-weight: 600;
 }
 

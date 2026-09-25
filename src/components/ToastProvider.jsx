@@ -28,7 +28,7 @@ const typeConfig = {
   },
   warning: {
     icon: AlertTriangle,
-    color: "#ffab49",
+    color: "#e5660f",
     label: "Warning",
   },
   default: {

@@ -32,7 +32,7 @@ const STATUS = {
   },
   warning: {
     label: "Warning",
-    color: "#ffab49",
+    color: "#e5660f",
     soft: "rgba(255, 171, 73, 0.35)",
     tint: "#fff7ed",
     Lucide: AlertTriangle,

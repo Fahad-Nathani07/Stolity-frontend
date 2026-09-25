@@ -23,7 +23,7 @@ const LoaderLogo = ({animation = false}) => {
                   className={`animate_logo animate_logo_loader ${animation ? "expanded" : ""}`}
                   data-value="1"
                   style={{
-                    background: `conic-gradient(from 0deg at 50% 50%, #E5252A 0deg, #E7400C 120deg, #FFAB49 240deg, #E5252A 360deg)`,
+                    background: `conic-gradient(from 0deg at 50% 50%, #E5252A 0deg, #E7400C 120deg, #E5660F 240deg, #E5252A 360deg)`,
                     borderRadius: '50%',
                     display: 'flex',
                     alignItems: 'center',

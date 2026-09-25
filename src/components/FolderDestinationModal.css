@@ -67,8 +67,8 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  background: color-mix(in srgb, var(--fdm-accent, #ffab49) 14%, white);
-  color: var(--fdm-accent, #ffab49);
+  background: color-mix(in srgb, var(--fdm-accent, #e5660f) 14%, white);
+  color: var(--fdm-accent, #e5660f);
   font-size: 20px;
 }
 
@@ -232,11 +232,11 @@ button.fdm-crumb {
 }
 
 button.fdm-crumb:hover {
-  color: #ffab49;
+  color: #e5660f;
 }
 
 .fdm-crumb.is-active {
-  color: #ffab49;
+  color: #e5660f;
   font-weight: 650;
   cursor: default;
   flex-shrink: 0;
@@ -302,7 +302,7 @@ span.fdm-crumb.is-active {
 
 .fdm-create-input:focus {
   outline: none;
-  border-color: #ffab49;
+  border-color: #e5660f;
   box-shadow: 0 0 0 3px rgba(255, 171, 73, 0.18);
 }
 
@@ -312,7 +312,7 @@ span.fdm-crumb.is-active {
   padding: 0 16px;
   border: none;
   border-radius: 10px;
-  background: #ffab49;
+  background: var(--h1-gradient);
   color: #fff;
   font-size: 0.8125rem;
   font-weight: 600;
@@ -375,7 +375,7 @@ span.fdm-crumb.is-active {
 .fdm-progress-fill {
   height: 100%;
   border-radius: 999px;
-  background: linear-gradient(90deg, #ffab49, #ff8c00);
+  background: linear-gradient(90deg, #e5660f, #ff8c00);
   transition: width 0.3s ease;
 }
 
@@ -414,7 +414,7 @@ span.fdm-crumb.is-active {
 
 .fdm-btn--primary {
   border: none;
-  background: var(--fdm-accent, #ffab49);
+  background: var(--fdm-accent, #e5660f);
   color: #fff;
   min-width: 120px;
 }
@@ -432,6 +432,7 @@ span.fdm-crumb.is-active {
   from {
     opacity: 0;
   }
+
   to {
     opacity: 1;
   }
@@ -442,6 +443,7 @@ span.fdm-crumb.is-active {
     opacity: 0;
     transform: translateY(14px) scale(0.98);
   }
+
   to {
     opacity: 1;
     transform: translateY(0) scale(1);

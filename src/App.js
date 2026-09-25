@@ -161,7 +161,7 @@ const {
               from 0deg at 50% 50%,
               #E5252A 0deg,
               #E7400C 120deg,
-              #FFAB49 240deg,
+              #E5660F 240deg,
               #E5252A 360deg
             )`,
             pointerEvents: spanExpanded ? "all" : "none", // optional

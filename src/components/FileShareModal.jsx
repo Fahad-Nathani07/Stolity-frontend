@@ -1,4 +1,5 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useRef, useState } from "react";
+import { FiCheck, FiChevronDown } from "react-icons/fi";
 import {
   SHARE_TIME_OPTIONS,
   computeShareExpirySeconds,
@@ -13,6 +14,85 @@ function displayFileName(file) {
   const raw = file.fileName || file.name || "";
   const parts = raw.split("/");
   return parts[parts.length - 1] || raw;
+}
+
+function FsmSelect({
+  id,
+  value,
+  options,
+  onChange,
+  disabled = false,
+  ariaLabel,
+  className = "",
+}) {
+  const [open, setOpen] = useState(false);
+  const rootRef = useRef(null);
+
+  useEffect(() => {
+    if (!open) return undefined;
+    const onPointerDown = (e) => {
+      if (!rootRef.current?.contains(e.target)) setOpen(false);
+    };
+    const onKeyDown = (e) => {
+      if (e.key !== "Escape") return;
+      e.preventDefault();
+      e.stopPropagation();
+      setOpen(false);
+    };
+    document.addEventListener("mousedown", onPointerDown);
+    document.addEventListener("keydown", onKeyDown);
+    return () => {
+      document.removeEventListener("mousedown", onPointerDown);
+      document.removeEventListener("keydown", onKeyDown);
+    };
+  }, [open]);
+
+  useEffect(() => {
+    if (disabled) setOpen(false);
+  }, [disabled]);
+
+  return (
+    <div
+      className={`fsm-dd${open ? " is-open" : ""}${className ? ` ${className}` : ""}`}
+      ref={rootRef}
+    >
+      <button
+        type="button"
+        id={id}
+        className="fsm-dd-trigger"
+        aria-haspopup="listbox"
+        aria-expanded={open}
+        aria-label={ariaLabel}
+        disabled={disabled}
+        onClick={() => setOpen((v) => !v)}
+      >
+        <span className="fsm-dd-value">{value}</span>
+        <FiChevronDown className="fsm-dd-chevron" aria-hidden="true" />
+      </button>
+      {open ? (
+        <ul className="fsm-dd-menu" role="listbox" aria-label={ariaLabel}>
+          {options.map((option) => {
+            const active = option === value;
+            return (
+              <li key={option} role="option" aria-selected={active}>
+                <button
+                  type="button"
+                  className={`fsm-dd-option${active ? " is-active" : ""}`}
+                  onClick={() => {
+                    onChange?.(option);
+                    setOpen(false);
+                  }}
+                >
+                  <span>{option}</span>
+                  {active ? <FiCheck aria-hidden="true" /> : null}
+                </button>
+              </li>
+            );
+          })}
+        </ul>
+      ) : null}
+    </div>
+  );
 }
 
 /**
@@ -238,19 +318,15 @@ const FileShareModal = ({
                 <label className="fsm-label" htmlFor="fsm-expiry-preset">
                   Choose duration
                 </label>
-                <select
+                <FsmSelect
                   id="fsm-expiry-preset"
-                  className="fsm-select is-active"
+                  className="is-active"
                   value={selectedTimeOption}
-                  onChange={(e) => setSelectedTimeOption(e.target.value)}
+                  options={SHARE_TIME_OPTIONS}
+                  onChange={setSelectedTimeOption}
                   disabled={loading}
-                >
-                  {SHARE_TIME_OPTIONS.map((option) => (
-                    <option key={option} value={option}>
-                      {option}
-                    </option>
-                  ))}
-                </select>
+                  ariaLabel="Choose duration"
+                />
               </div>
             ) : (
               <div className="fsm-field">
@@ -268,19 +344,14 @@ const FileShareModal = ({
                     onChange={(e) => setManualTimeValue(e.target.value)}
                     disabled={loading}
                   />
-                  <select
-                    className="fsm-custom-unit"
+                  <FsmSelect
+                    className="fsm-dd--unit"
                     value={manualTimeUnit}
-                    onChange={(e) => setManualTimeUnit(e.target.value)}
+                    options={MANUAL_UNITS}
+                    onChange={setManualTimeUnit}
                     disabled={loading}
-                    aria-label="Expiry unit"
-                  >
-                    {MANUAL_UNITS.map((unit) => (
-                      <option key={unit} value={unit}>
-                        {unit}
-                      </option>
-                    ))}
-                  </select>
+                    ariaLabel="Expiry unit"
+                  />
                 </div>
               </div>
             )}

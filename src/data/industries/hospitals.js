@@ -4,7 +4,7 @@
  * Images: public/images/industries/hospitals/
  *   hero.png
  *   why-choose-bg.jpg
- *   (why cards are coded — only `label` / `icon` in data)
+ *   why-card-1.png … why-card-5.png
  *   patient-record-management.jpg
  *   hipaa-compliance.png
  *   department-collaboration.jpg
@@ -37,11 +37,26 @@ const hospitals = {
     subtitle: "Built specifically for your industry workflows",
     backgroundImage: "/images/industries/hospitals/why-choose-bg.jpg",
     cards: [
-      { label: "Protect Patient Records", icon: "lock" },
-      { label: "Control File Access", icon: "search-file" },
-      { label: "Share Files Securely", icon: "users" },
-      { label: "Work Together Easily", icon: "cloud-upload" },
-      { label: "Keep Medical Data Private", icon: "cabinet" },
+      {
+        label: "Why card 1",
+        image: "/images/industries/hospitals/why-card-1.png",
+      },
+      {
+        label: "Why card 2",
+        image: "/images/industries/hospitals/why-card-2.png",
+      },
+      {
+        label: "Why card 3",
+        image: "/images/industries/hospitals/why-card-3.png",
+      },
+      {
+        label: "Why card 4",
+        image: "/images/industries/hospitals/why-card-4.png",
+      },
+      {
+        label: "Why card 5",
+        image: "/images/industries/hospitals/why-card-5.png",
+      },
     ],
   },
 
@@ -97,12 +112,30 @@ const hospitals = {
     testimonialImage: "/images/industries/hospitals/everything-testimonial.png",
     ratingImage: "/images/industries/hospitals/everything-rating.png",
     features: [
-      { label: "Black Hole Vault", icon: "lock" },
-      { label: "Encrypted Storage", icon: "lock" },
-      { label: "Access Control", icon: "activity" },
-      { label: "File Compression", icon: "archive" },
-      { label: "Secure Links", icon: "share" },
-      { label: "ZIP & UnZIP Files", icon: "file-check" },
+      {
+        label: "Black Hole Vault",
+        image: "/images/industries/hospitals/everything-feature-1.png",
+      },
+      {
+        label: "Access Control",
+        image: "/images/industries/hospitals/everything-feature-2.png",
+      },
+      {
+        label: "Time-Limited Sharing",
+        image: "/images/industries/hospitals/everything-feature-3.png",
+      },
+      {
+        label: "File Compression",
+        image: "/images/industries/hospitals/everything-feature-4.png",
+      },
+      {
+        label: "Secure Links",
+        image: "/images/industries/hospitals/everything-feature-5.png",
+      },
+      {
+        label: "ZIP & UnZIP Files",
+        image: "/images/industries/hospitals/everything-feature-6.png",
+      },
     ],
   },
 

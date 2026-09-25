@@ -94,7 +94,7 @@ const UserRow = ({
           onClick={onManage}
           style={manageButtonStyle}
           onMouseEnter={(e) => (e.currentTarget.style.background = "#ff9c2f")}
-          onMouseLeave={(e) => (e.currentTarget.style.background = "#FFAB49")}
+          onMouseLeave={(e) => (e.currentTarget.style.background = "#E5660F")}
         >
           Manage
         </button>
@@ -125,7 +125,7 @@ const colStyles = {
 
 const manageButtonStyle = {
   padding: "8px 18px",
-  background: "#FFAB49",
+  background: "#E5660F",
   color: "#FFFFFF",
   border: "none",
   borderRadius: "999px",

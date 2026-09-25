@@ -13,7 +13,7 @@ const BrandingSettings = ({ company, onClose }) => {
   const [form, setForm] = useState({
     logoUrl: company.logoUrl || "",
     primaryColor: company.primaryColor || "#ffffff",
-    secondaryColor: company.secondaryColor || "#FFAB49",
+    secondaryColor: company.secondaryColor || "#E5660F",
   });
 
   const [saving, setSaving] = useState(false);
@@ -32,7 +32,7 @@ const BrandingSettings = ({ company, onClose }) => {
     background: "#ffffff",
     boxShadow: "0 1px 4px rgba(0,0,0,0.04)",
     "&:focus": {
-      borderColor: "#FFAB49",
+      borderColor: "#E5660F",
       boxShadow: "0 0 0 3px rgba(255,171,73,0.15)",
     },
   };
@@ -226,7 +226,7 @@ const BrandingSettings = ({ company, onClose }) => {
               onClick={() => setShowLogoModal(true)}
               style={{
                 padding: "12px 24px",
-                background: "#FFAB49",
+                background: "#E5660F",
                 color: "white",
                 border: "none",
                 borderRadius: "999px",
@@ -282,7 +282,7 @@ const BrandingSettings = ({ company, onClose }) => {
                   value={form.secondaryColor}
                   onChange={handleChange}
                   style={inputStyle}
-                  placeholder="#FFAB49 or linear-gradient(...)"
+                  placeholder="#E5660F or linear-gradient(...)"
                 />
               </div>
             </div>
@@ -324,7 +324,7 @@ const BrandingSettings = ({ company, onClose }) => {
     />
     <p style={{
       fontSize: "18px",
-      // color: "#FFAB49",
+      // color: "#E5660F",
       color: form.secondaryColor,
       margin: "0 0 8px",
       fontWeight: 600,
@@ -794,7 +794,7 @@ const BrandingSettings = ({ company, onClose }) => {
             padding: "14px 36px",
             border: "none",
             borderRadius: "999px",
-            background: saving ? "#ffd699" : "#FFAB49",
+            background: saving ? "#ffd699" : "#E5660F",
             color: "white",
             fontWeight: 600,
             fontSize: "15px",
@@ -863,7 +863,7 @@ const BrandingSettings = ({ company, onClose }) => {
             >
               {selectedFile ? (
                 <div>
-                  <p style={{ fontWeight: 600, color: "#FFAB49" }}>
+                  <p style={{ fontWeight: 600, color: "#E5660F" }}>
                     Selected: {selectedFile.name}
                   </p>
                   <p style={{ fontSize: "14px", color: "#666" }}>
@@ -915,7 +915,7 @@ const BrandingSettings = ({ company, onClose }) => {
                   padding: "12px 28px",
                   border: "none",
                   borderRadius: "999px",
-                  background: uploadingLogo || !selectedFile ? "#ffd699" : "#FFAB49",
+                  background: uploadingLogo || !selectedFile ? "#ffd699" : "#E5660F",
                   color: "white",
                   fontWeight: 600,
                   cursor: uploadingLogo || !selectedFile ? "not-allowed" : "pointer",

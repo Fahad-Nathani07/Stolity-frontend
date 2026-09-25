@@ -1,6 +1,4 @@
 import React, { useCallback, useEffect, useState } from "react";
-import AOS from "aos";
-import "aos/dist/aos.css";
 import { FiMail, FiPhone, FiClock, FiSend, FiCheckCircle } from "react-icons/fi";
 import axios from "axios";
 import "../css/HelpSupportCenter.css";
@@ -8,6 +6,7 @@ import "../css/SettingsPageBreadcrumb.css";
 import SideNav from "../components/SideNav";
 import SupportPageIcon from "../images/SupportPageIcon.svg";
 import CallbackRequestModal from "../components/CallbackRequestModal";
+import ScrollReveal from "../components/ScrollReveal";
 
 const GMAIL_TO = "fahad@infomanav.in";
 
@@ -64,21 +63,7 @@ const HelpSupportCenter = () => {
   useEffect(() => {
     refreshActiveCallback();
   }, [refreshActiveCallback]);
-
-  useEffect(() => {
-    AOS.init({
-      duration: 1000,
-      offset: 80,
-      easing: "ease-in-out",
-      once: true,
-    });
-  }, []);
-
-  useEffect(() => {
-    AOS.refresh();
-  }, [activeTab, hasActiveCallback, showCallbackModal]);
-
-  const handleGmailCompose = (e) => {
+const handleGmailCompose = (e) => {
     e.preventDefault();
     const userEmail = sessionStorage.getItem("email") || "";
     const username = sessionStorage.getItem("name") || "";
@@ -106,7 +91,7 @@ const HelpSupportCenter = () => {
     <div className="hsc-page-shell">
       <SideNav />
       <div className="help-support-center">
-        <div className="stolity-settings-header" data-aos="zoom-out">
+        <ScrollReveal as="div" className="stolity-settings-header" variant="fadeSoft" delay={0.05} duration={0.75}>
           <div className="stolity-settings-breadcrumb">
             <span>Settings</span>
             <span className="stolity-settings-breadcrumb-sep" aria-hidden="true">
@@ -116,10 +101,10 @@ const HelpSupportCenter = () => {
               Help & Support
             </span>
           </div>
-        </div>
+        </ScrollReveal>
 
         <div className="hsc-shell">
-          <header className="hsc-hero" data-aos="zoom-in">
+          <ScrollReveal as="header" className="hsc-hero" variant="fadeUp" delay={0.1} duration={0.85}>
             <div className="hsc-hero-copy">
               <p className="hsc-eyebrow">Support</p>
               <h1 className="hsc-title">How can we help?</h1>
@@ -131,9 +116,9 @@ const HelpSupportCenter = () => {
             <div className="hsc-hero-visual" aria-hidden="true">
               <img src={SupportPageIcon} alt="" />
             </div>
-          </header>
+          </ScrollReveal>
 
-          <div className="hsc-channels" role="tablist" aria-label="Support channels" data-aos="zoom-in">
+          <ScrollReveal as="div" className="hsc-channels" role="tablist" aria-label="Support channels" variant="fadeUp" delay={0.1} duration={0.85}>
             {CHANNELS.map(({ key, label, description, icon: Icon }) => {
               const isActive = activeTab === key;
               return (
@@ -155,9 +140,9 @@ const HelpSupportCenter = () => {
                 </button>
               );
             })}
-          </div>
+          </ScrollReveal>
 
-          <div className="hsc-panel" role="tabpanel" data-aos="zoom-in" key={activeTab}>
+          <ScrollReveal as="div" className="hsc-panel" role="tabpanel" variant="fadeUp" delay={0.1} duration={0.85} key={activeTab}>
             {activeTab === "email" ? (
               <form className="hsc-form" onSubmit={handleGmailCompose}>
                 <div className="hsc-panel-head">
@@ -248,7 +233,7 @@ const HelpSupportCenter = () => {
                 )}
               </div>
             )}
-          </div>
+          </ScrollReveal>
         </div>
       </div>
 

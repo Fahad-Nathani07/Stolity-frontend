@@ -70,7 +70,7 @@ td.hover_cell:has(.dropdown.show) {
   --ram-radius: 12px;
   --ram-row-h: 30px;
   --ram-icon: 14px;
-  --ram-accent: #ffab49;
+  --ram-accent: #e5660f;
 
   position: absolute !important;
   top: 0 !important;
@@ -320,14 +320,17 @@ td.hover_cell:has(.dropdown.show) {
   pointer-events: none;
 }
 
-/* Direct icon (shape B) */
+/* Direct icon (shape B) — img + leading MUI/SVG stars */
 .custom-dropdown-menu .dropdown-item-custom > img,
 .custom-dropdown-menu .dropdown-item-custom > .dropdown-icon-list,
-.custom-dropdown-menu .dropdown-icon-list {
+.custom-dropdown-menu .dropdown-icon-list,
+.custom-dropdown-menu .dropdown-item-custom > .MuiSvgIcon-root,
+.custom-dropdown-menu .dropdown-item-custom > svg:first-child {
   width: var(--ram-icon) !important;
   height: var(--ram-icon) !important;
   min-width: var(--ram-icon);
-  flex: 0 0 var(--ram-icon);
+  font-size: var(--ram-icon) !important;
+  flex: 0 0 var(--ram-icon) !important;
   margin: 0 !important;
   object-fit: contain;
   opacity: 0.88;
@@ -346,16 +349,19 @@ td.hover_cell:has(.dropdown.show) {
 
 .custom-dropdown-menu .dropdown-item-custom > span:first-child img,
 .custom-dropdown-menu .dropdown-item-custom > span:first-child .dropdown-icon-list,
-.custom-dropdown-menu .dropdown-item-custom > span:first-child .MuiSvgIcon-root {
+.custom-dropdown-menu .dropdown-item-custom > span:first-child .MuiSvgIcon-root,
+.custom-dropdown-menu .dropdown-item-custom > span:first-child > svg {
   width: var(--ram-icon) !important;
   height: var(--ram-icon) !important;
   font-size: var(--ram-icon) !important;
   flex: 0 0 var(--ram-icon);
+  margin: 0 !important;
 }
 
-/* Trailing badge / lock / crown — pin to the right */
+/* Trailing badge / lock / crown — pin to the right (never leading action icons) */
 .custom-dropdown-menu .dropdown-item-custom > .context-menu-icon,
-.custom-dropdown-menu .dropdown-item-custom > svg:last-child:not(.dropdown-icon-list) {
+.custom-dropdown-menu .dropdown-item-custom > span + svg,
+.custom-dropdown-menu .dropdown-item-custom > span + .MuiSvgIcon-root {
   margin-left: auto !important;
   flex: 0 0 auto;
   color: #94a3b8;

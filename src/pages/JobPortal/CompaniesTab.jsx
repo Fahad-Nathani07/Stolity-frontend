@@ -41,7 +41,7 @@ const primaryButton = (disabled) => ({
   padding: "8px 16px",
   borderRadius: "999px",
   border: "none",
-  background: disabled ? "#FFD7A8" : "#FFAB49",
+  background: disabled ? "#F0B48A" : "#E5660F",
   color: "white",
   cursor: disabled ? "not-allowed" : "pointer",
 });
@@ -49,7 +49,7 @@ const primaryButton = (disabled) => ({
 const outlineButton = (disabled) => ({
   padding: "8px 16px",
   borderRadius: "999px",
-  border: "1px solid #FFAB49",
+  border: "1px solid #E5660F",
   background: "white",
   color: "#494949",
   cursor: disabled ? "not-allowed" : "pointer",

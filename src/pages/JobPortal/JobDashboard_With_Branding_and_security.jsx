@@ -572,7 +572,7 @@ const pastItems = [
   // Add this new color map (statusColors2 for dropdown)
   // const statusColors2 = {
   //   "New": { background: "#E3F4FF", color: "#2285C2" },
-  //   "Under Review": { background: "#FFF6EB", color: "#FFAB49" },
+  //   "Under Review": { background: "#FFF6EB", color: "#E5660F" },
   //   "Interview Scheduled": { background: "#EEFEF6", color: "#3E894E" },
   //   "Rejected": { background: "#FEF2F2", color: "#E94545" },
   //   "Hired": { background: "#F0E7FD", color: "#A673F0" },
@@ -581,7 +581,7 @@ const pastItems = [
   const statusColors2 = {
   "New": { background: "#E3F4FF", color: "#2285C2" },
 
-  "Under Review": { background: "#FFF6EB", color: "#FFAB49" },
+  "Under Review": { background: "#FFF6EB", color: "#E5660F" },
 
   "Interview Scheduled": { background: "#EEFEF6", color: "#3E894E" },
 
@@ -2011,7 +2011,7 @@ const toggleStatusDropdown = (idx) => {
           }}
           style={{
             padding: "10px 20px",
-            background: "#FFAB49",
+            background: "#E5660F",
             color: "white",
             border: "none",
             borderRadius: "112px",
@@ -2032,7 +2032,7 @@ const toggleStatusDropdown = (idx) => {
             title='Assign Job Portal Access'
             style={{
               padding: "10px 20px",
-              background: "#FFAB49",
+              background: "#E5660F",
               color: "white",
               border: "none",
               borderRadius: "112px",
@@ -2057,7 +2057,7 @@ const toggleStatusDropdown = (idx) => {
         onClick={handlePostJobClick}
         style={{
               padding: "10px 20px",
-              background: "#FFAB49",
+              background: "#E5660F",
               color: "white",
               border: "none",
               borderRadius: "112px",
@@ -2526,7 +2526,7 @@ onMouseLeave={(e) => e.currentTarget.style.boxShadow = "0 6px 16px rgba(0,0,0,0.
       // ── ORIGINAL INTERVIEW CARD ── (your existing code preserved exactly)
       <div className="schedule-main-content">
         <div className="candidate-line">
-           <p style={{padding:"5px 10px", background:"#ffffff", color:"#FFAB49", borderRadius:"10px", width:"fit-content", border:"1px solid #FFAB49", marginBottom:"10px"}}>Interviews</p>
+           <p style={{padding:"5px 10px", background:"#ffffff", color:"#E5660F", borderRadius:"10px", width:"fit-content", border:"1px solid #E5660F", marginBottom:"10px"}}>Interviews</p>
           <strong>{item.candidate}</strong>
         </div>
 
@@ -2561,7 +2561,7 @@ onMouseLeave={(e) => e.currentTarget.style.boxShadow = "0 6px 16px rgba(0,0,0,0.
       <div className="schedule-main-content">
         <div className="candidate-line">
           {/* <strong></strong> */}
-          <p style={{padding:"5px 10px", background:"#ffffff", color:"#FFAB49", borderRadius:"10px", width:"fit-content", border:"1px solid #FFAB49", marginBottom:"10px"}}>Meeting</p>
+          <p style={{padding:"5px 10px", background:"#ffffff", color:"#E5660F", borderRadius:"10px", width:"fit-content", border:"1px solid #E5660F", marginBottom:"10px"}}>Meeting</p>
         </div>
         <div className="candidate-line">
           <strong>Topic: {item.title}</strong>
@@ -2652,7 +2652,7 @@ onMouseLeave={(e) => e.currentTarget.style.boxShadow = "0 6px 16px rgba(0,0,0,0.
           // ── ORIGINAL INTERVIEW CARD (unchanged) ──
           <div className="schedule-main-content">
             <div className="candidate-line">
-              <p style={{ padding: "5px 10px", background: "#ffffff", color: "#FFAB49", borderRadius: "10px", width: "fit-content", border: "1px solid #FFAB49", marginBottom: "10px" }}>
+              <p style={{ padding: "5px 10px", background: "#ffffff", color: "#E5660F", borderRadius: "10px", width: "fit-content", border: "1px solid #E5660F", marginBottom: "10px" }}>
                 Interviews
               </p>
               <strong>{item.candidate}</strong>
@@ -2684,7 +2684,7 @@ onMouseLeave={(e) => e.currentTarget.style.boxShadow = "0 6px 16px rgba(0,0,0,0.
           // ── MEETING CARD (similar style) ──
           <div className="schedule-main-content">
             <div className="candidate-line">
-              <p style={{ padding: "5px 10px", background: "#ffffff", color: "#FFAB49", borderRadius: "10px", width: "fit-content", border: "1px solid #FFAB49", marginBottom: "10px" }}>
+              <p style={{ padding: "5px 10px", background: "#ffffff", color: "#E5660F", borderRadius: "10px", width: "fit-content", border: "1px solid #E5660F", marginBottom: "10px" }}>
                 Meeting
               </p>
               <strong>{item.title}</strong>
@@ -3350,7 +3350,7 @@ onMouseLeave={(e) => e.currentTarget.style.boxShadow = "0 6px 16px rgba(0,0,0,0.
         onChange={(e) => setSalaryRange([salaryRange[0], Number(e.target.value)])}
         style={{
           width: "100%",
-          accentColor: "#FFAB49",
+          accentColor: "#E5660F",
           height: "6px",
           borderRadius: "3px",
         }}
@@ -3395,7 +3395,7 @@ onMouseLeave={(e) => e.currentTarget.style.boxShadow = "0 6px 16px rgba(0,0,0,0.
           borderRadius: "999px",
           border: "none",
           // background: "linear-gradient(90deg, #FDBA74 0%, #FB923C 50%, #F97316 100%)",
-          background: "#FFAB49",
+          background: "#E5660F",
           color: "#ffffff",
           fontSize: "14px",
           fontWeight: 700,
@@ -3501,7 +3501,7 @@ onMouseLeave={(e) => e.currentTarget.style.boxShadow = "0 6px 16px rgba(0,0,0,0.
                   style={{
                     marginTop: "20px",
                     padding: "12px 24px",
-                    background: "#FFAB49",
+                    background: "#E5660F",
                     color: "white",
                     border: "none",
                     borderRadius: "12px",
@@ -3523,8 +3523,8 @@ onMouseLeave={(e) => e.currentTarget.style.boxShadow = "0 6px 16px rgba(0,0,0,0.
                     marginTop: "12px",
                     padding: "12px 24px",
                     background: "transparent",
-                    color: "#FFAB49",
-                    border: "2px solid #FFAB49",
+                    color: "#E5660F",
+                    border: "2px solid #E5660F",
                     borderRadius: "12px",
                     fontWeight: 500,
                     fontSize: "15px",
@@ -3572,7 +3572,7 @@ onMouseLeave={(e) => e.currentTarget.style.boxShadow = "0 6px 16px rgba(0,0,0,0.
                         {job.jobTitle}
                         <span style={{
                           background: "#FFF6EB",
-                          color: "#FFAB49",
+                          color: "#E5660F",
                           padding: "6px 14px",
                           borderRadius: "24px",
                           fontSize: "14px",
@@ -5098,7 +5098,7 @@ fontStyle: "Medium", fontSize: "14px", lineHeight: "20px", color:"#575757"}}>Rev
               style={{
                 marginTop: "16px",
                 padding: "10px 20px",
-                background: "#FFAB49",
+                background: "#E5660F",
                 color: "white",
                 border: "none",
                 borderRadius: "12px",
@@ -5435,7 +5435,7 @@ fontStyle: "Medium", fontSize: "14px", lineHeight: "20px", color:"#575757"}}>Rev
                   textAlign: "left",
                   fontSize: "14px",
                   fontWeight: "500",
-                  color: "#FFAB49",
+                  color: "#E5660F",
                   cursor: "pointer"
                 }}
                 onClick={() => {
@@ -6053,7 +6053,7 @@ fontStyle: "Medium", fontSize: "14px", lineHeight: "20px", color:"#575757"}}>Mai
                 <div>
                   <p
                     style={{
-                      color: "#FFAB49",
+                      color: "#E5660F",
                       fontSize: "16px",
                       fontWeight: 600,
                       marginBottom: "16px",
@@ -6153,7 +6153,7 @@ fontStyle: "Medium", fontSize: "14px", lineHeight: "20px", color:"#575757"}}>Mai
                    <div>
                      <p
                     style={{
-                      color: "#FFAB49",
+                      color: "#E5660F",
                       fontSize: "16px",
                       fontWeight: 600,
                       marginBottom: "16px",
@@ -6316,7 +6316,7 @@ fontStyle: "Medium", fontSize: "14px", lineHeight: "20px", color:"#575757"}}>Mai
                         <div>
                           <p
                           style={{
-                            color: "#FFAB49",
+                            color: "#E5660F",
                             fontSize: "16px",
                             fontWeight: 600,
                             marginBottom: "16px",
@@ -6671,7 +6671,7 @@ fontStyle: "Medium", fontSize: "14px", lineHeight: "20px", color:"#575757"}}>Mai
                         <div>
                           <p
                           style={{
-                            color: "#FFAB49",
+                            color: "#E5660F",
                             fontSize: "16px",
                             fontWeight: 600,
                             marginBottom: "16px",
@@ -6796,7 +6796,7 @@ fontStyle: "Medium", fontSize: "14px", lineHeight: "20px", color:"#575757"}}>Mai
             <div style={{ flex: 1, display: "flex", flexDirection: "column", gap: "24px" }}>
               <p
                 style={{
-                  color: "#FFAB49",
+                  color: "#E5660F",
                   fontSize: "16px",
                   fontWeight: 600,
                   marginBottom: "16px",
@@ -6810,7 +6810,7 @@ fontStyle: "Medium", fontSize: "14px", lineHeight: "20px", color:"#575757"}}>Mai
                 {/* Primary Logo Card */}
                 <div style={{ 
                   flex: 1, 
-                  border: "2px dashed #FFAB49", 
+                  border: "2px dashed #E5660F", 
                   
                   borderRadius: "12px", 
                   padding: "16px", 
@@ -6868,7 +6868,7 @@ fontStyle: "Medium", fontSize: "14px", lineHeight: "20px", color:"#575757"}}>Mai
                       borderRadius: "38px",
                       cursor: "pointer",
                       fontSize: "16px",
-                      color: "#FFAB49",
+                      color: "#E5660F",
                       fontWeight:600,
                       marginBottom:"20px"
                     }}
@@ -6927,7 +6927,7 @@ fontStyle: "Medium", fontSize: "14px", lineHeight: "20px", color:"#575757"}}>Mai
                       color: "#6B7280",
                       cursor: "pointer",
                       fontSize: "16px",
-                      color: "#FFAB49",
+                      color: "#E5660F",
                       fontWeight:600,
                       marginBottom:"20px"
 
@@ -6943,7 +6943,7 @@ fontStyle: "Medium", fontSize: "14px", lineHeight: "20px", color:"#575757"}}>Mai
               <div style={{ flex: 1,  borderRadius: "12px", padding: "16px", backgroundColor: "white" }}>
                 <div style={{ display: "flex", alignItems: "center", gap: "8px", marginBottom: "12px" }}>
                   {/* <div style={{ width: "20px", height: "20px", borderRadius: "4px", backgroundColor: "#F59E0B" }} /> */}
-                  <span style={{ fontSize: "20px", fontWeight: 500, color: "#FFAB49" }}>Favicon</span>
+                  <span style={{ fontSize: "20px", fontWeight: 500, color: "#E5660F" }}>Favicon</span>
                 </div>
                 <div
                   style={{
@@ -6975,7 +6975,7 @@ fontStyle: "Medium", fontSize: "14px", lineHeight: "20px", color:"#575757"}}>Mai
                     padding: "8px 12px",
                     border: "1px solid #F3F4F6",
                     backgroundColor: "white",
-                    color:"#FFAB49",
+                    color:"#E5660F",
                     borderRadius: "8px",
                     fontSize: "16px",
                     fontWeight:600,
@@ -7030,7 +7030,7 @@ fontStyle: "Medium", fontSize: "14px", lineHeight: "20px", color:"#575757"}}>Mai
                 style={{
                   width: "200px",
                   padding: "12px 20px",
-                  backgroundColor: "#FFAB49",
+                  backgroundColor: "#E5660F",
                   color: "white",
                   border: "none",
                   borderRadius: "112px",
@@ -8216,7 +8216,7 @@ fontStyle: "Medium", fontSize: "14px", lineHeight: "20px", color:"#575757"}}>Pro
           width: "40px",
           height: "40px",
           fontSize: "28px",
-          color: "#FFAB49",
+          color: "#E5660F",
           cursor: "pointer",
           display: "flex",
           alignItems: "center",
@@ -8240,7 +8240,7 @@ fontStyle: "Medium", fontSize: "14px", lineHeight: "20px", color:"#575757"}}>Pro
         <div style={{
           height: "4px",
           width: "80px",
-          background: "linear-gradient(90deg, #FFAB49, #f97316)",
+          background: "linear-gradient(90deg, #E5660F, #f97316)",
           margin: "0 auto 16px auto",
           borderRadius: "4px",
         }} />
@@ -8288,7 +8288,7 @@ fontStyle: "Medium", fontSize: "14px", lineHeight: "20px", color:"#575757"}}>Pro
             <a
               href={`tel:${selectedRowCandidate.mobile}`}
               style={{
-                color: "#FFAB49",
+                color: "#E5660F",
                 fontSize: "20px",
                 fontWeight: 600,
                 textDecoration: "none",
@@ -8322,7 +8322,7 @@ fontStyle: "Medium", fontSize: "14px", lineHeight: "20px", color:"#575757"}}>Pro
             <a
               href={`mailto:${selectedRowCandidate.userEmail}`}
               style={{
-                color: "#FFAB49",
+                color: "#E5660F",
                 fontSize: "18px",
                 fontWeight: 500,
                 textDecoration: "none",
@@ -8506,7 +8506,7 @@ const primaryBtn = {
   padding: "10px 18px",
   borderRadius: "999px",
   border: "none",
-  background: "#FFAB49",
+  background: "#E5660F",
   color: "#fff",
   cursor: "pointer",
 };
@@ -8514,7 +8514,7 @@ const primaryBtn = {
 const secondaryBtn = {
   padding: "10px 18px",
   borderRadius: "999px",
-  border: "1px solid #FFAB49",
+  border: "1px solid #E5660F",
   background: "#fff",
   color: "#494949",
   cursor: "pointer",

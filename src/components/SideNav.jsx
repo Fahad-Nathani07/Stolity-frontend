@@ -607,7 +607,7 @@ const SideNav = () => {
                     display: "flex",
                     flexDirection: "column",
                     alignItems: "stretch",
-                    border: "1.5px solid #FFE3CA",
+                    border: "1.5px solid #FFF1E8",
                     animation: "fadeInRight 0.18s",
                   }}
                 >
@@ -626,7 +626,7 @@ const SideNav = () => {
                       transition: "background .16s, color .16s"
                     }}
                     onClick={() => { navigate("/Payment"); setShowSettingsMenu(false); }}
-                    onMouseOver={e => (e.currentTarget.style.color = "#FFAB49")}
+                    onMouseOver={e => (e.currentTarget.style.color = "#E5660F")}
                     onMouseOut={e => (e.currentTarget.style.color = "#222")}
                   >
                     Upgrade Plan
@@ -646,7 +646,7 @@ const SideNav = () => {
                       transition: "background .16s, color .16s"
                     }}
                     onClick={() => { navigate("/HelpSupportCenter"); setShowSettingsMenu(false); }}
-                    onMouseOver={e => (e.currentTarget.style.color = "#FFAB49")}
+                    onMouseOver={e => (e.currentTarget.style.color = "#E5660F")}
                     onMouseOut={e => (e.currentTarget.style.color = "#222")}
                   >
                     Help & Support Center
@@ -666,7 +666,7 @@ const SideNav = () => {
                       transition: "background .16s, color .16s"
                     }}
                     onClick={() => { navigate("/FAQPage"); setShowSettingsMenu(false); }}
-                    onMouseOver={e => (e.currentTarget.style.color = "#FFAB49")}
+                    onMouseOver={e => (e.currentTarget.style.color = "#E5660F")}
                     onMouseOut={e => (e.currentTarget.style.color = "#222")}
                   >
                     FAQ

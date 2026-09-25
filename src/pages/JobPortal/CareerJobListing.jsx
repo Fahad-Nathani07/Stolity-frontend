@@ -888,7 +888,7 @@ const handleSubmitApplication = async () => {
   <>
     {/* HERO */}
     <section className="career-hero">
-      <h1 style={{ color: companyInfo?.secondaryColor ?? "#FFAB49" }}>
+      <h1 style={{ color: companyInfo?.secondaryColor ?? "#E5660F" }}>
         Join Our Team
       </h1>
       <p>
@@ -906,7 +906,7 @@ const handleSubmitApplication = async () => {
           padding: "10px",
           borderRadius: "100px",
           width: "98%",
-          border: `1px solid ${(companyInfo?.secondaryColor ?? "#FFAB49")}30`,
+          border: `1px solid ${(companyInfo?.secondaryColor ?? "#E5660F")}30`,
         }}
       >
         {departments.map((dep, index) => (
@@ -918,7 +918,7 @@ const handleSubmitApplication = async () => {
               alignItems: "center",
               justifyContent: "center",
               background: activeTab === dep 
-                ? (companyInfo?.secondaryColor ?? "#FFAB49") 
+                ? (companyInfo?.secondaryColor ?? "#E5660F") 
                 : "#f4f4f4",
               color: activeTab === dep ? "#ffffff" : "#333",
               borderRadius: "80px",
@@ -989,7 +989,7 @@ const handleSubmitApplication = async () => {
           onClick={() => setShowAdvancedFilters(!showAdvancedFilters)}
         >
           Advanced Filters
-          <span className="arrow" style={{ color: companyInfo?.secondaryColor ?? "#FFAB49" }}>
+          <span className="arrow" style={{ color: companyInfo?.secondaryColor ?? "#E5660F" }}>
             {showAdvancedFilters ? "▲" : "▼"}
           </span>
         </button>
@@ -997,7 +997,7 @@ const handleSubmitApplication = async () => {
         <button
           style={{ 
             width: "9%",
-            background: companyInfo?.secondaryColor ?? "#FFAB49",
+            background: companyInfo?.secondaryColor ?? "#E5660F",
             color: "#fff",
           }}
           className="filter-clear"
@@ -1087,7 +1087,7 @@ const handleSubmitApplication = async () => {
     <span
       style={{
         fontWeight: "500",
-        color: companyInfo?.secondaryColor ?? "#FFAB49",
+        color: companyInfo?.secondaryColor ?? "#E5660F",
       }}
     >
       ₹{filters.salaryRange || 0}+
@@ -1112,8 +1112,8 @@ const handleSubmitApplication = async () => {
       padding: "0",
       borderRadius: "6px",
       background: `linear-gradient(to right,
-        ${companyInfo?.secondaryColor ?? "#FFAB49"} 0%,
-        ${companyInfo?.secondaryColor ?? "#FFAB49"} ${
+        ${companyInfo?.secondaryColor ?? "#E5660F"} 0%,
+        ${companyInfo?.secondaryColor ?? "#E5660F"} ${
         ((filters.salaryRange || 0) / 200000) * 100
       }%,
         #E5E7EB ${((filters.salaryRange || 0) / 200000) * 100}%,
@@ -1150,7 +1150,7 @@ const handleSubmitApplication = async () => {
     <span
       style={{
         fontSize: "16px",
-        color: companyInfo?.secondaryColor ?? "#FFAB49",
+        color: companyInfo?.secondaryColor ?? "#E5660F",
         fontWeight: "500",
       }}
     >
@@ -1315,7 +1315,7 @@ const handleSubmitApplication = async () => {
           height: "26px",
           borderRadius: "6px",
           background: companyInfo?.secondaryColor,
-          // background: "#FFAB49",
+          // background: "#E5660F",
           opacity: 0.9,
         }}
       />
@@ -1383,8 +1383,8 @@ const handleSubmitApplication = async () => {
           <span
             className="badge"
             style={{
-              background: `${companyInfo?.secondaryColor ?? "#FFAB49"}22`,
-              color: companyInfo?.secondaryColor ?? "#FFAB49",
+              background: `${companyInfo?.secondaryColor ?? "#E5660F"}22`,
+              color: companyInfo?.secondaryColor ?? "#E5660F",
             }}
           >
             {job.Job_Department}
@@ -1443,7 +1443,7 @@ const handleSubmitApplication = async () => {
                 )
               }
               style={{
-                color: companyInfo?.secondaryColor ?? "#FFAB49",
+                color: companyInfo?.secondaryColor ?? "#E5660F",
               }}
             >
               {expandedJobId === job.Job_ID ? "Read Less" : "... Read More"}
@@ -1464,8 +1464,8 @@ const handleSubmitApplication = async () => {
             <span
               key={skill}
               style={{
-                background: `${companyInfo?.secondaryColor ?? "#FFAB49"}15`,
-                color: companyInfo?.secondaryColor ?? "#FFAB49",
+                background: `${companyInfo?.secondaryColor ?? "#E5660F"}15`,
+                color: companyInfo?.secondaryColor ?? "#E5660F",
                 padding: "4px 10px",
                 borderRadius: "9999px",
                 fontSize: "13px",
@@ -1514,7 +1514,7 @@ const handleSubmitApplication = async () => {
               window.scrollTo({ top: 0, behavior: "smooth" });
             }}
             style={{
-              background: companyInfo?.secondaryColor ?? "#FFAB49",
+              background: companyInfo?.secondaryColor ?? "#E5660F",
               color: "#ffffff",
               border: "none",
             }}
@@ -1553,7 +1553,7 @@ const handleSubmitApplication = async () => {
         style={{
           background:
             currentPage === i + 1
-              ? companyInfo?.secondaryColor ?? "#FFAB49"
+              ? companyInfo?.secondaryColor ?? "#E5660F"
               : "transparent",
           color: currentPage === i + 1 ? "#fff" : "#333",
           border: currentPage === i + 1 ? "none" : "1px solid #ddd",
@@ -1590,7 +1590,7 @@ const handleSubmitApplication = async () => {
         flexDirection: "column",
         gap: "10px",
       }}>
-        <h2 style={{ color: companyInfo?.secondaryColor ?? "#FFAB49", paddingBottom: "10px" }}>
+        <h2 style={{ color: companyInfo?.secondaryColor ?? "#E5660F", paddingBottom: "10px" }}>
           Ready to Get Started?
         </h2>
         <p style={{ maxWidth: "65%" }}>
@@ -1629,7 +1629,7 @@ const handleSubmitApplication = async () => {
           gap: "8px",
           padding: "12px 20px",
           background: "#ffffff",                           // ← removed primaryColor
-          border: `1px solid ${(companyInfo?.secondaryColor ?? "#FFAB49")}40`,
+          border: `1px solid ${(companyInfo?.secondaryColor ?? "#E5660F")}40`,
           borderRadius: "32px",
           fontSize: "14px",
           fontWeight: "500",
@@ -1642,7 +1642,7 @@ const handleSubmitApplication = async () => {
         <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
           <path
             d="M15 18L9 12L15 6"
-            stroke={companyInfo?.secondaryColor ?? "#FFAB49"}
+            stroke={companyInfo?.secondaryColor ?? "#E5660F"}
             strokeWidth="2"
             strokeLinecap="round"
             strokeLinejoin="round"
@@ -1655,7 +1655,7 @@ const handleSubmitApplication = async () => {
         <p style={{ color: "#575757", fontSize: "16px", padding: "10px" }}>
           Jobs
           <span style={{ padding: "0 15px" }}>\</span>
-          <span style={{ color: companyInfo?.secondaryColor ?? "#FFAB49" }}>
+          <span style={{ color: companyInfo?.secondaryColor ?? "#E5660F" }}>
             {selectedJob.title}
           </span>
         </p>
@@ -1668,7 +1668,7 @@ const handleSubmitApplication = async () => {
           borderRadius: "12px",
           padding: "24px",
           boxShadow: "0 4px 20px rgba(0,0,0,0.1)",
-          border: `1px solid ${(companyInfo?.secondaryColor ?? "#FFAB49")}20`,
+          border: `1px solid ${(companyInfo?.secondaryColor ?? "#E5660F")}20`,
         }}
       >
         <div
@@ -1681,7 +1681,7 @@ const handleSubmitApplication = async () => {
         >
           <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
             <div>
-              <div style={{ padding: "18px", borderRadius: "10px", color: companyInfo?.secondaryColor ?? "#FFAB49" }}>
+              <div style={{ padding: "18px", borderRadius: "10px", color: companyInfo?.secondaryColor ?? "#E5660F" }}>
                 <FaBriefcase style={{ fontSize: "28px" }} />
               </div>
             </div>
@@ -1691,7 +1691,7 @@ const handleSubmitApplication = async () => {
                 style={{
                   fontSize: "32px",
                   fontWeight: "700",
-                  color: companyInfo?.secondaryColor ?? "#FFAB49",
+                  color: companyInfo?.secondaryColor ?? "#E5660F",
                 }}
               >
                 {selectedJob.title}
@@ -1700,8 +1700,8 @@ const handleSubmitApplication = async () => {
                 <p>{companySlug}</p>
                 <p
                   style={{
-                    background: `${companyInfo?.secondaryColor ?? "#FFAB49"}15`,
-                    color: companyInfo?.secondaryColor ?? "#FFAB49",
+                    background: `${companyInfo?.secondaryColor ?? "#E5660F"}15`,
+                    color: companyInfo?.secondaryColor ?? "#E5660F",
                     padding: "8px 16px",
                     borderRadius: "24px",
                     fontSize: "12px",
@@ -1724,11 +1724,11 @@ const handleSubmitApplication = async () => {
                 padding: "11px 18px",
                 background: hasAppliedToThisJob
                   ? "#dcfce7"
-                  : companyInfo?.secondaryColor ?? "#FFAB49",
+                  : companyInfo?.secondaryColor ?? "#E5660F",
                 boxShadow: "0px 1.1px 2.2px 0px #1018280D",
                 border: hasAppliedToThisJob
                   ? "1px solid #86efac"
-                  : `1px solid ${companyInfo?.secondaryColor ?? "#FFAB49"}`,
+                  : `1px solid ${companyInfo?.secondaryColor ?? "#E5660F"}`,
                 borderRadius: "112px",
                 fontSize: "16px",
                 fontWeight: "600",
@@ -1752,7 +1752,7 @@ const handleSubmitApplication = async () => {
             gridTemplateColumns: "repeat(auto-fit, minmax(250px, 1fr))",
             gap: "24px",
             paddingBottom: "20px",
-            borderBottom: `2px solid ${(companyInfo?.secondaryColor ?? "#FFAB49")}20`,
+            borderBottom: `2px solid ${(companyInfo?.secondaryColor ?? "#E5660F")}20`,
           }}
         >
           <div
@@ -1763,11 +1763,11 @@ const handleSubmitApplication = async () => {
               display: "flex",
               alignItems: "center",
               gap: "10px",
-              border: `1px solid ${(companyInfo?.secondaryColor ?? "#FFAB49")}15`,
+              border: `1px solid ${(companyInfo?.secondaryColor ?? "#E5660F")}15`,
             }}
           >
             <div>
-              <div style={{ padding: "18px 10px", borderRadius: "10px", color: companyInfo?.secondaryColor ?? "#FFAB49" }}>
+              <div style={{ padding: "18px 10px", borderRadius: "10px", color: companyInfo?.secondaryColor ?? "#E5660F" }}>
                 <IoLocationOutline style={{ fontSize: "24px" }} />
               </div>
             </div>
@@ -1787,11 +1787,11 @@ const handleSubmitApplication = async () => {
               display: "flex",
               alignItems: "center",
               gap: "10px",
-              border: `1px solid ${(companyInfo?.secondaryColor ?? "#FFAB49")}15`,
+              border: `1px solid ${(companyInfo?.secondaryColor ?? "#E5660F")}15`,
             }}
           >
             <div>
-              <div style={{ padding: "18px 10px", borderRadius: "10px", color: companyInfo?.secondaryColor ?? "#FFAB49" }}>
+              <div style={{ padding: "18px 10px", borderRadius: "10px", color: companyInfo?.secondaryColor ?? "#E5660F" }}>
                 <FaRegClock style={{ fontSize: "22px" }} />
               </div>
             </div>
@@ -1811,11 +1811,11 @@ const handleSubmitApplication = async () => {
               display: "flex",
               alignItems: "center",
               gap: "10px",
-              border: `1px solid ${(companyInfo?.secondaryColor ?? "#FFAB49")}15`,
+              border: `1px solid ${(companyInfo?.secondaryColor ?? "#E5660F")}15`,
             }}
           >
             <div>
-              <div style={{ padding: "18px 2px", borderRadius: "10px", color: companyInfo?.secondaryColor ?? "#FFAB49" }}>
+              <div style={{ padding: "18px 2px", borderRadius: "10px", color: companyInfo?.secondaryColor ?? "#E5660F" }}>
                 <MdCurrencyRupee style={{ fontSize: "22px" }} />
               </div>
             </div>
@@ -1835,11 +1835,11 @@ const handleSubmitApplication = async () => {
               display: "flex",
               alignItems: "center",
               gap: "10px",
-              border: `1px solid ${(companyInfo?.secondaryColor ?? "#FFAB49")}15`,
+              border: `1px solid ${(companyInfo?.secondaryColor ?? "#E5660F")}15`,
             }}
           >
             <div>
-              <div style={{ padding: "18px 10px", borderRadius: "10px", color: companyInfo?.secondaryColor ?? "#FFAB49" }}>
+              <div style={{ padding: "18px 10px", borderRadius: "10px", color: companyInfo?.secondaryColor ?? "#E5660F" }}>
                 <TfiFiles style={{ fontSize: "22px" }} />
               </div>
             </div>
@@ -1887,7 +1887,7 @@ const handleSubmitApplication = async () => {
           borderRadius: "12px",
           padding: "24px",
           boxShadow: "0 4px 20px rgba(0,0,0,0.1)",
-          border: `1px solid ${(companyInfo?.secondaryColor ?? "#FFAB49")}20`,
+          border: `1px solid ${(companyInfo?.secondaryColor ?? "#E5660F")}20`,
           marginTop: "10px",
         }}
       >
@@ -1897,7 +1897,7 @@ const handleSubmitApplication = async () => {
             fontSize: 20,
             lineHeight: "120%",
             letterSpacing: "0%",
-            color: companyInfo?.secondaryColor ?? "#FFAB49",
+            color: companyInfo?.secondaryColor ?? "#E5660F",
           }}
         >
           About this role
@@ -1914,7 +1914,7 @@ const handleSubmitApplication = async () => {
           borderRadius: "12px",
           padding: "24px",
           boxShadow: "0 4px 20px rgba(0,0,0,0.1)",
-          border: `1px solid ${(companyInfo?.secondaryColor ?? "#FFAB49")}20`,
+          border: `1px solid ${(companyInfo?.secondaryColor ?? "#E5660F")}20`,
           marginTop: "10px",
         }}
       >
@@ -1924,20 +1924,20 @@ const handleSubmitApplication = async () => {
             fontSize: 20,
             lineHeight: "120%",
             letterSpacing: "0%",
-            color: companyInfo?.secondaryColor ?? "#FFAB49",
+            color: companyInfo?.secondaryColor ?? "#E5660F",
           }}
         >
           Requirements
         </div>
         <div style={{ color: "#575757", marginTop: "10px" }}>
           <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
-            <div style={{ borderRadius: "10px", color: companyInfo?.secondaryColor ?? "#FFAB49" }}>
+            <div style={{ borderRadius: "10px", color: companyInfo?.secondaryColor ?? "#E5660F" }}>
               <LuCircleCheckBig style={{ fontSize: "22px" }} />
             </div>
             <p>{selectedJob.experience}</p>
           </div>
           <div style={{ display: "flex", alignItems: "center", gap: "10px", marginTop: "10px" }}>
-            <div style={{ borderRadius: "10px", color: companyInfo?.secondaryColor ?? "#FFAB49" }}>
+            <div style={{ borderRadius: "10px", color: companyInfo?.secondaryColor ?? "#E5660F" }}>
               <LuCircleCheckBig style={{ fontSize: "22px" }} />
             </div>
             <p>Skills like: {selectedJob.skills}</p>
@@ -1954,7 +1954,7 @@ const handleSubmitApplication = async () => {
                   gap: "10px",
                 }}
               >
-                <div style={{ borderRadius: "10px", color: companyInfo?.secondaryColor ?? "#FFAB49" }}>
+                <div style={{ borderRadius: "10px", color: companyInfo?.secondaryColor ?? "#E5660F" }}>
                   <LuCircleCheckBig style={{ fontSize: "22px" }} />
                 </div>
                 <p>{respItem}</p>
@@ -1970,7 +1970,7 @@ const handleSubmitApplication = async () => {
           borderRadius: "12px",
           padding: "24px",
           boxShadow: "0 4px 20px rgba(0,0,0,0.1)",
-          border: `1px solid ${(companyInfo?.secondaryColor ?? "#FFAB49")}20`,
+          border: `1px solid ${(companyInfo?.secondaryColor ?? "#E5660F")}20`,
           marginTop: "10px",
         }}
       >
@@ -1978,7 +1978,7 @@ const handleSubmitApplication = async () => {
           style={{
             fontSize: "20px",
             fontWeight: "600",
-            color: companyInfo?.secondaryColor ?? "#FFAB49",
+            color: companyInfo?.secondaryColor ?? "#E5660F",
             margin: "0 0 16px 0",
           }}
         >
@@ -1989,13 +1989,13 @@ const handleSubmitApplication = async () => {
             <span
               key={idx}
               style={{
-                background: `${companyInfo?.secondaryColor ?? "#FFAB49"}15`,
-                color: companyInfo?.secondaryColor ?? "#FFAB49",
+                background: `${companyInfo?.secondaryColor ?? "#E5660F"}15`,
+                color: companyInfo?.secondaryColor ?? "#E5660F",
                 padding: "10px 20px",
                 borderRadius: "12px",
                 fontSize: "14px",
                 fontWeight: "500",
-                border: `1px solid ${(companyInfo?.secondaryColor ?? "#FFAB49")}30`,
+                border: `1px solid ${(companyInfo?.secondaryColor ?? "#E5660F")}30`,
               }}
             >
               {skill}
@@ -2011,7 +2011,7 @@ const handleSubmitApplication = async () => {
           borderRadius: "12px",
           padding: "24px",
           boxShadow: "0 4px 20px rgba(0,0,0,0.1)",
-          border: `1px solid ${(companyInfo?.secondaryColor ?? "#FFAB49")}20`,
+          border: `1px solid ${(companyInfo?.secondaryColor ?? "#E5660F")}20`,
           marginTop: "10px",
         }}
       >
@@ -2020,7 +2020,7 @@ const handleSubmitApplication = async () => {
             fontWeight: 700,
             fontSize: 20,
             lineHeight: "120%",
-            color: companyInfo?.secondaryColor ?? "#FFAB49",
+            color: companyInfo?.secondaryColor ?? "#E5660F",
           }}
         >
           Benefits & Perks
@@ -2048,7 +2048,7 @@ const handleSubmitApplication = async () => {
                       gap: "10px",
                     }}
                   >
-                    <div style={{ borderRadius: "10px", color: companyInfo?.secondaryColor ?? "#FFAB49" }}>
+                    <div style={{ borderRadius: "10px", color: companyInfo?.secondaryColor ?? "#E5660F" }}>
                       <LuCircleCheckBig style={{ fontSize: "22px" }} />
                     </div>
                     <p>{benefit}</p>
@@ -2062,7 +2062,7 @@ const handleSubmitApplication = async () => {
                         gap: "10px",
                       }}
                     >
-                      <div style={{ borderRadius: "10px", color: companyInfo?.secondaryColor ?? "#FFAB49" }}>
+                      <div style={{ borderRadius: "10px", color: companyInfo?.secondaryColor ?? "#E5660F" }}>
                         <LuCircleCheckBig style={{ fontSize: "22px" }} />
                       </div>
                       <p>{selectedJob.benefits[index + 1]}</p>
@@ -2087,7 +2087,7 @@ const handleSubmitApplication = async () => {
           borderRadius: "12px",
           padding: "24px",
           boxShadow: "0 4px 20px rgba(0,0,0,0.1)",
-          border: `1px solid ${(companyInfo?.secondaryColor ?? "#FFAB49")}20`,
+          border: `1px solid ${(companyInfo?.secondaryColor ?? "#E5660F")}20`,
           marginTop: "10px",
           marginBottom: "50px",
         }}
@@ -2098,7 +2098,7 @@ const handleSubmitApplication = async () => {
             fontSize: 20,
             lineHeight: "120%",
             letterSpacing: "0%",
-            color: companyInfo?.secondaryColor ?? "#FFAB49",
+            color: companyInfo?.secondaryColor ?? "#E5660F",
           }}
         >
           About Us
@@ -2125,7 +2125,7 @@ const handleSubmitApplication = async () => {
           gap: "8px",
           padding: "12px 20px",
           background: "#ffffff",
-          border: `1px solid ${(companyInfo?.secondaryColor ?? "#FFAB49")}40`,
+          border: `1px solid ${(companyInfo?.secondaryColor ?? "#E5660F")}40`,
           borderRadius: "32px",
           fontSize: "14px",
           fontWeight: "500",
@@ -2138,7 +2138,7 @@ const handleSubmitApplication = async () => {
         <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
           <path
             d="M15 18L9 12L15 6"
-            stroke={companyInfo?.secondaryColor ?? "#FFAB49"}
+            stroke={companyInfo?.secondaryColor ?? "#E5660F"}
             strokeWidth="2"
             strokeLinecap="round"
             strokeLinejoin="round"
@@ -2150,11 +2150,11 @@ const handleSubmitApplication = async () => {
       <div>
         <p style={{ color: "#575757", fontSize: "16px", padding: "10px" }}>
           Jobs <span style={{ padding: "0 15px" }}>\</span>
-          <span style={{ color: companyInfo?.secondaryColor ?? "#FFAB49" }}>
+          <span style={{ color: companyInfo?.secondaryColor ?? "#E5660F" }}>
             {selectedJob.title}
           </span>
           <span style={{ padding: "0 15px" }}>\</span>
-          <span style={{ color: companyInfo?.secondaryColor ?? "#FFAB49" }}>
+          <span style={{ color: companyInfo?.secondaryColor ?? "#E5660F" }}>
             Apply Now
           </span>
         </p>
@@ -2163,7 +2163,7 @@ const handleSubmitApplication = async () => {
       <div className="apply-header">
         <div 
           className="apply-header-heading"
-          style={{ color: companyInfo?.secondaryColor ?? "#FFAB49" }}
+          style={{ color: companyInfo?.secondaryColor ?? "#E5660F" }}
         >
           Apply for {selectedJob.title}
         </div>
@@ -2177,8 +2177,8 @@ const handleSubmitApplication = async () => {
           <div 
             className="badge" 
             style={{ 
-              color: companyInfo?.secondaryColor ?? "#FFAB49", 
-              background: `${companyInfo?.secondaryColor ?? "#FFAB49"}15`, 
+              color: companyInfo?.secondaryColor ?? "#E5660F", 
+              background: `${companyInfo?.secondaryColor ?? "#E5660F"}15`, 
               borderRadius: "100px" 
             }}
           >
@@ -2193,7 +2193,7 @@ const handleSubmitApplication = async () => {
           background: "#ffffff",
           borderRadius: "12px",
           padding: "24px",
-          border: `1px solid ${(companyInfo?.secondaryColor ?? "#FFAB49")}20`,
+          border: `1px solid ${(companyInfo?.secondaryColor ?? "#E5660F")}20`,
         }}
       >
         {/* Row 1 */}
@@ -2208,8 +2208,8 @@ const handleSubmitApplication = async () => {
               value={applyForm.firstName}
               onChange={(e) => setApplyForm({ ...applyForm, firstName: e.target.value })}
               onFocus={(e) => {
-                e.target.style.borderColor = companyInfo?.secondaryColor ?? "#FFAB49";
-                e.target.style.boxShadow = `0 0 0 3px ${(companyInfo?.secondaryColor ?? "#FFAB49")}33`;
+                e.target.style.borderColor = companyInfo?.secondaryColor ?? "#E5660F";
+                e.target.style.boxShadow = `0 0 0 3px ${(companyInfo?.secondaryColor ?? "#E5660F")}33`;
               }}
               onBlur={(e) => {
                 e.target.style.borderColor = "#d1d5db";
@@ -2233,8 +2233,8 @@ const handleSubmitApplication = async () => {
               value={applyForm.lastName}
               onChange={(e) => setApplyForm({ ...applyForm, lastName: e.target.value })}
               onFocus={(e) => {
-                e.target.style.borderColor = companyInfo?.secondaryColor ?? "#FFAB49";
-                e.target.style.boxShadow = `0 0 0 3px ${(companyInfo?.secondaryColor ?? "#FFAB49")}33`;
+                e.target.style.borderColor = companyInfo?.secondaryColor ?? "#E5660F";
+                e.target.style.boxShadow = `0 0 0 3px ${(companyInfo?.secondaryColor ?? "#E5660F")}33`;
               }}
               onBlur={(e) => {
                 e.target.style.borderColor = "#d1d5db";
@@ -2258,8 +2258,8 @@ const handleSubmitApplication = async () => {
               value={applyForm.email}
               onChange={(e) => setApplyForm({ ...applyForm, email: e.target.value })}
               onFocus={(e) => {
-                e.target.style.borderColor = companyInfo?.secondaryColor ?? "#FFAB49";
-                e.target.style.boxShadow = `0 0 0 3px ${(companyInfo?.secondaryColor ?? "#FFAB49")}33`;
+                e.target.style.borderColor = companyInfo?.secondaryColor ?? "#E5660F";
+                e.target.style.boxShadow = `0 0 0 3px ${(companyInfo?.secondaryColor ?? "#E5660F")}33`;
               }}
               onBlur={(e) => {
                 e.target.style.borderColor = "#d1d5db";
@@ -2291,8 +2291,8 @@ const handleSubmitApplication = async () => {
               value={applyForm.location}
               onChange={(e) => setApplyForm({ ...applyForm, location: e.target.value })}
               onFocus={(e) => {
-                e.target.style.borderColor = companyInfo?.secondaryColor ?? "#FFAB49";
-                e.target.style.boxShadow = `0 0 0 3px ${(companyInfo?.secondaryColor ?? "#FFAB49")}33`;
+                e.target.style.borderColor = companyInfo?.secondaryColor ?? "#E5660F";
+                e.target.style.boxShadow = `0 0 0 3px ${(companyInfo?.secondaryColor ?? "#E5660F")}33`;
               }}
               onBlur={(e) => {
                 e.target.style.borderColor = "#d1d5db";
@@ -2316,8 +2316,8 @@ const handleSubmitApplication = async () => {
               value={applyForm.mobile}
               onChange={(e) => setApplyForm({ ...applyForm, mobile: e.target.value })}
               onFocus={(e) => {
-                e.target.style.borderColor = companyInfo?.secondaryColor ?? "#FFAB49";
-                e.target.style.boxShadow = `0 0 0 3px ${(companyInfo?.secondaryColor ?? "#FFAB49")}33`;
+                e.target.style.borderColor = companyInfo?.secondaryColor ?? "#E5660F";
+                e.target.style.boxShadow = `0 0 0 3px ${(companyInfo?.secondaryColor ?? "#E5660F")}33`;
               }}
               onBlur={(e) => {
                 e.target.style.borderColor = "#d1d5db";
@@ -2360,8 +2360,8 @@ const handleSubmitApplication = async () => {
                 placeholder="0"
                 value={applyForm.experienceYears}
                 onFocus={(e) => {
-                  e.target.style.borderColor = companyInfo?.secondaryColor ?? "#FFAB49";
-                  e.target.style.boxShadow = `0 0 0 3px ${(companyInfo?.secondaryColor ?? "#FFAB49")}33`;
+                  e.target.style.borderColor = companyInfo?.secondaryColor ?? "#E5660F";
+                  e.target.style.boxShadow = `0 0 0 3px ${(companyInfo?.secondaryColor ?? "#E5660F")}33`;
                 }}
                 onBlur={(e) => {
                   e.target.style.borderColor = "#d1d5db";
@@ -2400,8 +2400,8 @@ const handleSubmitApplication = async () => {
                 placeholder="0"
                 value={applyForm.experienceMonths}
                 onFocus={(e) => {
-                  e.target.style.borderColor = companyInfo?.secondaryColor ?? "#FFAB49";
-                  e.target.style.boxShadow = `0 0 0 3px ${(companyInfo?.secondaryColor ?? "#FFAB49")}33`;
+                  e.target.style.borderColor = companyInfo?.secondaryColor ?? "#E5660F";
+                  e.target.style.boxShadow = `0 0 0 3px ${(companyInfo?.secondaryColor ?? "#E5660F")}33`;
                 }}
                 onBlur={(e) => {
                   e.target.style.borderColor = "#d1d5db";
@@ -2432,7 +2432,7 @@ const handleSubmitApplication = async () => {
           {/* Fresher helper text */}
           {applyForm.experienceYears === "0" && applyForm.experienceMonths === "0" && (
             <div style={{
-              color: companyInfo?.secondaryColor ?? "#FFAB49",
+              color: companyInfo?.secondaryColor ?? "#E5660F",
               fontSize: "13px",
               marginTop: "8px",
               textAlign: "center",
@@ -2465,7 +2465,7 @@ const handleSubmitApplication = async () => {
           />
 
           <label htmlFor="resumeUpload" style={{ cursor: "pointer", display: "block" }}>
-            <div style={{ fontSize: "24px", color: companyInfo?.secondaryColor ?? "#FFAB49" }}>⬇</div>
+            <div style={{ fontSize: "24px", color: companyInfo?.secondaryColor ?? "#E5660F" }}>⬇</div>
             <p>or drag and drop your file here</p>
             <p className="muted">PDF • DOC • DOCX • Max file size: 5MB</p>
 
@@ -2478,8 +2478,8 @@ const handleSubmitApplication = async () => {
                 document.getElementById("resumeUpload")?.click();
               }}
               style={{
-                border: `1px solid ${companyInfo?.secondaryColor ?? "#FFAB49"}`,
-                color: companyInfo?.secondaryColor ?? "#FFAB49",
+                border: `1px solid ${companyInfo?.secondaryColor ?? "#E5660F"}`,
+                color: companyInfo?.secondaryColor ?? "#E5660F",
               }}
             >
               Upload Resume
@@ -2548,11 +2548,11 @@ const handleSubmitApplication = async () => {
 
             background: hasAppliedToThisJob 
               ? "#dcfce7" 
-              : companyInfo?.secondaryColor ?? "#FFAB49",
+              : companyInfo?.secondaryColor ?? "#E5660F",
             color: hasAppliedToThisJob ? "#166534" : "#ffffff",
             border: hasAppliedToThisJob 
               ? "1px solid #86efac" 
-              : `1px solid ${companyInfo?.secondaryColor ?? "#FFAB49"}`,
+              : `1px solid ${companyInfo?.secondaryColor ?? "#E5660F"}`,
             fontWeight: hasAppliedToThisJob ? "600" : "600",
           }}
         >

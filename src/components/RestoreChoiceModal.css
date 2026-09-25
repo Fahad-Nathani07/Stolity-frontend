@@ -52,7 +52,7 @@
   align-items: center;
   justify-content: center;
   background: rgba(255, 171, 73, 0.14);
-  color: #ffab49;
+  color: #e5660f;
   font-size: 20px;
 }
 
@@ -134,7 +134,7 @@
 }
 
 .restore-choice-option--primary:hover:not(:disabled) {
-  border-color: #ffab49;
+  border-color: #e5660f;
   background: #ffedd5;
 }
 

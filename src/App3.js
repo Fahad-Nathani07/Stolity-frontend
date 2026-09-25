@@ -122,7 +122,7 @@ const { showAudioPlayer, currentAudioFile } = useSelector((state) => state.getda
         }`}
         data-value="1"
         style={{
-          background: `conic-gradient(from 0deg at 50% 50%, #E5252A 0deg, #E7400C 120deg, #FFAB49 240deg, #E5252A 360deg)`,
+          background: `conic-gradient(from 0deg at 50% 50%, #E5252A 0deg, #E7400C 120deg, #E5660F 240deg, #E5252A 360deg)`,
           // display: 'flex',
           // alignItems: 'center',
           // justifyContent: 'center'

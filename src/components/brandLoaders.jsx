@@ -45,7 +45,7 @@ export const ArcSpinnerMark = ({ size = 40 }) => {
       <svg className="bl-arc-svg" viewBox="0 0 100 100">
         <defs>
           <linearGradient id={gradId} x1="0%" y1="0%" x2="100%" y2="0%">
-            <stop offset="0%" stopColor="#ffab49" />
+            <stop offset="0%" stopColor="#e5660f" />
             <stop offset="50%" stopColor="#e7400c" />
             <stop offset="100%" stopColor="#e5252a" />
           </linearGradient>

@@ -488,7 +488,7 @@ useEffect(() => {
                         border: "1px solid #D1D5DB",
                         borderRadius: "16px",
                         fontSize: "15px",
-                        fontFamily: '"SF Pro", "SFProText", -apple-system, BlinkMacSystemFont, sans-serif',
+                        fontFamily: '"Plus Jakarta Sans", "SF Pro", "SFProText", -apple-system, BlinkMacSystemFont, sans-serif',
                         outline: "none",
                         resize: "vertical",
                         boxSizing: "border-box",
@@ -528,7 +528,7 @@ useEffect(() => {
               disabled={!subject.trim() || !message.trim() || sending}
               style={{
                 padding: "12px 24px",
-                background: subject.trim() && message.trim() && !sending ? "#FFAB49" : "#e5e7eb",
+                background: subject.trim() && message.trim() && !sending ? "#E5660F" : "#e5e7eb",
                 color: subject.trim() && message.trim() && !sending ? "#FFFFFF" : "#6B7280",
                 border: "none",
                 borderRadius: "12px",
@@ -647,7 +647,7 @@ useEffect(() => {
                 disabled={sending}
                 style={{
                   padding: "12px 24px",
-                  background: sending ? "#e5e7eb" : "#FFAB49",
+                  background: sending ? "#e5e7eb" : "#E5660F",
                   color: sending ? "#6b7280" : "#ffffff",
                   border: "none",
                   borderRadius: "12px",
@@ -703,7 +703,7 @@ useEffect(() => {
             setShowSmtpWarning(false);
             setShowSmtpConfig(true);
           }}
-          style={{ padding: '10px 20px', background: '#FFAB49', color: 'white', border: 'none', borderRadius: '8px' }}
+          style={{ padding: '10px 20px', background: '#E5660F', color: 'white', border: 'none', borderRadius: '8px' }}
         >
           Register My SMTP Credentials
         </button>

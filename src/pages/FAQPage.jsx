@@ -1,6 +1,4 @@
 import React, { useCallback, useEffect, useState } from "react";
-import AOS from "aos";
-import "aos/dist/aos.css";
 import axios from "axios";
 import "../css/FAQPage.css";
 import "../css/SettingsPageBreadcrumb.css";
@@ -10,6 +8,7 @@ import MinusIcon from "../images/MinusIcon.svg";
 import PlusIcon from "../images/PlusIcon2.svg";
 import FAQImg1 from "../images/FAQImg1.svg";
 import SendArrow from "../images/SendArrow.svg";
+import ScrollReveal from "../components/ScrollReveal";
 
 const QUESTION_MIN = 20;
 const QUESTION_MAX = 500;
@@ -349,21 +348,7 @@ const FAQPage = () => {
   useEffect(() => {
     fetchActiveQuestion();
   }, [fetchActiveQuestion]);
-
-  useEffect(() => {
-    AOS.init({
-      duration: 1000,
-      offset: 80,
-      easing: "ease-in-out",
-      once: true,
-    });
-  }, []);
-
-  useEffect(() => {
-    AOS.refresh();
-  }, [openIndex, activeQuestion, checkingActive]);
-
-  const handleAccordionClick = (idx) => {
+const handleAccordionClick = (idx) => {
     setOpenIndex((prev) => (prev === idx ? null : idx));
   };
 
@@ -429,7 +414,7 @@ const FAQPage = () => {
   return (
    <div className="faq-main-wrapper2">
       <SideNav />
-      <div className="stolity-settings-header" data-aos="zoom-out">
+      <ScrollReveal as="div" className="stolity-settings-header" variant="fadeSoft" delay={0.05} duration={0.75}>
         <div className="stolity-settings-breadcrumb">
           <span>Settings</span>
           <span className="stolity-settings-breadcrumb-sep" aria-hidden="true">
@@ -437,13 +422,13 @@ const FAQPage = () => {
           </span>
           <span className="stolity-settings-breadcrumb-current">FAQs</span>
         </div>
-      </div>
+      </ScrollReveal>
      <div className="faq-main-wrapper" >
       <div className="faqBody">
-        <h1 className="faq-title" data-aos="zoom-in">Frequently Asked Questions</h1>
+        <ScrollReveal as="h1" className="faq-title" variant="fadeUp" delay={0.1} duration={0.85}>Frequently Asked Questions</ScrollReveal>
       <div className="faq-content-wrapper">
         {/* Left: FAQ Accordion */}
-        <div className="faq-left-col" data-aos="zoom-in">
+        <ScrollReveal as="div" className="faq-left-col" variant="fadeUp" delay={0.1} duration={0.85}>
   {FAQS.map((faq, idx) => {
     const isOpen = openIndex === idx;
     return (
@@ -476,10 +461,10 @@ const FAQPage = () => {
     );
   })}
 
-</div>
+</ScrollReveal>
 
         {/* Right: Ask Question Card */}
-        <div className="faq-right-col" data-aos="zoom-in">
+        <ScrollReveal as="div" className="faq-right-col" variant="fadeUp" delay={0.1} duration={0.85}>
           <img
             src={FAQImg1}
             alt=""
@@ -542,7 +527,7 @@ const FAQPage = () => {
               </form>
             )}
           </div>
-        </div>
+        </ScrollReveal>
       </div>
       </div>
     </div>

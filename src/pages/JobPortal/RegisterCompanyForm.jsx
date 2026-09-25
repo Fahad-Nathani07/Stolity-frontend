@@ -23,7 +23,7 @@ const RegisterCompanyForm = ({ company, onCancel, onSubmit }) => {
     logoFile: null,                    // new upload – required
     logoUrl: company.logoUrl || "",    // only for display if editing existing company
     primaryColor: company.primaryColor || "#ffffff",
-    secondaryColor: company.secondaryColor || "#FFAB49",
+    secondaryColor: company.secondaryColor || "#E5660F",
   });
 
   const [step, setStep] = useState(1);
@@ -202,7 +202,7 @@ const RegisterCompanyForm = ({ company, onCancel, onSubmit }) => {
         <div style={{
           width: 56,
           height: 56,
-          backgroundColor: form.secondaryColor || "#FFAB49",
+          backgroundColor: form.secondaryColor || "#E5660F",
           borderRight: "1px solid #e5e7eb",
           flexShrink: 0,
         }} />
@@ -274,7 +274,7 @@ const RegisterCompanyForm = ({ company, onCancel, onSubmit }) => {
           )}
     <p style={{
       fontSize: "18px",
-      // color: "#FFAB49",
+      // color: "#E5660F",
       color: form.secondaryColor,
       margin: "0 0 8px",
       fontWeight: 600,

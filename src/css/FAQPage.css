@@ -10,7 +10,7 @@
   background: #FAFAFA;
       min-height: 90vh;
     padding: 24px 34px 0 34px;
-  font-family: "SF Pro", "SFProText", sans-serif;
+  font-family: "Plus Jakarta Sans", sans-serif;
     
 }
 
@@ -56,7 +56,7 @@
 
 .faq-accordion-item.open {
   box-shadow: 0 4px 24px rgba(255,171,73,0.09);
-  border: 1.5px solid #FFE3CA;
+  border: 1.5px solid #FFF1E8;
 }
 
 /* FAQ accordion answer body */
@@ -106,13 +106,13 @@
   padding: 5px 11px;
   font-size: 24px;
   font-weight: 700;
-  color: #FFAB49;
+  color: #E5660F;
   box-shadow: 0 1px 6px rgba(255,171,73,0.05);
   transition: background 0.2s;
 }
 
 .faq-accordion-toggle.open {
-  background: #FFE3CA;
+  background: #FFF1E8;
   color: #F68D2B;
 }
 
@@ -202,7 +202,7 @@
   width: 100%;
   box-sizing: border-box;
   padding: 12px 18px;
-  border: 1.5px solid #FFE3CA;
+  border: 1.5px solid #FFF1E8;
   border-radius: 32px;
   font-size: 16px;
   margin-bottom: 8px;
@@ -268,12 +268,12 @@
 }
 
 .faq-question-input:focus {
-  border: 1.5px solid #FFAB49;
+  border: 1.5px solid #E5660F;
 }
 
 .faq-send-btn {
-  /* background: linear-gradient(90deg,#FFAB49 65%,#FFE3CA 120%); */
-  background: #FFAB49 ;
+  /* background: linear-gradient(90deg,#E5660F 65%,#FFF1E8 120%); */
+  background: #E5660F ;
   color: #fff;
   font-weight: 600;
   font-size: 16px;
@@ -295,7 +295,7 @@
 }
 
 .faq-send-btn:hover:not(:disabled) {
-  background: linear-gradient(90deg,#FFC86A 65%,#FFE3CA 120%);
+  background: linear-gradient(90deg,#FFC86A 65%,#FFF1E8 120%);
 }
 
 /* Responsive */

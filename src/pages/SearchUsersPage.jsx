@@ -59,7 +59,7 @@ const SearchUsersPage = () => {
         padding: 20,
         border: "1px solid #ddd",
         borderRadius: 8,
-        fontFamily: '"SF Pro", "SFProText", -apple-system, BlinkMacSystemFont, sans-serif',
+        fontFamily: '"Plus Jakarta Sans", "SF Pro", "SFProText", -apple-system, BlinkMacSystemFont, sans-serif',
         backgroundColor: "#fafafa",
       }}
     >
@@ -87,7 +87,7 @@ const SearchUsersPage = () => {
         style={{
           width: "100%",
           padding: "10px 16px",
-          backgroundColor: "#FFAB49",
+          backgroundColor: "#E5660F",
           border: "none",
           borderRadius: 20,
           color: "white",

@@ -128,7 +128,7 @@
 }
 
 .tp-toggle-btn {
-  background: #ffab49;
+  background: #e5660f;
   color: #fff;
   border: none;
   padding: 7px 12px;
@@ -204,7 +204,7 @@
   width: 14px;
   height: 14px;
   border: 2px solid #e2e8f0;
-  border-top-color: #ffab49;
+  border-top-color: #e5660f;
   border-radius: 50%;
   animation: tp-spin 0.85s linear infinite;
   flex-shrink: 0;
@@ -277,7 +277,7 @@
 .tp-bar {
   height: 100%;
   border-radius: 999px;
-  background: linear-gradient(90deg, #ffab49 0%, #ffc875 100%);
+  background: linear-gradient(90deg, #e5660f 0%, #ffc875 100%);
   transition: width 0.35s ease;
 }
 
@@ -383,7 +383,7 @@
 .tp-item-bar {
   height: 100%;
   border-radius: 999px;
-  background: linear-gradient(90deg, #ffab49 0%, #ffc875 100%);
+  background: linear-gradient(90deg, #e5660f 0%, #ffc875 100%);
   transition: width 0.3s ease;
 }
 
@@ -394,7 +394,7 @@
 }
 
 .toggle-btn {
-  background: #ffab49;
+  background: #e5660f;
   color: white;
   border: none;
   padding: 6px 12px;
@@ -408,7 +408,7 @@
   width: 16px;
   height: 16px;
   border: 2px solid #e2e8f0;
-  border-top-color: #ffab49;
+  border-top-color: #e5660f;
   border-radius: 50%;
   animation: tp-spin 0.85s linear infinite;
   flex-shrink: 0;
@@ -447,7 +447,7 @@
 .pause-play-btn:hover {
   background: #fff7ed;
   border-color: rgba(255, 171, 73, 0.55);
-  color: #c46a12;
+  color: #c4231c;
 }
 
 /* Old progress classes still referenced elsewhere */
@@ -461,14 +461,14 @@
 
 .progress-bar {
   height: 6px;
-  background: linear-gradient(90deg, #ffab49 0%, #ffc875 100%);
+  background: linear-gradient(90deg, #e5660f 0%, #ffc875 100%);
   transition: width 0.4s ease;
   border-radius: 4px;
 }
 
 .file-name {
   font-size: 13px;
-  font-weight: 600;
+  font-weight: 600 !important;
   color: #0f172a;
   margin: 0;
   white-space: nowrap;

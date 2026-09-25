@@ -1,9 +1,8 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import AOS from "aos";
-import "aos/dist/aos.css";
 import { useSelector } from "react-redux";
 import { useNavigate } from "react-router-dom";
 import axios from "axios";
+import ScrollReveal from "../components/ScrollReveal";
 import {
   FiPhone,
   FiRefreshCw,
@@ -178,21 +177,7 @@ export default function SupportDashboard() {
   useEffect(() => {
     noteDraftRef.current = noteDraft;
   }, [noteDraft]);
-
-  useEffect(() => {
-    AOS.init({
-      duration: 1000,
-      offset: 80,
-      easing: "ease-in-out",
-      once: true,
-    });
-  }, []);
-
-  useEffect(() => {
-    AOS.refresh();
-  }, [activeTab, loading]);
-
-  useEffect(() => {
+useEffect(() => {
     savingRef.current = saving;
   }, [saving]);
   useEffect(() => {
@@ -739,7 +724,7 @@ export default function SupportDashboard() {
     <div className="ssd-shell">
       <SideNav />
       <div className={`ssd-page${activeTab === "activity" ? " ssd-page--activity" : ""}`}>
-        <header className="ssd-header" data-aos="zoom-out">
+        <ScrollReveal as="header" className="ssd-header" variant="fadeSoft" delay={0.05} duration={0.75}>
           <div className="ssd-header-left">
             <p className="ssd-breadcrumb">
               Team tools <span aria-hidden="true">›</span> Outbound operations
@@ -777,9 +762,9 @@ export default function SupportDashboard() {
               </div>
             </div>
           </div>
-        </header>
+        </ScrollReveal>
 
-        <div className="ssd-chrome" data-aos="zoom-in">
+        <ScrollReveal as="div" className="ssd-chrome" variant="fadeUp" delay={0.1} duration={0.85}>
           <div className="ssd-tabs" role="tablist">
             {tabs.map((tab) => (
               <button
@@ -857,10 +842,10 @@ export default function SupportDashboard() {
               </div>
             </div>
           )}
-        </div>
+        </ScrollReveal>
 
         {activeTab === "questions" && (
-          <div data-aos="zoom-in">
+          <ScrollReveal as="div" variant="fadeUp" delay={0.1} duration={0.85}>
             <SupportQuestionsPane
               apiUrl={apiUrl}
               authHeaders={authHeaders}
@@ -869,7 +854,7 @@ export default function SupportDashboard() {
               token={token}
               onItemCountChange={setQuestionsCount}
             />
-          </div>
+          </ScrollReveal>
         )}
 
         {activeTab === "activity" && showFileActivity && (
@@ -883,7 +868,7 @@ export default function SupportDashboard() {
         )}
 
         {activeTab === "callbacks" && (
-          <div className="ssd-callbacks" data-aos="zoom-in">
+          <ScrollReveal as="div" className="ssd-callbacks" variant="fadeUp" delay={0.1} duration={0.85}>
             {error && <div className="ssd-banner ssd-banner-error">{error}</div>}
 
             <div className="ssd-layout">
@@ -1503,7 +1488,7 @@ export default function SupportDashboard() {
                 </div>
               </section>
             </div>
-          </div>
+          </ScrollReveal>
         )}
       </div>
     </div>

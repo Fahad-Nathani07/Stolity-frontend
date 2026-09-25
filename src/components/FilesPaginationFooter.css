@@ -102,7 +102,7 @@
 .fp-size-control.is-editing,
 .fp-size-control.is-open {
   background: #fff;
-  border-color: #ffab49;
+  border-color: #e5660f;
   box-shadow: 0 0 0 3px rgba(255, 171, 73, 0.2);
 }
 
@@ -260,7 +260,7 @@
 }
 
 .fp-custom-apply:hover {
-  background: #ffab49;
+  background: #e5660f;
   color: #fff;
 }
 
