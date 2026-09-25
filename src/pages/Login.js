@@ -661,7 +661,7 @@ const Login = ({ setSpanExpanded, spanExpanded }) => {
                       </button>
                     </div>
 
-                    {error && <div className="text-red-500 mt-3">{error}</div>}
+                    {error && <div className="error-message mt-3" style={{ textAlign: "center" }}>{error}</div>}
                   </>
                 )}
 

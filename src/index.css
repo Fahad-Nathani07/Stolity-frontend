@@ -965,7 +965,7 @@ input[type="radio"] {
 }
 
 .content-wrapper {
-  background: var(--stolity-bg, #faf5f3) !important;
+  background: var(--stolity-bg, #f8f2ee) !important;
   color: var(--stolity-ink, #0b1c30);
 }
 
