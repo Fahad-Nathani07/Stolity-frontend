@@ -85,7 +85,7 @@ const hospitals = {
         "Private file sharing",
         "User access control",
       ],
-      image: "/images/industries/hospitals/hipaa-compliance.png",
+      image: "/images/industries/shared/hipaa-compliance.png",
       theme: "peach",
       imageStyle: "illustration",
     },

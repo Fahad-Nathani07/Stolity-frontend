@@ -62,7 +62,7 @@ const diagnosticCenters = {
           "Admin-only deletion",
           "Diagnostic data integrity",
         ],
-        image: "/images/industries/hospitals/hipaa-compliance.png",
+        image: "/images/industries/shared/hipaa-compliance.png",
         theme: "peach",
         imageStyle: "illustration",
       },

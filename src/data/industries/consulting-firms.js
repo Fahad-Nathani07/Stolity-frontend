@@ -61,7 +61,7 @@ const consultingFirms = {
           "Approval workflows",
           "Secure client portals",
         ],
-        image: "/images/industries/hospitals/hipaa-compliance.png",
+        image: "/images/industries/shared/hipaa-compliance.png",
         theme: "peach",
         imageStyle: "illustration",
       },

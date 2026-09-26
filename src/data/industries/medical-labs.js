@@ -60,7 +60,7 @@ const medicalLabs = {
           "Compliance workflows",
           "Data integrity validation",
         ],
-        image: "/images/industries/hospitals/hipaa-compliance.png",
+        image: "/images/industries/shared/hipaa-compliance.png",
         theme: "peach",
         imageStyle: "illustration",
       },

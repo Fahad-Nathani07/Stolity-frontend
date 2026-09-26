@@ -61,7 +61,7 @@ const hrAgencies = {
           "Interview documentation",
           "Hiring team collaboration",
         ],
-        image: "/images/industries/hospitals/hipaa-compliance.png",
+        image: "/images/industries/shared/hipaa-compliance.png",
         theme: "peach",
         imageStyle: "illustration",
       },

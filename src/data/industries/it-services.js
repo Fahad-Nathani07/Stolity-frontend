@@ -11,7 +11,7 @@
  *   everything-rating.png
  *
  * Reuses:
- *   /images/industries/hospitals/hipaa-compliance.png
+ *   /images/industries/shared/hipaa-compliance.png
  */
 
 const itServices = {
@@ -77,7 +77,7 @@ const itServices = {
           "Network documentation",
           "Access control policies",
         ],
-        image: "/images/industries/hospitals/hipaa-compliance.png",
+        image: "/images/industries/shared/hipaa-compliance.png",
         theme: "peach",
         imageStyle: "illustration",
       },

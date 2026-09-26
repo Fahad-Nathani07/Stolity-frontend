@@ -11,7 +11,7 @@
  *   everything-rating.png
  *
  * Reuses:
- *   /images/industries/hospitals/hipaa-compliance.png
+ *   /images/industries/shared/hipaa-compliance.png
  */
 
 const marketingAgencies = {
@@ -78,7 +78,7 @@ const marketingAgencies = {
           "Approval workflows",
           "Client portals",
         ],
-        image: "/images/industries/hospitals/hipaa-compliance.png",
+        image: "/images/industries/shared/hipaa-compliance.png",
         theme: "peach",
         imageStyle: "illustration",
       },

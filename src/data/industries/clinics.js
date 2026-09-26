@@ -60,7 +60,7 @@ const clinics = {
           "Access control policies",
           "Privacy audit logs",
         ],
-        image: "/images/industries/hospitals/hipaa-compliance.png",
+        image: "/images/industries/shared/hipaa-compliance.png",
         theme: "peach",
         imageStyle: "illustration",
       },
