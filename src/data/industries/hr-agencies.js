@@ -90,7 +90,7 @@ const hrAgencies = {
       testimonialImage:
         "/images/industries/hr-agencies/everything-testimonial.png",
       ratingImage:
-        "/images/industries/hr-agencies/everything-rating.png",
+        "/images/industries/shared/everything-rating.png",
       features: [
         { label: "Encrypted Storage", icon: "lock" },
         { label: "Access Logs", icon: "activity" },

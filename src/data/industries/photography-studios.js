@@ -107,7 +107,7 @@ const photographyStudios = {
       testimonialImage:
         "/images/industries/photography-studios/everything-testimonial.png",
       ratingImage:
-        "/images/industries/photography-studios/everything-rating.png",
+        "/images/industries/shared/everything-rating.png",
       features: [
         { label: "Large File Support", icon: "lock" },
         { label: "Visual Preview", icon: "activity" },

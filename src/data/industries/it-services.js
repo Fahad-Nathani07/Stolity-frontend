@@ -104,7 +104,7 @@ const itServices = {
       backgroundImage: "/images/industries/it-services/everything-bg.jpg",
       testimonialImage:
         "/images/industries/it-services/everything-testimonial.png",
-      ratingImage: "/images/industries/it-services/everything-rating.png",
+      ratingImage: "/images/industries/shared/everything-rating.png",
       features: [
         { label: "Large File Support", icon: "lock" },
         { label: "Version History", icon: "activity" },

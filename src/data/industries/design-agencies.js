@@ -107,7 +107,7 @@ const designAgencies = {
       testimonialImage:
         "/images/industries/design-agencies/everything-testimonial.png",
       ratingImage:
-        "/images/industries/design-agencies/everything-rating.png",
+        "/images/industries/shared/everything-rating.png",
       features: [
         { label: "Large File Support", icon: "lock" },
         { label: "Visual Preview", icon: "activity" },

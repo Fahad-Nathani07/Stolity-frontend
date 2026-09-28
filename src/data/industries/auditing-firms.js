@@ -107,7 +107,7 @@ const auditingFirms = {
       testimonialImage:
         "/images/industries/auditing-firms/everything-testimonial.png",
       ratingImage:
-        "/images/industries/auditing-firms/everything-rating.png",
+        "/images/industries/shared/everything-rating.png",
       features: [
         { label: "Large File Support", icon: "lock" },
         { label: "Encrypted Storage", icon: "activity" },

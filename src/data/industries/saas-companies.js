@@ -106,7 +106,7 @@ const saasCompanies = {
       testimonialImage:
         "/images/industries/saas-companies/everything-testimonial.png",
       ratingImage:
-        "/images/industries/saas-companies/everything-rating.png",
+        "/images/industries/shared/everything-rating.png",
       features: [
         { label: "Large File Support", icon: "lock" },
         { label: "Encrypted Storage", icon: "activity" },

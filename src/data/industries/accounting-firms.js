@@ -108,7 +108,7 @@ const accountingFirms = {
       testimonialImage:
         "/images/industries/accounting-firms/everything-testimonial.png",
       ratingImage:
-        "/images/industries/accounting-firms/everything-rating.png",
+        "/images/industries/shared/everything-rating.png",
       features: [
         { label: "File Versioning", icon: "lock" },
         { label: "Secure Sharing", icon: "lock" },

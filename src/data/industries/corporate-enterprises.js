@@ -107,7 +107,7 @@ const corporateEnterprises = {
       testimonialImage:
         "/images/industries/corporate-enterprises/everything-testimonial.png",
       ratingImage:
-        "/images/industries/corporate-enterprises/everything-rating.png",
+        "/images/industries/shared/everything-rating.png",
       features: [
         { label: "Large File Support", icon: "lock" },
         { label: "Encrypted Storage", icon: "activity" },

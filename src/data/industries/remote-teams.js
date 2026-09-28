@@ -106,7 +106,7 @@ const remoteTeams = {
       testimonialImage:
         "/images/industries/remote-teams/everything-testimonial.png",
       ratingImage:
-        "/images/industries/remote-teams/everything-rating.png",
+        "/images/industries/shared/everything-rating.png",
       features: [
         { label: "Large File Support", icon: "lock" },
         { label: "Encrypted Storage", icon: "activity" },

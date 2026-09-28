@@ -91,7 +91,7 @@ const wellnessCenters = {
       testimonialImage:
         "/images/industries/wellness-centers/everything-testimonial.png",
       ratingImage:
-        "/images/industries/wellness-centers/everything-rating.png",
+        "/images/industries/shared/everything-rating.png",
       features: [
         { label: "HIPAA Compliance", icon: "lock" },
         { label: "Encrypted Storage", icon: "activity" },

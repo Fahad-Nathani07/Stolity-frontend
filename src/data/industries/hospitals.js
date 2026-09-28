@@ -110,7 +110,7 @@ const hospitals = {
     subtitle: "Powerful features designed for your workflow",
     backgroundImage: "/images/industries/hospitals/everything-bg.jpg",
     testimonialImage: "/images/industries/hospitals/everything-testimonial.png",
-    ratingImage: "/images/industries/hospitals/everything-rating.png",
+    ratingImage: "/images/industries/shared/everything-rating.png",
     features: [
       {
         label: "Black Hole Vault",

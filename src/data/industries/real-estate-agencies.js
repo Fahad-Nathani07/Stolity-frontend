@@ -106,7 +106,7 @@ const realEstateAgencies = {
       testimonialImage:
         "/images/industries/real-estate-agencies/everything-testimonial.png",
       ratingImage:
-        "/images/industries/real-estate-agencies/everything-rating.png",
+        "/images/industries/shared/everything-rating.png",
       features: [
         { label: "Large File Support", icon: "lock" },
         { label: "Mobile Access", icon: "activity" },

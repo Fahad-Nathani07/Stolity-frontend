@@ -112,7 +112,7 @@ const lawFirms = {
     subtitle: "Powerful features designed for your workflow",
     backgroundImage: "/images/industries/law-firms/everything-bg.jpg",
     testimonialImage: "/images/industries/law-firms/everything-testimonial.png",
-    ratingImage: "/images/industries/law-firms/everything-rating.png",
+    ratingImage: "/images/industries/shared/everything-rating.png",
     features: [
       {
         label: "Black Hole Vault",

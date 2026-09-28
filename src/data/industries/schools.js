@@ -102,7 +102,7 @@ const schools = {
       backgroundImage: "/images/industries/schools/everything-bg.jpg",
       testimonialImage:
         "/images/industries/schools/everything-testimonial.png",
-      ratingImage: "/images/industries/schools/everything-rating.png",
+      ratingImage: "/images/industries/shared/everything-rating.png",
       features: [
         { label: "Large File Support", icon: "lock" },
         { label: "Encrypted Storage", icon: "activity" },

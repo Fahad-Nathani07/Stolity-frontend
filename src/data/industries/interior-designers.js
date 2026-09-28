@@ -107,7 +107,7 @@ const interiorDesigners = {
       testimonialImage:
         "/images/industries/interior-designers/everything-testimonial.png",
       ratingImage:
-        "/images/industries/interior-designers/everything-rating.png",
+        "/images/industries/shared/everything-rating.png",
       features: [
         { label: "Large File Support", icon: "lock" },
         { label: "Mobile Access", icon: "activity" },

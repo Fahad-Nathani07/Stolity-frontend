@@ -92,7 +92,7 @@ const diagnosticCenters = {
       testimonialImage:
         "/images/industries/diagnostic-centers/everything-testimonial.png",
       ratingImage:
-        "/images/industries/diagnostic-centers/everything-rating.png",
+        "/images/industries/shared/everything-rating.png",
       features: [
         { label: "HIPAA Compliance", icon: "lock" },
         { label: "Encrypted Storage", icon: "activity" },

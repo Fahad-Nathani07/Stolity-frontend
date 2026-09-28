@@ -107,7 +107,7 @@ const videoProduction = {
       testimonialImage:
         "/images/industries/video-production/everything-testimonial.png",
       ratingImage:
-        "/images/industries/video-production/everything-rating.png",
+        "/images/industries/shared/everything-rating.png",
       features: [
         { label: "Large File Support", icon: "lock" },
         { label: "Visual Preview", icon: "activity" },

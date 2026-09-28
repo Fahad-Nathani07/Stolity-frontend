@@ -91,7 +91,7 @@ const consultingFirms = {
       testimonialImage:
         "/images/industries/consulting-firms/everything-testimonial.png",
       ratingImage:
-        "/images/industries/consulting-firms/everything-rating.png",
+        "/images/industries/shared/everything-rating.png",
       features: [
         { label: "File Versioning", icon: "lock" },
         { label: "Client Sharing", icon: "activity" },

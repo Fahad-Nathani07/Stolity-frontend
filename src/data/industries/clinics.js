@@ -87,7 +87,7 @@ const clinics = {
       backgroundImage: "/images/industries/clinics/everything-bg.jpg",
       testimonialImage:
         "/images/industries/clinics/everything-testimonial.png",
-      ratingImage: "/images/industries/clinics/everything-rating.png",
+      ratingImage: "/images/industries/shared/everything-rating.png",
       features: [
         { label: "HIPAA Compliance", icon: "lock" },
         { label: "Encrypted Storage", icon: "activity" },

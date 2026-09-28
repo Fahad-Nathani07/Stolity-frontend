@@ -87,7 +87,7 @@ const architects = {
       backgroundImage: "/images/industries/architects/everything-bg.jpg",
       testimonialImage:
         "/images/industries/architects/everything-testimonial.png",
-      ratingImage: "/images/industries/architects/everything-rating.png",
+      ratingImage: "/images/industries/shared/everything-rating.png",
       features: [
         { label: "Large File Support", icon: "lock" },
         { label: "Mobile Access", icon: "activity" },

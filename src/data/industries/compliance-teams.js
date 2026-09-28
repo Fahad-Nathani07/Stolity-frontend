@@ -107,7 +107,7 @@ const complianceTeams = {
       testimonialImage:
         "/images/industries/compliance-teams/everything-testimonial.png",
       ratingImage:
-        "/images/industries/compliance-teams/everything-rating.png",
+        "/images/industries/shared/everything-rating.png",
       features: [
         { label: "Large File Support", icon: "lock" },
         { label: "Encrypted Storage", icon: "activity" },

@@ -87,7 +87,7 @@ const medicalLabs = {
       backgroundImage: "/images/industries/medical-labs/everything-bg.jpg",
       testimonialImage:
         "/images/industries/medical-labs/everything-testimonial.png",
-      ratingImage: "/images/industries/medical-labs/everything-rating.png",
+      ratingImage: "/images/industries/shared/everything-rating.png",
       features: [
         { label: "HIPAA Compliance", icon: "lock" },
         { label: "Encrypted Storage", icon: "activity" },

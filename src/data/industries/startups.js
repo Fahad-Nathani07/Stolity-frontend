@@ -102,7 +102,7 @@ const startups = {
       backgroundImage: "/images/industries/startups/everything-bg.jpg",
       testimonialImage:
         "/images/industries/startups/everything-testimonial.png",
-      ratingImage: "/images/industries/startups/everything-rating.png",
+      ratingImage: "/images/industries/shared/everything-rating.png",
       features: [
         { label: "Large File Support", icon: "lock" },
         { label: "Encrypted Storage", icon: "activity" },

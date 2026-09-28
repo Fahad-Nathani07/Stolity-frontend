@@ -102,7 +102,7 @@ const banking = {
       backgroundImage: "/images/industries/banking/everything-bg.jpg",
       testimonialImage:
         "/images/industries/banking/everything-testimonial.png",
-      ratingImage: "/images/industries/banking/everything-rating.png",
+      ratingImage: "/images/industries/shared/everything-rating.png",
       features: [
         { label: "Large File Support", icon: "lock" },
         { label: "Encrypted Storage", icon: "activity" },

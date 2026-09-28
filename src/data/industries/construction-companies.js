@@ -93,7 +93,7 @@ const constructionCompanies = {
       testimonialImage:
         "/images/industries/construction-companies/everything-testimonial.png",
       ratingImage:
-        "/images/industries/construction-companies/everything-rating.png",
+        "/images/industries/shared/everything-rating.png",
       features: [
         { label: "Large File Support", icon: "lock" },
         { label: "Mobile Access", icon: "activity" },
