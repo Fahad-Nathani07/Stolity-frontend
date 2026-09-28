@@ -12,6 +12,13 @@ import {
   getZipSuccessMessage,
 } from "../utils/zipUnzipRequest";
 import { uploadFolderViaMultipart } from "../utils/uploadFolderViaMultipart";
+import UploadBatchLimitModal from "../components/UploadBatchLimitModal";
+import { useUploadBatchLimitGate } from "../hooks/useUploadBatchLimitGate";
+import {
+  UPLOAD_BATCH_CANCEL,
+  UPLOAD_BATCH_ZIP_INSTEAD,
+  UPLOAD_ZIP_INSTEAD_TOAST,
+} from "../utils/uploadBatchLimits";
 import {
   isCreateFolderNameTaken,
   getCreateFolderErrorMessage,
@@ -208,6 +215,12 @@ const DefaultFolder = () => {
     getUpload,
     isPausing,
   } = useContext(UploadContext);
+
+  const {
+    batchLimitPrompt,
+    confirmUploadBatch,
+    onBatchLimitChoice,
+  } = useUploadBatchLimitGate();
 
   //Anurag Declaration
   const token = sessionStorage.getItem("number");
@@ -1937,6 +1950,15 @@ const DefaultFolder = () => {
       return;
     }
 
+    const batchChoice = await confirmUploadBatch(fileList, { source: "folder" });
+    if (batchChoice === UPLOAD_BATCH_CANCEL) {
+      return;
+    }
+    if (batchChoice === UPLOAD_BATCH_ZIP_INSTEAD) {
+      showToast("info", UPLOAD_ZIP_INSTEAD_TOAST);
+      return;
+    }
+
     const result = await uploadFolderViaMultipart({
       apiUrl,
       token,
@@ -2190,6 +2212,15 @@ const DefaultFolder = () => {
   const handleFileUpload = async () => {
     if (files.length === 0) {
       showToast("error", "Please select a file to upload.");
+      return;
+    }
+
+    const batchChoice = await confirmUploadBatch(files);
+    if (batchChoice === UPLOAD_BATCH_CANCEL) {
+      return;
+    }
+    if (batchChoice === UPLOAD_BATCH_ZIP_INSTEAD) {
+      showToast("info", UPLOAD_ZIP_INSTEAD_TOAST);
       return;
     }
 
@@ -5350,6 +5381,15 @@ const DefaultFolder = () => {
         isOpen={showUpgradeModal}
         onClose={() => setShowUpgradeModal(false)}
         onUpgrade={() => nav("/Payment")}
+      />
+
+      <UploadBatchLimitModal
+        isOpen={Boolean(batchLimitPrompt)}
+        level={batchLimitPrompt?.level}
+        count={batchLimitPrompt?.count}
+        totalBytes={batchLimitPrompt?.totalBytes}
+        source={batchLimitPrompt?.source}
+        onChoice={onBatchLimitChoice}
       />
     </>
   );

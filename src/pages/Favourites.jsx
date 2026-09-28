@@ -19,6 +19,25 @@ import {
   abortMultipartUploadDirect,
   DIRECT_UPLOAD_GAP_MS,
 } from "../utils/uploadFileDirect";
+import UploadBatchLimitModal from "../components/UploadBatchLimitModal";
+import DownloadBatchLimitModal from "../components/DownloadBatchLimitModal";
+import { useUploadBatchLimitGate } from "../hooks/useUploadBatchLimitGate";
+import { useDownloadBatchLimitGate } from "../hooks/useDownloadBatchLimitGate";
+import {
+  UPLOAD_BATCH_CANCEL,
+  UPLOAD_BATCH_ZIP_INSTEAD,
+  UPLOAD_ZIP_INSTEAD_TOAST,
+} from "../utils/uploadBatchLimits";
+import {
+  resolveDownloadSelectionForGate,
+  DOWNLOAD_BATCH_CANCEL,
+  DOWNLOAD_BATCH_ZIP_AND_DOWNLOAD,
+} from "../utils/downloadBatchLimits";
+import {
+  zipFolderThenNativeDownload,
+  ZIP_THEN_DOWNLOAD_TOAST,
+} from "../utils/zipFolderThenNativeDownload";
+import { useZippingProgressModal } from "../hooks/useZippingProgressModal";
 import { DownloadContext } from "./DownloadContext";
 import { Prism as SyntaxHighlighter } from "react-syntax-highlighter";
 import { oneLight } from "react-syntax-highlighter/dist/esm/styles/prism";
@@ -207,6 +226,18 @@ const Favourites = () => {
   isPausing, // <-- new
   registerCancelRefresh,
 } = useContext(UploadContext);
+
+  const {
+    batchLimitPrompt,
+    confirmUploadBatch,
+    onBatchLimitChoice,
+  } = useUploadBatchLimitGate();
+  const {
+    downloadBatchLimitPrompt,
+    confirmDownloadBatch,
+    onDownloadBatchLimitChoice,
+  } = useDownloadBatchLimitGate();
+  const { beginZipping, endZipping, zippingModal } = useZippingProgressModal();
 
   //Anurag Declaration
   const token = sessionStorage.getItem("number");
@@ -731,6 +762,69 @@ const handleMulDownload = async () => {
   const keys2 = getFolderSelectionKeys();
   if (keys.length === 0 && keys2.length === 0) {
     showToast("error", "No files or folders selected!");
+    return;
+  }
+
+  let gateStats;
+  try {
+    setLoader2(true);
+    gateStats = await resolveDownloadSelectionForGate({
+      apiUrl,
+      token,
+      fileKeys: keys,
+      folderKeys: keys2,
+      filedata,
+    });
+  } catch (err) {
+    console.error("Download gate inspect failed:", err);
+    showToast(
+      "error",
+      err?.message || "Could not prepare download. Please try again."
+    );
+    return;
+  } finally {
+    setLoader2(false);
+  }
+
+  const gateChoice = await confirmDownloadBatch(gateStats);
+  if (gateChoice === DOWNLOAD_BATCH_CANCEL) {
+    return;
+  }
+
+  if (gateChoice === DOWNLOAD_BATCH_ZIP_AND_DOWNLOAD) {
+    if (!gateStats?.folderPath) {
+      showToast(
+        "info",
+        "Open the parent folder, Zip it, then download the ZIP."
+      );
+      return;
+    }
+    const folderPath = removeSlash2(gateStats.folderPath);
+    const abortController = beginZipping(folderPath);
+    try {
+      const result = await zipFolderThenNativeDownload({
+        apiUrl,
+        token,
+        folderPath,
+        signal: abortController?.signal,
+        onPhase: (phase) => {
+          if (phase === "downloading") {
+            endZipping();
+          }
+        },
+      });
+      endZipping();
+      showToast("success", result.toastMessage || ZIP_THEN_DOWNLOAD_TOAST);
+      getFileData?.(1);
+    } catch (err) {
+      endZipping();
+      if (isDownloadCancelledError(err)) {
+        showToast("info", "Zipping cancelled.");
+      } else {
+        console.error("Zip and download failed:", err);
+        showToast("error", err?.message || "Zip and download failed.");
+      }
+    }
     return;
   }
 
@@ -2232,6 +2326,65 @@ const handleFileDelete = async (file) => {
 
     const fileName = removeSlash2(selectedFile.fileName);
     const isFolder = selectedFile.isFolder;
+
+    if (isFolder) {
+      let gateStats;
+      try {
+        setLoader2(true);
+        gateStats = await resolveDownloadSelectionForGate({
+          apiUrl,
+          token,
+          fileKeys: [],
+          folderKeys: [selectedFile.fileName],
+          filedata,
+        });
+      } catch (err) {
+        console.error("Download gate inspect failed:", err);
+        showToast(
+          "error",
+          err?.message || "Could not prepare download. Please try again."
+        );
+        return;
+      } finally {
+        setLoader2(false);
+      }
+
+      const gateChoice = await confirmDownloadBatch(gateStats);
+      if (gateChoice === DOWNLOAD_BATCH_CANCEL) {
+        return;
+      }
+
+      if (gateChoice === DOWNLOAD_BATCH_ZIP_AND_DOWNLOAD) {
+        setDownloadpopup(false);
+        const abortController = beginZipping(fileName);
+        cancelToken.current = abortController;
+        try {
+          const result = await zipFolderThenNativeDownload({
+            apiUrl,
+            token,
+            folderPath: fileName,
+            signal: abortController?.signal,
+            onPhase: (phase) => {
+              if (phase === "downloading") {
+                endZipping();
+              }
+            },
+          });
+          endZipping();
+          showToast("success", result.toastMessage || ZIP_THEN_DOWNLOAD_TOAST);
+          getFileData?.(1);
+        } catch (error) {
+          endZipping();
+          if (isDownloadCancelledError(error)) {
+            showToast("info", "Zipping cancelled.");
+          } else {
+            showToast("error", error.message || "Zip and download failed.");
+          }
+        }
+        return;
+      }
+    }
+
     const downloadId = Date.now();
     const abortController = new AbortController();
     let succeeded = false;
@@ -2663,6 +2816,15 @@ function getModifiedRecentFolderText(input) {
   const uploadFolder = async () => {
     if (!fileList?.length) {
       showToast("warning", "Please select a folder first.");
+      return;
+    }
+
+    const batchChoice = await confirmUploadBatch(fileList, { source: "folder" });
+    if (batchChoice === UPLOAD_BATCH_CANCEL) {
+      return;
+    }
+    if (batchChoice === UPLOAD_BATCH_ZIP_INSTEAD) {
+      showToast("info", UPLOAD_ZIP_INSTEAD_TOAST);
       return;
     }
 
@@ -3143,6 +3305,15 @@ function getModifiedRecentFolderText(input) {
 const handleFileUpload = async () => {
   if (files.length === 0) {
     showToast("error", "Please select a file to upload.");
+    return;
+  }
+
+  const batchChoice = await confirmUploadBatch(files);
+  if (batchChoice === UPLOAD_BATCH_CANCEL) {
+    return;
+  }
+  if (batchChoice === UPLOAD_BATCH_ZIP_INSTEAD) {
+    showToast("info", UPLOAD_ZIP_INSTEAD_TOAST);
     return;
   }
 
@@ -7149,6 +7320,27 @@ const handleNext = () => {
         files={files}
         onFilesUpdated={handleFilesConverted}
       />
+
+      <UploadBatchLimitModal
+        isOpen={Boolean(batchLimitPrompt)}
+        level={batchLimitPrompt?.level}
+        count={batchLimitPrompt?.count}
+        totalBytes={batchLimitPrompt?.totalBytes}
+        source={batchLimitPrompt?.source}
+        onChoice={onBatchLimitChoice}
+      />
+
+      <DownloadBatchLimitModal
+        isOpen={Boolean(downloadBatchLimitPrompt)}
+        level={downloadBatchLimitPrompt?.level}
+        count={downloadBatchLimitPrompt?.count}
+        totalBytes={downloadBatchLimitPrompt?.totalBytes}
+        source={downloadBatchLimitPrompt?.source}
+        canZipAndDownload={downloadBatchLimitPrompt?.canZipAndDownload}
+        onChoice={onDownloadBatchLimitChoice}
+      />
+
+      {zippingModal}
 
        {loader_Recycle && (<LoaderRecycleBin/>)}
 

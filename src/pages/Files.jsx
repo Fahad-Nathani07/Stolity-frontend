@@ -89,6 +89,25 @@ import {
 } from "../utils/mergeFileListing";
 import UploadFilesPreview from "../components/UploadFilesPreview";
 import UploadConflictModal from "../components/UploadConflictModal";
+import UploadBatchLimitModal from "../components/UploadBatchLimitModal";
+import DownloadBatchLimitModal from "../components/DownloadBatchLimitModal";
+import { useUploadBatchLimitGate } from "../hooks/useUploadBatchLimitGate";
+import { useDownloadBatchLimitGate } from "../hooks/useDownloadBatchLimitGate";
+import {
+  UPLOAD_BATCH_CANCEL,
+  UPLOAD_BATCH_ZIP_INSTEAD,
+  UPLOAD_ZIP_INSTEAD_TOAST,
+} from "../utils/uploadBatchLimits";
+import {
+  resolveDownloadSelectionForGate,
+  DOWNLOAD_BATCH_CANCEL,
+  DOWNLOAD_BATCH_ZIP_AND_DOWNLOAD,
+} from "../utils/downloadBatchLimits";
+import {
+  zipFolderThenNativeDownload,
+  ZIP_THEN_DOWNLOAD_TOAST,
+} from "../utils/zipFolderThenNativeDownload";
+import { useZippingProgressModal } from "../hooks/useZippingProgressModal";
 import {
   applyUploadConflictResolution,
   findUploadNameConflicts,
@@ -1167,6 +1186,74 @@ function debounce(fn, delay) {
       return;
     }
 
+    const shared =
+      isSharedValue && filenameRedux ? filenameRedux : undefined;
+
+    let gateStats;
+    try {
+      setLoader2(true);
+      gateStats = await resolveDownloadSelectionForGate({
+        apiUrl,
+        token,
+        shared,
+        fileKeys: keys,
+        folderKeys: keys2,
+        filedata,
+      });
+    } catch (err) {
+      console.error("Download gate inspect failed:", err);
+      showToast(
+        "error",
+        err?.message || "Could not prepare download. Please try again."
+      );
+      return;
+    } finally {
+      setLoader2(false);
+    }
+
+    const gateChoice = await confirmDownloadBatch(gateStats);
+    if (gateChoice === DOWNLOAD_BATCH_CANCEL) {
+      return;
+    }
+
+    if (gateChoice === DOWNLOAD_BATCH_ZIP_AND_DOWNLOAD) {
+      if (!gateStats?.folderPath) {
+        showToast(
+          "info",
+          "Open the parent folder, Zip it, then download the ZIP."
+        );
+        return;
+      }
+      const folderPath = removeSlash2(gateStats.folderPath);
+      const abortController = beginZipping(folderPath);
+      try {
+        const result = await zipFolderThenNativeDownload({
+          apiUrl,
+          token,
+          folderPath,
+          shared,
+          signal: abortController?.signal,
+          onPhase: (phase) => {
+            if (phase === "downloading") {
+              endZipping();
+            }
+          },
+        });
+        endZipping();
+        showToast("success", result.toastMessage || ZIP_THEN_DOWNLOAD_TOAST);
+        getFileData?.(currentPage);
+      } catch (err) {
+        endZipping();
+        if (isDownloadCancelledError(err)) {
+          showToast("info", "Zipping cancelled.");
+        } else {
+          console.error("Zip and download failed:", err);
+          showToast("error", err?.message || "Zip and download failed.");
+        }
+      }
+      return;
+    }
+
     const items = [
       ...keys.map((fileName) => ({ fileName, isFolder: false })),
       ...keys2.map((fileName) => ({ fileName, isFolder: true })),
@@ -1187,8 +1274,6 @@ function debounce(fn, delay) {
       item.abortController = batchAbortController;
     });
 
-    const shared =
-      isSharedValue && filenameRedux ? filenameRedux : undefined;
     const fileItems = items.filter((item) => !item.isFolder);
     const folderItems = items.filter((item) => item.isFolder);
 
@@ -2766,6 +2851,17 @@ const chkFileorFolder = (file, size) => {
   const [openFileUploadModal, setOpenFileUploadModal] = useState(false);
   const [uploadConflictNames, setUploadConflictNames] = useState(null);
   const uploadConflictResolverRef = useRef(null);
+  const {
+    batchLimitPrompt,
+    confirmUploadBatch,
+    onBatchLimitChoice,
+  } = useUploadBatchLimitGate();
+  const {
+    downloadBatchLimitPrompt,
+    confirmDownloadBatch,
+    onDownloadBatchLimitChoice,
+  } = useDownloadBatchLimitGate();
+  const { beginZipping, endZipping, zippingModal } = useZippingProgressModal();
   const [createFolderButton, setCreateFolderButton] = useState(false);
   const pageFilter = (data) => {
     getFileData(currentPage, data);
@@ -2896,6 +2992,69 @@ const handleConfirmDownload = async () => {
 
     const fileName = removeSlash2(selectedFile.fileName);
     const isFolder = selectedFile.isFolder;
+    const shared =
+      isSharedValue && filenameRedux ? filenameRedux : undefined;
+
+    if (isFolder) {
+      let gateStats;
+      try {
+        setLoader2(true);
+        gateStats = await resolveDownloadSelectionForGate({
+          apiUrl,
+          token,
+          shared,
+          fileKeys: [],
+          folderKeys: [selectedFile.fileName],
+          filedata,
+        });
+      } catch (err) {
+        console.error("Download gate inspect failed:", err);
+        showToast(
+          "error",
+          err?.message || "Could not prepare download. Please try again."
+        );
+        return;
+      } finally {
+        setLoader2(false);
+      }
+
+      const gateChoice = await confirmDownloadBatch(gateStats);
+      if (gateChoice === DOWNLOAD_BATCH_CANCEL) {
+        return;
+      }
+
+      if (gateChoice === DOWNLOAD_BATCH_ZIP_AND_DOWNLOAD) {
+        setDownloadpopup(false);
+        const abortController = beginZipping(fileName);
+        cancelToken.current = abortController;
+        try {
+          const result = await zipFolderThenNativeDownload({
+            apiUrl,
+            token,
+            folderPath: fileName,
+            shared,
+            signal: abortController?.signal,
+            onPhase: (phase) => {
+              if (phase === "downloading") {
+                endZipping();
+              }
+            },
+          });
+          endZipping();
+          showToast("success", result.toastMessage || ZIP_THEN_DOWNLOAD_TOAST);
+          getFileData?.(currentPage);
+        } catch (error) {
+          endZipping();
+          if (isDownloadCancelledError(error)) {
+            showToast("info", "Zipping cancelled.");
+          } else {
+            showToast("error", error.message || "Zip and download failed.");
+          }
+        }
+        return;
+      }
+    }
+
     const downloadId = Date.now();
     const abortController = new AbortController();
     let succeeded = false;
@@ -3300,6 +3459,15 @@ const handleConfirmDownload = async () => {
       return;
     }
 
+    const batchChoice = await confirmUploadBatch(fileList, { source: "folder" });
+    if (batchChoice === UPLOAD_BATCH_CANCEL) {
+      return;
+    }
+    if (batchChoice === UPLOAD_BATCH_ZIP_INSTEAD) {
+      showToast("info", UPLOAD_ZIP_INSTEAD_TOAST);
+      return;
+    }
+
     const result = await uploadFolderViaMultipart({
       apiUrl,
       token,
@@ -3641,6 +3809,15 @@ useEffect(()=>{
         return;
       }
       uploadQueue = resolved;
+    }
+
+    const batchChoice = await confirmUploadBatch(uploadQueue);
+    if (batchChoice === UPLOAD_BATCH_CANCEL) {
+      return;
+    }
+    if (batchChoice === UPLOAD_BATCH_ZIP_INSTEAD) {
+      showToast("info", UPLOAD_ZIP_INSTEAD_TOAST);
+      return;
     }
 
     handleCloseFileUploadModal();
@@ -7799,6 +7976,27 @@ useEffect(()=>{
           resolve?.(choice);
         }}
       />
+
+      <UploadBatchLimitModal
+        isOpen={Boolean(batchLimitPrompt)}
+        level={batchLimitPrompt?.level}
+        count={batchLimitPrompt?.count}
+        totalBytes={batchLimitPrompt?.totalBytes}
+        source={batchLimitPrompt?.source}
+        onChoice={onBatchLimitChoice}
+      />
+
+      <DownloadBatchLimitModal
+        isOpen={Boolean(downloadBatchLimitPrompt)}
+        level={downloadBatchLimitPrompt?.level}
+        count={downloadBatchLimitPrompt?.count}
+        totalBytes={downloadBatchLimitPrompt?.totalBytes}
+        source={downloadBatchLimitPrompt?.source}
+        canZipAndDownload={downloadBatchLimitPrompt?.canZipAndDownload}
+        onChoice={onDownloadBatchLimitChoice}
+      />
+
+      {zippingModal}
       
       {loader_Recycle && (<LoaderRecycleBin />)}
 

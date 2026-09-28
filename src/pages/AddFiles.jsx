@@ -13,10 +13,22 @@ import { useDropzone } from 'react-dropzone';
 
 import { UploadContext } from './UploadContext';
 import { uploadFolderViaMultipart } from "../utils/uploadFolderViaMultipart";
+import UploadBatchLimitModal from "../components/UploadBatchLimitModal";
+import { useUploadBatchLimitGate } from "../hooks/useUploadBatchLimitGate";
+import {
+  UPLOAD_BATCH_CANCEL,
+  UPLOAD_BATCH_ZIP_INSTEAD,
+  UPLOAD_ZIP_INSTEAD_TOAST,
+} from "../utils/uploadBatchLimits";
 import { showToast } from "../components/ToastProvider";
 
 const AddFiles = () => {
   const { uploads, addUpload, updateUploadProgress, updateUploadMeta, removeUpload, getUpload, isPausing } = useContext(UploadContext);
+  const {
+    batchLimitPrompt,
+    confirmUploadBatch,
+    onBatchLimitChoice,
+  } = useUploadBatchLimitGate();
 
   const currentYear = new Date().getFullYear();
   const token = sessionStorage.getItem("number");
@@ -89,6 +101,16 @@ const AddFiles = () => {
       showToast('error','Please select the file!')
       return;
     }
+
+    const batchChoice = await confirmUploadBatch(files);
+    if (batchChoice === UPLOAD_BATCH_CANCEL) {
+      return;
+    }
+    if (batchChoice === UPLOAD_BATCH_ZIP_INSTEAD) {
+      showToast("info", UPLOAD_ZIP_INSTEAD_TOAST);
+      return;
+    }
+
     for (let i = 0; i < files.length; i++) {
     const file = files[i]; // Get the current file from the files array
     const fileName = file.name; // Get the file name
@@ -188,6 +210,15 @@ const AddFiles = () => {
   const uploadFolder = async () => {
     if (!fileList?.length) {
       showToast("warning", "Please select a folder first.");
+      return;
+    }
+
+    const batchChoice = await confirmUploadBatch(fileList, { source: "folder" });
+    if (batchChoice === UPLOAD_BATCH_CANCEL) {
+      return;
+    }
+    if (batchChoice === UPLOAD_BATCH_ZIP_INSTEAD) {
+      showToast("info", UPLOAD_ZIP_INSTEAD_TOAST);
       return;
     }
 
@@ -467,6 +498,15 @@ const AddFiles = () => {
         </div>
         {/* main-panel ends */}
       </div>
+
+      <UploadBatchLimitModal
+        isOpen={Boolean(batchLimitPrompt)}
+        level={batchLimitPrompt?.level}
+        count={batchLimitPrompt?.count}
+        totalBytes={batchLimitPrompt?.totalBytes}
+        source={batchLimitPrompt?.source}
+        onChoice={onBatchLimitChoice}
+      />
     </>
   )
 }

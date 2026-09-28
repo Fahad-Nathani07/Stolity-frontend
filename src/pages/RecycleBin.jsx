@@ -2818,7 +2818,7 @@ const handleFileUpload = async () => {
 
   try {
     // Queue all files in UI first, then upload one-by-one with a gap
-    const MULTI_UPLOAD_GAP_MS = 900;
+    const MULTI_UPLOAD_GAP_MS = 500;
     const delay = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
 
     const uploadEntries = files.map((file, i) => {

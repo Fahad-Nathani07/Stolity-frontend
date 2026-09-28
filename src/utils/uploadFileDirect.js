@@ -4,7 +4,7 @@ import { queueActivityStatus, queueDeleteActivityEvent } from "./activityReport"
 /** Files smaller than this try single PUT first; otherwise multipart direct. */
 export const DIRECT_PUT_MAX_BYTES = 100 * 1024 * 1024;
 export const DIRECT_PART_SIZE = 10 * 1024 * 1024;
-export const DIRECT_UPLOAD_GAP_MS = 900;
+export const DIRECT_UPLOAD_GAP_MS = 500;
 
 /**
  * null = unknown, true = last direct attempt worked.
@@ -695,14 +695,23 @@ async function uploadViaDirectSpaces({
             },
           });
 
-          const etag = pickEtag(resp.headers, resp.data);
-          if (!etag) {
-            throw new Error(
-              "No ETag from Spaces (check CORS ExposeHeaders: ETag)"
-            );
+          const status = resp?.status ?? 0;
+          if (status < 200 || status >= 300) {
+            throw new Error(`Spaces UploadPart failed (${status})`);
           }
 
-          partsArray.push({ ETag: etag, PartNumber: partNumber });
+          // CORS often hides ETag from JS even when PUT is 200.
+          // complete-multipart-upload-direct ListParts-fills missing ETags.
+          const etag = pickEtag(resp.headers, resp.data);
+          if (etag) {
+            partsArray.push({ ETag: etag, PartNumber: partNumber });
+          } else {
+            console.warn(
+              `[upload] Part ${partNumber} uploaded but ETag not readable; server will resolve via ListParts on complete.`
+            );
+            partsArray.push({ PartNumber: partNumber });
+          }
+
           if (onProgress) {
             onProgress(
               totalSize > 0 ? Math.round((end * 100) / totalSize) : 100

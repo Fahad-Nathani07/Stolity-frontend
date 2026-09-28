@@ -1,0 +1,33 @@
+/* Indeterminate zip bar — slides L→R, exits right, reappears left */
+
+.tp-bar-wrap--indeterminate {
+  position: relative;
+  overflow: hidden;
+}
+
+.tp-bar--indeterminate {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 40%;
+  height: 100%;
+  border-radius: inherit;
+  /* Same gradient family as .tp-bar */
+  background: linear-gradient(90deg, #e5660f 0%, #ffc875 100%);
+  animation: tp-bar-indeterminate 1.2s cubic-bezier(0.4, 0, 0.2, 1) infinite;
+  will-change: transform;
+}
+
+@keyframes tp-bar-indeterminate {
+  0% {
+    transform: translateX(-100%);
+  }
+  100% {
+    transform: translateX(calc(250% + 100%));
+  }
+}
+
+/* Minimized chip: no fake % — spinner already present */
+.zipping-progress-modal.is-minimized .tp-mini-pct {
+  display: none;
+}
