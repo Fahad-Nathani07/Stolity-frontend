@@ -3,7 +3,10 @@ import { queueActivityStatus, queueDeleteActivityEvent } from "./activityReport"
 
 /** Files smaller than this try single PUT first; otherwise multipart direct. */
 export const DIRECT_PUT_MAX_BYTES = 100 * 1024 * 1024;
-export const DIRECT_PART_SIZE = 10 * 1024 * 1024;
+/** Larger parts = fewer presign API calls (each call used to hit Firestore via verifyJWT). */
+export const DIRECT_PART_SIZE = 100 * 1024 * 1024;
+/** How many part URLs to request per /presign-upload-parts call (server max 40). */
+export const PRESIGN_PARTS_BATCH = 20;
 export const DIRECT_UPLOAD_GAP_MS = 500;
 
 /**
@@ -654,14 +657,19 @@ async function uploadViaDirectSpaces({
   const partsArray = [];
 
   try {
-    for (let pi = 0; pi < partsCount; pi++) {
+    for (let pi = 0; pi < partsCount; ) {
       checkRemoved();
 
-      const start = pi * partSize;
-      const end = Math.min(start + partSize, totalSize);
-      const chunk = file.slice(start, end);
-      const partNumber = pi + 1;
+      const batchNumbers = [];
+      for (
+        let j = 0;
+        j < PRESIGN_PARTS_BATCH && pi + j < partsCount;
+        j += 1
+      ) {
+        batchNumbers.push(pi + j + 1);
+      }
 
+      let signedPartsByNumber = new Map();
       // eslint-disable-next-line no-constant-condition
       while (true) {
         try {
@@ -671,52 +679,15 @@ async function uploadViaDirectSpaces({
             token,
             key,
             uploadId,
-            partNumbers: [partNumber],
+            partNumbers: batchNumbers,
             shared,
           });
-          const partUrl = signed?.parts?.[0]?.url;
-          if (!partUrl) {
-            throw new Error(`No presigned URL for part ${partNumber}`);
-          }
-
-          const resp = await putToSpaces({
-            url: partUrl,
-            body: chunk,
-            headers: {},
-            stripContentType: true,
-            signal: liveSignal() || undefined,
-            onUploadProgress: (evt) => {
-              if (!onProgress || !totalSize) return;
-              const partLoaded = evt.loaded || 0;
-              const uploadedBytes = start + partLoaded;
-              onProgress(
-                Math.min(99, Math.round((uploadedBytes * 100) / totalSize))
-              );
-            },
-          });
-
-          const status = resp?.status ?? 0;
-          if (status < 200 || status >= 300) {
-            throw new Error(`Spaces UploadPart failed (${status})`);
-          }
-
-          // CORS often hides ETag from JS even when PUT is 200.
-          // complete-multipart-upload-direct ListParts-fills missing ETags.
-          const etag = pickEtag(resp.headers, resp.data);
-          if (etag) {
-            partsArray.push({ ETag: etag, PartNumber: partNumber });
-          } else {
-            console.warn(
-              `[upload] Part ${partNumber} uploaded but ETag not readable; server will resolve via ListParts on complete.`
-            );
-            partsArray.push({ PartNumber: partNumber });
-          }
-
-          if (onProgress) {
-            onProgress(
-              totalSize > 0 ? Math.round((end * 100) / totalSize) : 100
-            );
-          }
+          signedPartsByNumber = new Map(
+            (signed?.parts || []).map((p) => [
+              Number(p.partNumber),
+              p.url,
+            ])
+          );
           break;
         } catch (err) {
           const action = await handlePauseOrCancel(err);
@@ -724,6 +695,82 @@ async function uploadViaDirectSpaces({
           throw err;
         }
       }
+
+      for (let j = 0; j < batchNumbers.length; j += 1) {
+        const partNumber = batchNumbers[j];
+        const partIndex = partNumber - 1;
+        const start = partIndex * partSize;
+        const end = Math.min(start + partSize, totalSize);
+        const chunk = file.slice(start, end);
+
+        // eslint-disable-next-line no-constant-condition
+        while (true) {
+          try {
+            checkRemoved();
+            const partUrl = signedPartsByNumber.get(partNumber);
+            if (!partUrl) {
+              throw new Error(`No presigned URL for part ${partNumber}`);
+            }
+
+            const resp = await putToSpaces({
+              url: partUrl,
+              body: chunk,
+              headers: {},
+              stripContentType: true,
+              signal: liveSignal() || undefined,
+              onUploadProgress: (evt) => {
+                if (!onProgress || !totalSize) return;
+                const partLoaded = evt.loaded || 0;
+                const uploadedBytes = start + partLoaded;
+                onProgress(
+                  Math.min(99, Math.round((uploadedBytes * 100) / totalSize))
+                );
+              },
+            });
+
+            const status = resp?.status ?? 0;
+            if (status < 200 || status >= 300) {
+              throw new Error(`Spaces UploadPart failed (${status})`);
+            }
+
+            const etag = pickEtag(resp.headers, resp.data);
+            if (etag) {
+              partsArray.push({ ETag: etag, PartNumber: partNumber });
+            } else {
+              console.warn(
+                `[upload] Part ${partNumber} uploaded but ETag not readable; server will resolve via ListParts on complete.`
+              );
+              partsArray.push({ PartNumber: partNumber });
+            }
+
+            if (onProgress) {
+              onProgress(
+                totalSize > 0 ? Math.round((end * 100) / totalSize) : 100
+              );
+            }
+            break;
+          } catch (err) {
+            const action = await handlePauseOrCancel(err);
+            if (action === "retry") {
+              // Re-presign just this part (URL may have expired / failed)
+              const one = await presignUploadParts({
+                apiUrl,
+                token,
+                key,
+                uploadId,
+                partNumbers: [partNumber],
+                shared,
+              });
+              const url = one?.parts?.[0]?.url;
+              if (url) signedPartsByNumber.set(partNumber, url);
+              continue;
+            }
+            throw err;
+          }
+        }
+      }
+
+      pi += batchNumbers.length;
     }
 
     checkRemoved();

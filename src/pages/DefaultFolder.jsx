@@ -45,7 +45,7 @@ import { Prism as SyntaxHighlighter } from "react-syntax-highlighter";
 import { oneLight } from "react-syntax-highlighter/dist/esm/styles/prism";
 import Logo from "../images/logo.png";
 import sharedIcon from "../images/shared_icon.svg";
-import { resolveFileIconPath } from "../utils/fileIcon";
+import { resolveFileIconPath, encodeStorageUrl } from "../utils/fileIcon";
 import { buildFileStreamUrl, preloadStreamedImage } from "../utils/fileStream";
 import { resolveMediaPlayUrl } from "../utils/mediaPlayUrl";
 import { resolveDocumentBlobUrl } from "../utils/documentPreview";
@@ -2312,7 +2312,7 @@ const DefaultFolder = () => {
         fileSize: fileData.fileSize,
         fileType: fileData.fileType,
         uploadDateTime: fileData.uploadDateTime,
-        fileUrl: fileData.url,
+        fileUrl: encodeStorageUrl(fileData.url),
         fileIcon: resolveFileIconPath({
           fileName: fileData.filePath || name,
           fileType: fileData.fileType,

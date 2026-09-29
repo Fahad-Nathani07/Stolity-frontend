@@ -155,7 +155,12 @@ export default function SupportActivityPane({
   const [cursorStack, setCursorStack] = useState([]);
   const [nextCursor, setNextCursor] = useState(null);
   const [hasMore, setHasMore] = useState(false);
+  const [detailsOpen, setDetailsOpen] = useState(false);
 
+  const dateKey = useMemo(
+    () => `${fromDate}|${toDate}`,
+    [fromDate, toDate]
+  );
   const filterKey = useMemo(
     () =>
       [
@@ -168,6 +173,7 @@ export default function SupportActivityPane({
     [fromDate, toDate, selectedUserId, actionFilter, statusFilter]
   );
   const filterKeyRef = React.useRef(filterKey);
+  const dateKeyRef = React.useRef(dateKey);
   const filterChanged = filterKeyRef.current !== filterKey;
   const activeCursor = filterChanged ? null : cursor;
   const activePage = filterChanged ? 1 : page;
@@ -258,7 +264,21 @@ export default function SupportActivityPane({
     ]
   );
 
-  // Keep pagination in sync when filters / dates / user change
+  // Date-range change: reload stats only; close details (no auto log reads)
+  useEffect(() => {
+    if (dateKeyRef.current === dateKey) return;
+    dateKeyRef.current = dateKey;
+    filterKeyRef.current = filterKey;
+    setDetailsOpen(false);
+    setEvents([]);
+    setPage(1);
+    setCursor(null);
+    setCursorStack([]);
+    setNextCursor(null);
+    setHasMore(false);
+  }, [dateKey, filterKey]);
+
+  // User / action / status change while details open: reset page cursor
   useEffect(() => {
     if (filterKeyRef.current === filterKey) return;
     filterKeyRef.current = filterKey;
@@ -267,15 +287,17 @@ export default function SupportActivityPane({
     setCursorStack([]);
     setNextCursor(null);
     setHasMore(false);
-  }, [filterKey]);
+    if (!detailsOpen) setEvents([]);
+  }, [filterKey, detailsOpen]);
 
   useEffect(() => {
     fetchSummaryAndUsers({ soft: false });
   }, [fetchSummaryAndUsers]);
 
   useEffect(() => {
+    if (!detailsOpen) return;
     fetchLogs({ soft: false });
-  }, [fetchLogs]);
+  }, [detailsOpen, fetchLogs]);
 
   useEffect(() => {
     if (typeof onItemCountChange === "function") {
@@ -292,7 +314,7 @@ export default function SupportActivityPane({
   const busy = loading || logsLoading;
 
   const goPrev = () => {
-    if (displayPage <= 1 || !cursorStack.length) return;
+    if (!detailsOpen || displayPage <= 1 || !cursorStack.length) return;
     const prev = cursorStack[cursorStack.length - 1];
     setCursorStack((s) => s.slice(0, -1));
     setCursor(prev);
@@ -300,21 +322,33 @@ export default function SupportActivityPane({
   };
 
   const goNext = () => {
-    if (!hasMore || !nextCursor) return;
+    if (!detailsOpen || !hasMore || !nextCursor) return;
     setCursorStack((s) => [...s, activeCursor]);
     setCursor(nextCursor);
     setPage((p) => p + 1);
   };
 
-  const refreshAll = () => {
-    filterKeyRef.current = filterKey;
+  const openDetails = () => {
     setPage(1);
     setCursor(null);
     setCursorStack([]);
     setNextCursor(null);
     setHasMore(false);
+    setEvents([]);
+    setDetailsOpen(true);
+  };
+
+  const refreshAll = () => {
+    filterKeyRef.current = filterKey;
     fetchSummaryAndUsers({ soft: false });
-    fetchLogs({ soft: false, cursorOverride: null });
+    if (detailsOpen) {
+      setPage(1);
+      setCursor(null);
+      setCursorStack([]);
+      setNextCursor(null);
+      setHasMore(false);
+      fetchLogs({ soft: false, cursorOverride: null });
+    }
   };
 
   return (
@@ -349,16 +383,20 @@ export default function SupportActivityPane({
           <FiArchive aria-hidden />
           <div>
             <span className="ssd-stat-label">Zip</span>
-            <strong>{Number(totals.totalZipCount) || 0}</strong>
-            <span className="ssd-stat-sub">zip operations</span>
+            <strong>{formatBytes(totals.totalZipBytes)}</strong>
+            <span className="ssd-stat-sub">
+              {Number(totals.totalZipCount) || 0} zip operations
+            </span>
           </div>
         </div>
         <div className="ssd-stat-card">
           <FiPackage aria-hidden />
           <div>
             <span className="ssd-stat-label">Unzip</span>
-            <strong>{Number(totals.totalUnzipCount) || 0}</strong>
-            <span className="ssd-stat-sub">unzip operations</span>
+            <strong>{formatBytes(totals.totalUnzipBytes)}</strong>
+            <span className="ssd-stat-sub">
+              {Number(totals.totalUnzipCount) || 0} unzip operations
+            </span>
           </div>
         </div>
         <div className="ssd-stat-card ssd-stat-card--events">
@@ -462,9 +500,11 @@ export default function SupportActivityPane({
                 : "Detailed activity"}
             </span>
             <span className="ssd-muted">
-              {events.length
-                ? `${fromRow}–${toRow}`
-                : "0"}
+              {!detailsOpen
+                ? "not loaded"
+                : events.length
+                  ? `${fromRow}–${toRow}`
+                  : "0"}
             </span>
           </div>
 
@@ -512,7 +552,22 @@ export default function SupportActivityPane({
           </div>
 
           <div className="ssd-activity-table-panel">
-            {logsLoading && !events.length ? (
+            {!detailsOpen ? (
+              <div className="ssd-activity-details-gate">
+                <p className="ssd-empty">
+                  Totals above load from daily summaries (cheap). Event rows cost
+                  extra Firestore reads — load only when you need them.
+                </p>
+                <button
+                  type="button"
+                  className="ssd-btn ssd-btn-primary"
+                  onClick={openDetails}
+                  disabled={busy}
+                >
+                  Load detailed activity
+                </button>
+              </div>
+            ) : logsLoading && !events.length ? (
               <div className="ssd-activity-table-placeholder" aria-busy="true">
                 <div className="ssd-activity-table-placeholder-bar" />
                 <div className="ssd-activity-table-placeholder-bar" />
@@ -589,6 +644,7 @@ export default function SupportActivityPane({
               </div>
             )}
 
+            {detailsOpen && (
             <div className="ssd-activity-pager">
               <span className="ssd-activity-pager-range">
                 {events.length
@@ -621,6 +677,7 @@ export default function SupportActivityPane({
                 </button>
               </div>
             </div>
+            )}
 
             <p className="ssd-activity-note" title="Native browser downloads stay Requested — the app cannot confirm the browser finished saving.">
               Native downloads stay <strong>Requested</strong>; stream downloads update to Completed / Failed.

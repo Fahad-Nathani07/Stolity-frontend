@@ -22,7 +22,7 @@ import {
   DIRECT_UPLOAD_GAP_MS,
 } from "../utils/uploadFileDirect";
 import { DownloadContext } from "./DownloadContext";
-import { resolveFileIconPath, normalizeFolderFilesForPreview } from "../utils/fileIcon";
+import { resolveFileIconPath, normalizeFolderFilesForPreview, encodeStorageUrl } from "../utils/fileIcon";
 import { endUserSession } from "../utils/endUserSession";
 import { buildGetFolderParams } from "../utils/getFolderParams";
 import {
@@ -43,7 +43,7 @@ import {
 import { getApiErrorMessage } from "../utils/handleS3CopyError";
 import { streamDownloadResponse, ensureDownloadWritable, estimateDownloadBytes, isDownloadCancelledError, scheduleDownloadRemoval, toastBatchDownloadSummary, NATIVE_BROWSER_DOWNLOAD_TOAST } from "../utils/downloadWithProgress";
 import { downloadFolderNoZip, downloadMultipleFoldersToDirectory } from "../utils/downloadFolderNoZip";
-import { downloadFileNativeBrowser, downloadMultipleFilesToDirectory, ensureSaveDirectory } from "../utils/downloadFilePresigned";
+import { downloadFileNativeBrowser, downloadMultipleFilesToDirectory, ensureSaveDirectory, NATIVE_BROWSER_DOWNLOAD_MAX_FILES } from "../utils/downloadFilePresigned";
 import FileInfoModal from "../components/FileInfoModal";
 import {
   clearFileSelection,
@@ -1269,7 +1269,8 @@ const handleMulDownload = async () => {
 
     let sharedDirHandle = null;
     const needsDirectStreamDir =
-      fileItems.length > 1 || folderItems.length > 0;
+      fileItems.length > NATIVE_BROWSER_DOWNLOAD_MAX_FILES ||
+      folderItems.length > 0;
     if (needsDirectStreamDir) {
       try {
         sharedDirHandle = await ensureSaveDirectory();
@@ -1296,30 +1297,34 @@ const handleMulDownload = async () => {
       }
     }
 
-    if (fileItems.length === 1) {
-      const item = fileItems[0];
-      try {
-        await downloadFileNativeBrowser({
-          apiUrl,
-          token,
-          filePath: item.fileName,
-          shared,
-          signal: batchSignal,
-          onProgress: (percent) => {
-            updateDownloadProgress(item.downloadId, percent);
-          },
-        });
-        nativeHandedOff = true;
-        succeeded += 1;
-        scheduleDownloadRemoval(removeDownload, item.downloadId, {
-          delayMs: 0,
-        });
-      } catch (err) {
-        if (isDownloadCancelledError(err)) cancelled += 1;
-        else failed += 1;
-        scheduleDownloadRemoval(removeDownload, item.downloadId, {
-          delayMs: 0,
-        });
+    if (
+      fileItems.length > 0 &&
+      fileItems.length <= NATIVE_BROWSER_DOWNLOAD_MAX_FILES
+    ) {
+      for (const item of fileItems) {
+        try {
+          await downloadFileNativeBrowser({
+            apiUrl,
+            token,
+            filePath: item.fileName,
+            shared,
+            signal: batchSignal,
+            onProgress: (percent) => {
+              updateDownloadProgress(item.downloadId, percent);
+            },
+          });
+          nativeHandedOff = true;
+          succeeded += 1;
+          scheduleDownloadRemoval(removeDownload, item.downloadId, {
+            delayMs: 0,
+          });
+        } catch (err) {
+          if (isDownloadCancelledError(err)) cancelled += 1;
+          else failed += 1;
+          scheduleDownloadRemoval(removeDownload, item.downloadId, {
+            delayMs: 0,
+          });
+        }
       }
     } else if (fileItems.length > 0) {
       try {
@@ -4362,7 +4367,7 @@ useEffect(() => {
         fileSize: fileData.fileSize,
         fileType: fileData.fileType,
         uploadDateTime: fileData.uploadDateTime,
-        fileUrl: fileData.url,
+        fileUrl: encodeStorageUrl(fileData.url),
         fileIcon: getFileIcon({
           ...(file || {}),
           fileName: fileData.filePath || file?.fileName || name,

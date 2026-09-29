@@ -22,7 +22,7 @@ import {
 import { DownloadContext } from "./DownloadContext";
 import { Prism as SyntaxHighlighter } from "react-syntax-highlighter";
 import { oneLight } from "react-syntax-highlighter/dist/esm/styles/prism";
-import { resolveFileIconPath, normalizeFolderFilesForPreview } from "../utils/fileIcon";
+import { resolveFileIconPath, normalizeFolderFilesForPreview, encodeStorageUrl } from "../utils/fileIcon";
 import { buildGetFolderParams } from "../utils/getFolderParams";
 import { clearNestedNav } from "../utils/nestedNavPersistence";
 import { buildFileStreamUrl, preloadStreamedImage } from "../utils/fileStream";
@@ -38,7 +38,7 @@ import {
 import { getApiErrorMessage } from "../utils/handleS3CopyError";
 import { streamDownloadResponse, ensureDownloadWritable, estimateDownloadBytes, isDownloadCancelledError, scheduleDownloadRemoval, toastBatchDownloadSummary, NATIVE_BROWSER_DOWNLOAD_TOAST } from "../utils/downloadWithProgress";
 import { downloadFolderNoZip, downloadMultipleFoldersToDirectory } from "../utils/downloadFolderNoZip";
-import { downloadFileNativeBrowser, downloadMultipleFilesToDirectory, ensureSaveDirectory } from "../utils/downloadFilePresigned";
+import { downloadFileNativeBrowser, downloadMultipleFilesToDirectory, ensureSaveDirectory, NATIVE_BROWSER_DOWNLOAD_MAX_FILES } from "../utils/downloadFilePresigned";
 import FileInfoModal from "../components/FileInfoModal";
 import GoogleAuthRequiredModal from "../components/GoogleAuthRequiredModal";
 import {
@@ -1298,10 +1298,11 @@ function debounce(fn, delay) {
       let failed = 0;
       let nativeHandedOff = false;
 
-      // Folder pick only when multi-file Direct Stream and/or folders need it.
-      // Single file uses Native Browser Download (no picker).
+      // Folder pick only when Direct Stream (4+ files) and/or folders need it.
+      // 1–3 files use Native Browser Download (no picker).
       const needsDirectStreamDir =
-        fileItems.length > 1 || folderItems.length > 0;
+        fileItems.length > NATIVE_BROWSER_DOWNLOAD_MAX_FILES ||
+        folderItems.length > 0;
       let sharedDirHandle = null;
       if (needsDirectStreamDir) {
         try {
@@ -1329,30 +1330,34 @@ function debounce(fn, delay) {
         }
       }
 
-      if (fileItems.length === 1) {
-        const item = fileItems[0];
-        try {
-          await downloadFileNativeBrowser({
-            apiUrl,
-            token,
-            filePath: item.fileName,
-            shared,
-            signal: batchSignal,
-            onProgress: (percent) => {
-              updateDownloadProgress(item.downloadId, percent);
-            },
-          });
-          nativeHandedOff = true;
-          succeeded += 1;
-          scheduleDownloadRemoval(removeDownload, item.downloadId, {
-            delayMs: 0,
-          });
-        } catch (err) {
-          if (isDownloadCancelledError(err)) cancelled += 1;
-          else failed += 1;
-          scheduleDownloadRemoval(removeDownload, item.downloadId, {
-            delayMs: 0,
-          });
+      if (
+        fileItems.length > 0 &&
+        fileItems.length <= NATIVE_BROWSER_DOWNLOAD_MAX_FILES
+      ) {
+        for (const item of fileItems) {
+          try {
+            await downloadFileNativeBrowser({
+              apiUrl,
+              token,
+              filePath: item.fileName,
+              shared,
+              signal: batchSignal,
+              onProgress: (percent) => {
+                updateDownloadProgress(item.downloadId, percent);
+              },
+            });
+            nativeHandedOff = true;
+            succeeded += 1;
+            scheduleDownloadRemoval(removeDownload, item.downloadId, {
+              delayMs: 0,
+            });
+          } catch (err) {
+            if (isDownloadCancelledError(err)) cancelled += 1;
+            else failed += 1;
+            scheduleDownloadRemoval(removeDownload, item.downloadId, {
+              delayMs: 0,
+            });
+          }
         }
       } else if (fileItems.length > 0) {
         try {
@@ -4094,7 +4099,7 @@ useEffect(()=>{
         fileSize: fileData.fileSize,
         fileType: fileData.fileType,
         uploadDateTime: fileData.uploadDateTime,
-        fileUrl: fileData.url,
+        fileUrl: encodeStorageUrl(fileData.url),
         fileIcon: getFileIcon({
           ...(file || {}),
           fileName: fileData.filePath || file?.fileName || name,

@@ -380,8 +380,14 @@ export async function ensureSaveDirectory() {
 }
 
 /**
- * Native Browser Download — single file only.
- * Hands the signed URL to Chrome's download manager (low tab RAM, no real progress).
+ * Native Browser Download — up to this many selected files (no folder picker).
+ * Above this, use Browser Direct Stream into a picked directory.
+ */
+export const NATIVE_BROWSER_DOWNLOAD_MAX_FILES = 3;
+
+/**
+ * Native Browser Download — hands signed URL(s) to Chrome's download manager
+ * (low tab RAM, no real progress). Used for 1–NATIVE_BROWSER_DOWNLOAD_MAX_FILES files.
  */
 export async function downloadFileNativeBrowser({
   apiUrl,

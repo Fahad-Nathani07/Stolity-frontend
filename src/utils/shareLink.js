@@ -1,4 +1,5 @@
 import axios from "axios";
+import { encodeStorageUrl } from "./fileIcon";
 
 export const SHARE_TIME_OPTIONS = [
   "1 Min",
@@ -80,5 +81,7 @@ export async function fetchShareUrl({
   const parsedData =
     typeof res.data === "string" ? JSON.parse(res.data) : res.data;
 
-  return parsedData?.url ?? null;
+  const url = parsedData?.url ?? null;
+  // Spaces in object keys break clickable links; always return %20-encoded URLs.
+  return url ? encodeStorageUrl(url) : null;
 }
