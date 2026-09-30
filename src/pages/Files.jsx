@@ -7928,7 +7928,7 @@ useEffect(()=>{
             padding: "12px 28px",
             border: "none",
             borderRadius: "8px",
-            backgroundColor: "#E5660F",              // vivid orange (Tailwind amber-500)
+            background: "var(--h1-gradient)",            // vivid orange (Tailwind amber-500)
             color: "white",
             cursor: "pointer",
             fontSize: "1rem",
@@ -7937,11 +7937,11 @@ useEffect(()=>{
             transition: "all 0.2s ease",
           }}
           onMouseEnter={(e) => {
-            e.currentTarget.style.backgroundColor = "#fd9c2e"; // darker orange on hover
+            e.currentTarget.style.background = "var(--h1-gradient)"; // darker orange on hover
             e.currentTarget.style.boxShadow = "0 4px 12px rgba(234, 88, 12, 0.4)";
           }}
           onMouseLeave={(e) => {
-            e.currentTarget.style.backgroundColor = "#E5660F";
+            e.currentTarget.style.background = "var(--h1-gradient)";
             e.currentTarget.style.boxShadow = "0 2px 8px rgba(249, 115, 22, 0.3)";
           }}
         >
