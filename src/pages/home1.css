@@ -1509,7 +1509,7 @@ body:has(.home1-page) {
   }
 
   .home1-page .h1-section-title {
-    font-size: 28px !important;
+    font-size: 26px !important;
     line-height: 1.3;
     letter-spacing: -0.7px;
   }
@@ -1534,6 +1534,7 @@ body:has(.home1-page) {
     grid-template-columns: 1fr;
     gap: 1.15rem;
     align-items: start;
+    display: block;
   }
 
   .home1-page .h1-about-visual {

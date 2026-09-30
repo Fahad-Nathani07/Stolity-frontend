@@ -260,6 +260,7 @@ input.form_control:not([type="checkbox"]):not([type="radio"]):not([type="file"])
     background var(--stolity-hover-duration) var(--stolity-ease) !important;
   -webkit-appearance: none;
   appearance: none;
+  padding-bottom: 2px !important;
 }
 
 textarea.form-control,
