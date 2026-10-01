@@ -14,7 +14,7 @@
 
 .dblm-dialog {
   width: 100%;
-  max-width: 560px;
+  max-width: 480px;
   animation: dblm-slide-up 0.32s cubic-bezier(0.22, 1, 0.36, 1);
 }
 
@@ -75,7 +75,7 @@
 
 .dblm-title {
   margin: 0;
-  font-size: 1.3125rem;
+  font-size: 1.5rem !important;
   font-weight: 700;
   line-height: 1.25;
   letter-spacing: -0.025em;
@@ -110,7 +110,8 @@
 
 .dblm-actions {
   display: flex;
-  flex-direction: column;
+  /* flex-direction: column; */
+  justify-content: center;
   gap: 10px;
   padding: 16px 24px 24px;
 }
@@ -133,21 +134,28 @@
   box-shadow:
     0 1px 0 rgba(255, 255, 255, 0.35) inset,
     0 10px 24px -12px rgba(229, 102, 15, 0.7);
+  min-width: 90px;
+  transition: filter 0.25s ease, transform 0.25s ease, box-shadow 0.25s ease;
 }
 
 .dblm-btn--primary:hover {
   filter: brightness(1.05);
+  transform: translateY(-1px);
 }
 
 .dblm-btn--secondary {
   background: #fff;
   color: #0f172a;
   border: 1px solid #e2e8f0;
+  min-width: 90px;
+  transition: filter 0.25s ease, transform 0.25s ease, box-shadow 0.25s ease;
 }
 
 .dblm-btn--secondary:hover {
   background: #fff7ed;
   border-color: rgba(229, 102, 15, 0.35);
+  transform: translateY(-1px);
+  filter: brightness(0.96);
 }
 
 .dblm-btn--ghost {
@@ -164,6 +172,7 @@
   from {
     opacity: 0;
   }
+
   to {
     opacity: 1;
   }
@@ -174,6 +183,7 @@
     opacity: 0;
     transform: translateY(12px);
   }
+
   to {
     opacity: 1;
     transform: translateY(0);

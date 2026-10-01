@@ -355,7 +355,7 @@ const ForgotPassword = () => {
             letterSpacing: "2px",
           }}
           onFocus={(e) => {
-            e.target.style.borderColor = "#E5660F";
+            e.target.style.borderColor = "#c4231c";
             e.target.style.backgroundColor = "#FFF9F0";
             e.target.style.transform = "scale(1.05)";
             e.target.style.boxShadow = "0 4px 12px rgba(255, 171, 73, 0.15)";
@@ -458,7 +458,7 @@ const ForgotPassword = () => {
      <img src={protectionIcon} className="img_responsive" alt="Illustration" />
   </div>
   <div style={{textAlign: "left"}}>
-    <span style={{ color: '#E5660F', fontWeight: 600, fontSize: '18px' }}>Enter the 6-digit code</span><br />
+    <span style={{ color: '#c4231c', fontWeight: 600, fontSize: '18px' }}>Enter the 6-digit code</span><br />
     <span style={{ color: '#494949', fontSize: '15px' }}>
       {/* A reset link has been sent to <b>{maskEmail(email)}</b> */}
       
@@ -522,7 +522,7 @@ const ForgotPassword = () => {
       onClick={handleResendOtp}
       disabled={isLoading}
       style={{
-        color: "#E5660F",
+        color: "#c4231c",
         background: "none",
         border: "none",
         textDecoration: "underline",

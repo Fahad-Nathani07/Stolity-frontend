@@ -82,6 +82,13 @@ export default function DownloadBatchLimitModal({
               <>
                 <button
                   type="button"
+                  className="dblm-btn dblm-btn--ghost"
+                  onClick={() => onChoice?.(DOWNLOAD_BATCH_CANCEL)}
+                >
+                  Cancel
+                </button>
+                <button
+                  type="button"
                   className="dblm-btn dblm-btn--primary"
                   onClick={() => onChoice?.(DOWNLOAD_BATCH_CONTINUE)}
                 >
