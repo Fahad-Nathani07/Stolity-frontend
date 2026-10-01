@@ -414,13 +414,15 @@ span.fdm-crumb.is-active {
 
 .fdm-btn--primary {
   border: none;
-  background: var(--fdm-accent, #e5660f);
+  background: var(--h1-gradient);
   color: #fff;
   min-width: 120px;
+  transition: filter 0.25s ease, transform 0.25s ease, box-shadow 0.25s ease;
 }
 
 .fdm-btn--primary:hover:not(:disabled) {
   filter: brightness(0.96);
+  transform: translateY(-1px);
 }
 
 .fdm-btn--primary:disabled {
