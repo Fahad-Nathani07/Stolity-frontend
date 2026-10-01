@@ -123,7 +123,7 @@ import FileSearchBar from "../components/FileSearchBar";
 import { Prism as SyntaxHighlighter } from "react-syntax-highlighter";
 import { oneLight } from "react-syntax-highlighter/dist/esm/styles/prism";
 import SortHome from "../images/SortHome.svg";
-import { ChevronDown, SlidersHorizontal } from "lucide-react";
+import { ChevronDown, MoveLeft, ArrowLeft, SlidersHorizontal } from "lucide-react";
 import Logo from "../images/logo.png";
 import fullscreeen from "../images/fullscreen.png";
 import zoomin from "../images/zoomin.png";
@@ -6163,7 +6163,7 @@ const NestedPage = () => {
                   aria-label="Go up one folder"
                   title="Back"
                 >
-                  ←
+                  <ArrowLeft size={20} color="#5D6B7A" />
                 </button>
 
                 <nav className="np-breadcrumb-nav" aria-label="breadcrumb">
