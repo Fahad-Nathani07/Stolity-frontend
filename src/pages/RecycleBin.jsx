@@ -13,6 +13,7 @@ import {
   postZipOrUnzip,
   getZipUnzipErrorMessage,
   getZipSuccessMessage,
+  isZipUnzipCancelled,
 } from "../utils/zipUnzipRequest";
 import { Prism as SyntaxHighlighter } from "react-syntax-highlighter";
 import { oneLight } from "react-syntax-highlighter/dist/esm/styles/prism";
@@ -21,6 +22,7 @@ import AvatarDefault from "../images/AvatarDefault.jpg";
 import sharedIcon from "../images/shared_icon.svg";
 import { resolveFileIconPath } from "../utils/fileIcon";
 import { afterMinLoaderDisplay } from "../utils/actionLoaderDelay";
+import { useZippingProgressModal } from "../hooks/useZippingProgressModal";
 import { buildFileStreamUrl, preloadStreamedImage } from "../utils/fileStream";
 import { resolveMediaPlayUrl } from "../utils/mediaPlayUrl";
 import { resolveDocumentBlobUrl } from "../utils/documentPreview";
@@ -150,6 +152,7 @@ let c = 1;
 
 const RecycleBin = () => {
   const [isDownloadModalOpen, setIsDownloadModalOpen] = useState(false);
+  const { beginZipping, endZipping, zippingModal } = useZippingProgressModal();
  
 
     const [loader_Permanent_Delete, setLoader_Permanent_Delete] = useState(false);
@@ -2362,6 +2365,9 @@ const fetchFoldersAtLevel = async (folderPath = "") => {
   const [hasMoreChunks, setHasMoreChunks] = useState(false);
 
   async function processZipFile(file, destinationPath = "") {
+    if (!file?.fileName) return;
+
+    const abortController = beginZipping(file.fileName, { mode: "zip" });
     const apiUrl1 = `${apiUrl}zip-object`;
 
     const requestData = {
@@ -2374,16 +2380,23 @@ const fetchFoldersAtLevel = async (folderPath = "") => {
         headers: {
           Authorization: `Bearer ${token}`,
         },
+        signal: abortController?.signal,
       });
 
       // console.log("Zip successful:", response.data);
       showToast("success", getZipSuccessMessage(zipResult));
     } catch (error) {
+      if (isZipUnzipCancelled(error)) {
+        showToast("info", "Zip cancelled.");
+        return;
+      }
       console.error("Error zipping file:", error);
       showToast(
         "error",
         getZipUnzipErrorMessage(error, "Failed to zip file.")
       );
+    } finally {
+      endZipping();
     }
   }
 
@@ -2397,6 +2410,9 @@ const fetchFoldersAtLevel = async (folderPath = "") => {
   }
 
   async function processUnzipFile(file, destinationPath = "") {
+    if (!file?.fileName) return;
+
+    const abortController = beginZipping(file.fileName, { mode: "unzip" });
     const apiUrl1 = `${apiUrl}unzip-object`;
 
     const requestData = {
@@ -2409,16 +2425,23 @@ const fetchFoldersAtLevel = async (folderPath = "") => {
         headers: {
           Authorization: `Bearer ${token}`,
         },
+        signal: abortController?.signal,
       });
 
       //    console.log("Unzip successful:", response.data);
       showToast("success", "File successfully unzipped!");
     } catch (error) {
+      if (isZipUnzipCancelled(error)) {
+        showToast("info", "Unzip cancelled.");
+        return;
+      }
       console.error("Error unzipping file:", error);
       showToast(
         "error",
         getZipUnzipErrorMessage(error, "Failed to unzip file.")
       );
+    } finally {
+      endZipping();
     }
   }
 
@@ -5377,6 +5400,7 @@ const isMultiSizeExceeded = selectedTotalBytes > remainingBytes;
 
 {loader_Restore && (<LoaderRestore/>)}
 {loader_Permanent_Delete && (<LoaderPermanentDelete/>)}
+{zippingModal}
 
     </>
   );

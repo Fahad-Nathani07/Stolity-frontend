@@ -12,6 +12,7 @@ import {
   postZipOrUnzip,
   getZipUnzipErrorMessage,
   getZipSuccessMessage,
+  isZipUnzipCancelled,
 } from "../utils/zipUnzipRequest";
 import { uploadFolderViaMultipart } from "../utils/uploadFolderViaMultipart";
 import {
@@ -3271,7 +3272,7 @@ const handleConfirmDownload = async () => {
   async function processZipFile(file, destinationPath = "") {
   if (!file?.fileName) return;
 
-  setLoader2(true);   // ← start loader
+  const abortController = beginZipping(file.fileName, { mode: "zip" });
 
   const apiUrl1 = `${apiUrl}zip-object`;
 
@@ -3285,19 +3286,24 @@ const handleConfirmDownload = async () => {
       headers: {
         Authorization: `Bearer ${token}`,
       },
+      signal: abortController?.signal,
     });
 
     // console.log("Zip successful:", response.data);
     showToast("success", getZipSuccessMessage(zipResult));
     getFileData();
   } catch (error) {
+    if (isZipUnzipCancelled(error)) {
+      showToast("info", "Zip cancelled.");
+      return;
+    }
     console.error("Error zipping file:", error);
     showToast(
       "error",
       getZipUnzipErrorMessage(error, "Failed to zip file.")
     );
   } finally {
-    setLoader2(false);   // ← always stop loader (success or fail)
+    endZipping();
   }
 }
 
@@ -3313,7 +3319,7 @@ const handleConfirmDownload = async () => {
   async function processUnzipFile(file, destinationPath = "") {
   if (!file?.fileName) return;
 
-  setLoader2(true);   // ← start loader
+  const abortController = beginZipping(file.fileName, { mode: "unzip" });
 
   const apiUrl1 = `${apiUrl}unzip-object`;
 
@@ -3327,19 +3333,24 @@ const handleConfirmDownload = async () => {
       headers: {
         Authorization: `Bearer ${token}`,
       },
+      signal: abortController?.signal,
     });
 
     // console.log("Unzip successful:", response.data);
     showToast("success", "File successfully unzipped!");
     getFileData();
   } catch (error) {
+    if (isZipUnzipCancelled(error)) {
+      showToast("info", "Unzip cancelled.");
+      return;
+    }
     console.error("Error unzipping file:", error);
     showToast(
       "error",
       getZipUnzipErrorMessage(error, "Failed to unzip file.")
     );
   } finally {
-    setLoader2(false);   // ← always stop loader (success or fail)
+    endZipping();
   }
 }
 

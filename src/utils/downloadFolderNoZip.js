@@ -17,7 +17,7 @@ import { queueActivityStatus } from "./activityReport";
 
 const ENTRY_CONCURRENCY = 1;
 const MAX_FILE_RETRIES = 3;
-const LARGE_FILE_GAP_MS = 250;
+const LARGE_FILE_GAP_MS = 1500;
 
 function delay(ms) {
   return new Promise((resolve) => setTimeout(resolve, ms));
@@ -85,6 +85,7 @@ async function writeEntryToFolder({
     fileName: baseName(relativePath),
     isFolder: false,
     writable,
+    fileHandle,
     signal,
     onProgress: (_percent, loaded) => {
       if (typeof onBytes !== "function") return;

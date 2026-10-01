@@ -104,3 +104,14 @@ export function getZipSuccessMessage(result) {
   }
   return "File successfully zipped!";
 }
+
+/** User cancelled via the floating zip/unzip panel (AbortController). */
+export function isZipUnzipCancelled(error) {
+  if (!error) return false;
+  if (error.code === "ERR_CANCELED" || error.name === "CanceledError") {
+    return true;
+  }
+  if (error.name === "AbortError") return true;
+  const msg = String(error.message || "").toLowerCase();
+  return msg.includes("abort") || msg.includes("cancel");
+}
