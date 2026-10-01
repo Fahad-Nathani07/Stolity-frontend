@@ -14,6 +14,7 @@ import {
 } from "react-icons/fi";
 import { showToast } from "../components/ToastProvider";
 import { markPaneScrolling } from "../components/SupportFilterSelect";
+import SupportDateField from "../components/SupportDateField";
 import SupportUserDetailsModal from "./SupportUserDetailsModal";
 
 const PAGE_SIZE = 25;
@@ -347,27 +348,21 @@ export default function SupportUsersPane({
           <div className="ssd-users-dates">
             {preset === "custom" && (
               <>
-                <div className="ssd-users-date-field">
-                  <span className="ssd-users-date-label">From</span>
-                  <input
-                    type="date"
-                    value={fromDate}
-                    max={toDate || todayKey()}
-                    disabled={busy || listMode === "active"}
-                    onChange={(e) => setFromDate(e.target.value)}
-                  />
-                </div>
-                <div className="ssd-users-date-field">
-                  <span className="ssd-users-date-label">To</span>
-                  <input
-                    type="date"
-                    value={toDate}
-                    min={fromDate || undefined}
-                    max={todayKey()}
-                    disabled={busy || listMode === "active"}
-                    onChange={(e) => setToDate(e.target.value)}
-                  />
-                </div>
+                <SupportDateField
+                  label="From"
+                  value={fromDate}
+                  max={toDate || todayKey()}
+                  disabled={busy || listMode === "active"}
+                  onChange={setFromDate}
+                />
+                <SupportDateField
+                  label="To"
+                  value={toDate}
+                  min={fromDate || undefined}
+                  max={todayKey()}
+                  disabled={busy || listMode === "active"}
+                  onChange={setToDate}
+                />
               </>
             )}
           </div>

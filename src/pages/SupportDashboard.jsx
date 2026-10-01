@@ -728,9 +728,7 @@ useEffect(() => {
       <SideNav />
       <div
         className={`ssd-page${
-          activeTab === "activity" || activeTab === "users"
-            ? " ssd-page--activity"
-            : ""
+          activeTab === "activity" ? " ssd-page--activity" : ""
         }`}
       >
         <ScrollReveal as="header" className="ssd-header" variant="fadeSoft" delay={0.05} duration={0.75}>
@@ -747,20 +745,6 @@ useEffect(() => {
             </div>
           </div>
           <div className="ssd-header-right">
-            {activeTab === "callbacks" && (
-              <button
-                type="button"
-                className="ssd-btn ssd-btn-ghost ssd-btn-refresh"
-                onClick={() => {
-                  fetchList({ soft: false });
-                  setRefreshIn(SOFT_REFRESH_MS / 1000);
-                }}
-                disabled={loading}
-              >
-                <FiRefreshCw />
-                Refresh {refreshIn}s
-              </button>
-            )}
             <div className="ssd-duty-agent">
               <span className="ssd-duty-label">Duty agent</span>
               <div className="ssd-duty-row">
@@ -773,7 +757,17 @@ useEffect(() => {
           </div>
         </ScrollReveal>
 
-        <ScrollReveal as="div" className="ssd-chrome" variant="fadeUp" delay={0.1} duration={0.85}>
+        <ScrollReveal
+          as="div"
+          className={`ssd-chrome${
+            activeTab === "users" || activeTab === "questions"
+              ? " ssd-chrome--merged"
+              : ""
+          }`}
+          variant="fadeUp"
+          delay={0.1}
+          duration={0.85}
+        >
           <div className="ssd-tabs" role="tablist">
             {tabs.map((tab) => (
               <button
@@ -841,16 +835,30 @@ useEffect(() => {
                   </span>
                 </div>
               </div>
-              <div className="ssd-counts">
-                <span className="ssd-count ssd-count--open">
-                  Available <strong>{available.length}</strong>
-                </span>
-                <span className="ssd-count ssd-count--mine">
-                  Mine <strong>{mine.length}</strong>
-                </span>
-                <span className="ssd-count ssd-count--taken">
-                  Taken <strong>{taken.length}</strong>
-                </span>
+              <div className="ssd-toolbar-right">
+                <div className="ssd-counts">
+                  <span className="ssd-count ssd-count--open">
+                    Available <strong>{available.length}</strong>
+                  </span>
+                  <span className="ssd-count ssd-count--mine">
+                    Mine <strong>{mine.length}</strong>
+                  </span>
+                  <span className="ssd-count ssd-count--taken">
+                    Taken <strong>{taken.length}</strong>
+                  </span>
+                </div>
+                <button
+                  type="button"
+                  className="ssd-btn ssd-btn-ghost ssd-btn-refresh"
+                  onClick={() => {
+                    fetchList({ soft: false });
+                    setRefreshIn(SOFT_REFRESH_MS / 1000);
+                  }}
+                  disabled={loading}
+                >
+                  <FiRefreshCw />
+                  Refresh {refreshIn}s
+                </button>
               </div>
             </div>
           )}
