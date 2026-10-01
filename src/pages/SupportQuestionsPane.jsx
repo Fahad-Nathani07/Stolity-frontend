@@ -2,8 +2,6 @@ import React, { useCallback, useEffect, useMemo, useRef, useState } from "react"
 import axios from "axios";
 import {
   FiRefreshCw,
-  FiClock,
-  FiUser,
   FiMail,
   FiMessageSquare,
   FiCheck,
@@ -11,23 +9,24 @@ import {
   FiUnlock,
   FiSend,
   FiSearch,
+  FiX,
 } from "react-icons/fi";
 import { showToast } from "../components/ToastProvider";
 import {
-  SupportMultiFilterSelect,
-  markPaneScrolling,
-} from "../components/SupportFilterSelect";
+  formatTicketCategory,
+  formatTicketStatus,
+} from "../utils/supportTicketConstants";
+import "../css/SupportTicketsAdmin.css";
 
-const STATUS_OPTIONS = [
-  { id: "pending", label: "Pending" },
-  { id: "assigned", label: "Assigned" },
+const FAQ_STATUS_ACTIONS = [
+  { id: "assigned", label: "In progress" },
   { id: "answered", label: "Answered" },
   { id: "closed", label: "Closed" },
 ];
 
-const STATUS_ACTIONS = [
-  { id: "assigned", label: "In progress" },
-  { id: "answered", label: "Answered" },
+const TICKET_STATUS_ACTIONS = [
+  { id: "open", label: "Open" },
+  { id: "in_progress", label: "In Progress" },
   { id: "closed", label: "Closed" },
 ];
 
@@ -43,6 +42,8 @@ const SOFT_REFRESH_MS = 30_000;
 
 function formatLabel(value) {
   if (!value) return "—";
+  const mapped = formatTicketStatus(value);
+  if (mapped && mapped !== value) return mapped;
   return String(value)
     .replace(/_/g, " ")
     .replace(/\b\w/g, (c) => c.toUpperCase());
@@ -65,19 +66,6 @@ function formatWhen(iso) {
 function ticketCode(id, prefix = "Q") {
   if (!id) return "————";
   return `${prefix}-${String(id).replace(/[^a-zA-Z0-9]/g, "").slice(-4).toUpperCase() || "XXXX"}`;
-}
-
-function personInitials(name, email, fallback = "?") {
-  const fromName = String(name || "")
-    .trim()
-    .split(/\s+/)
-    .filter(Boolean)
-    .slice(0, 2)
-    .map((p) => p.charAt(0).toUpperCase())
-    .join("");
-  if (fromName) return fromName;
-  const fromEmail = String(email || "").trim().charAt(0).toUpperCase();
-  return fromEmail || fallback;
 }
 
 function isAssignedToAgent(item, myEmail, myId) {
@@ -129,6 +117,46 @@ function buildActivityEvents(item) {
   });
 }
 
+function isTicketItem(item) {
+  return String(item?.source || "").toLowerCase() === "ticket";
+}
+
+function statusTone(status) {
+  const s = String(status || "").toLowerCase();
+  if (s === "open" || s === "pending") return "open";
+  if (s === "in_progress" || s === "assigned") return "progress";
+  if (s === "closed" || s === "answered") return "done";
+  return "neutral";
+}
+
+/** Admin buckets: unassigned / in_progress / completed */
+function adminTicketBucket(item) {
+  const s = String(item?.status || "").toLowerCase();
+  if (s === "closed" || s === "answered") return "completed";
+  if (!item?.assignedTo) return "unassigned";
+  return "in_progress";
+}
+
+function adminBucketRank(bucket) {
+  if (bucket === "unassigned") return 0;
+  if (bucket === "in_progress") return 1;
+  if (bucket === "completed") return 2;
+  return 3;
+}
+
+function ticketUpdatedMs(item) {
+  const iso = item?.updatedAt || item?.createdAt || "";
+  const ms = iso ? Date.parse(iso) : 0;
+  return Number.isFinite(ms) ? ms : 0;
+}
+
+const LIST_FILTERS = [
+  { id: "all", label: "All" },
+  { id: "unassigned", label: "Unassigned" },
+  { id: "in_progress", label: "In Progress" },
+  { id: "completed", label: "Completed" },
+];
+
 export default function SupportQuestionsPane({
   apiUrl,
   authHeaders,
@@ -140,10 +168,11 @@ export default function SupportQuestionsPane({
   const [items, setItems] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
-  const [statusFilter, setStatusFilter] = useState([]);
+  const [listFilter, setListFilter] = useState("all");
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedId, setSelectedId] = useState(null);
   const [selected, setSelected] = useState(null);
+  const [drawerOpen, setDrawerOpen] = useState(false);
   const [claiming, setClaiming] = useState(false);
   const [releasing, setReleasing] = useState(false);
   const [saving, setSaving] = useState(false);
@@ -179,31 +208,22 @@ export default function SupportQuestionsPane({
     onItemCountChange?.(items.length);
   }, [items.length, onItemCountChange]);
 
-  const syncSelectedFromList = useCallback(
-    (list, { preserveDraft = true } = {}) => {
-      const id = selectedIdRef.current;
-      if (!id) return;
-      const still = list.find((item) => item.id === id);
-      if (!still) {
-        setSelected(null);
-        setSelectedId(null);
-        setActionMsg({
-          type: "error",
-          text: "This question is no longer in the list.",
-        });
-        return;
-      }
-      if (
-        preserveDraft &&
-        (noteDraftRef.current.trim() || replyDraftRef.current.trim())
-      ) {
-        setSelected(still);
-      } else {
-        setSelected(still);
-      }
-    },
-    []
-  );
+  const syncSelectedFromList = useCallback((list) => {
+    const id = selectedIdRef.current;
+    if (!id) return;
+    const still = list.find((item) => item.id === id);
+    if (!still) {
+      setSelected(null);
+      setSelectedId(null);
+      setDrawerOpen(false);
+      setActionMsg({
+        type: "error",
+        text: "This ticket is no longer in the list.",
+      });
+      return;
+    }
+    setSelected(still);
+  }, []);
 
   const fetchList = useCallback(
     async ({ soft = false, force = false } = {}) => {
@@ -225,40 +245,25 @@ export default function SupportQuestionsPane({
       }
 
       try {
-        const params = {};
-        if (Array.isArray(statusFilter) && statusFilter.length === 1) {
-          params.status = statusFilter[0];
-        }
         const res = await axios.get(`${apiUrl}support/questions`, {
           headers: authHeaders,
-          params,
         });
-        let list = res.data?.result || [];
-        if (
-          Array.isArray(statusFilter) &&
-          statusFilter.length > 1 &&
-          statusFilter.length < STATUS_OPTIONS.length
-        ) {
-          const allowed = new Set(statusFilter);
-          list = list.filter((item) =>
-            allowed.has(String(item.status || "").toLowerCase())
-          );
-        }
+        const list = res.data?.result || [];
         setItems(list);
-        syncSelectedFromList(list, { preserveDraft: soft && !force });
+        syncSelectedFromList(list);
       } catch (err) {
         if (!soft) {
           setError(
             err.response?.data?.message ||
               err.response?.data?.error ||
-              "Failed to load questions."
+              "Failed to load tickets."
           );
         }
       } finally {
         if (!soft) setLoading(false);
       }
     },
-    [apiUrl, authHeaders, statusFilter, token, syncSelectedFromList]
+    [apiUrl, authHeaders, token, syncSelectedFromList]
   );
 
   useEffect(() => {
@@ -266,31 +271,45 @@ export default function SupportQuestionsPane({
   }, [fetchList]);
 
   useEffect(() => {
-    setRefreshIn(SOFT_REFRESH_MS / 1000);
     const tick = setInterval(() => {
-      setRefreshIn((s) => (s <= 1 ? SOFT_REFRESH_MS / 1000 : s - 1));
+      setRefreshIn((s) => {
+        if (s <= 1) {
+          fetchList({ soft: true });
+          return SOFT_REFRESH_MS / 1000;
+        }
+        return s - 1;
+      });
     }, 1000);
-    const timer = setInterval(() => {
-      if (document.hidden) return;
-      fetchList({ soft: true });
-      setRefreshIn(SOFT_REFRESH_MS / 1000);
-    }, SOFT_REFRESH_MS);
-    return () => {
-      clearInterval(tick);
-      clearInterval(timer);
-    };
+    return () => clearInterval(tick);
   }, [fetchList]);
+
+  useEffect(() => {
+    if (!drawerOpen) return undefined;
+    const onKey = (e) => {
+      if (e.key === "Escape") closeDrawer();
+    };
+    document.addEventListener("keydown", onKey);
+    document.body.style.overflow = "hidden";
+    return () => {
+      document.removeEventListener("keydown", onKey);
+      document.body.style.overflow = "";
+    };
+  }, [drawerOpen]);
 
   const matchesSearch = useCallback(
     (item) => {
       const q = searchQuery.trim().toLowerCase();
       if (!q) return true;
+      const isTicket = isTicketItem(item);
       const hay = [
         item.name,
         item.email,
         item.question,
-        ticketCode(item.id),
+        item.category,
         item.status,
+        ticketCode(item.id, isTicket ? "T" : "Q"),
+        item.assignedTo?.email,
+        item.assignedTo?.name,
       ]
         .filter(Boolean)
         .join(" ")
@@ -300,27 +319,46 @@ export default function SupportQuestionsPane({
     [searchQuery]
   );
 
-  const mine = useMemo(
-    () =>
-      items.filter(
-        (item) => isAssignedToAgent(item, email, myId) && matchesSearch(item)
-      ),
-    [items, email, myId, matchesSearch]
-  );
-  const available = useMemo(
-    () => items.filter((item) => !item.assignedTo && matchesSearch(item)),
-    [items, matchesSearch]
-  );
-  const taken = useMemo(
-    () =>
-      items.filter(
-        (item) =>
-          item.assignedTo &&
-          !isAssignedToAgent(item, email, myId) &&
-          matchesSearch(item)
-      ),
-    [items, email, myId, matchesSearch]
-  );
+  const filterCounts = useMemo(() => {
+    const counts = {
+      all: items.length,
+      unassigned: 0,
+      in_progress: 0,
+      completed: 0,
+    };
+    for (const item of items) {
+      counts[adminTicketBucket(item)] += 1;
+    }
+    return counts;
+  }, [items]);
+
+  const filteredRows = useMemo(() => {
+    let list = items.filter(matchesSearch);
+    if (listFilter !== "all") {
+      list = list.filter((item) => adminTicketBucket(item) === listFilter);
+    }
+    list = [...list].sort((a, b) => {
+      const rankDiff =
+        adminBucketRank(adminTicketBucket(a)) -
+        adminBucketRank(adminTicketBucket(b));
+      if (rankDiff !== 0) return rankDiff;
+      return ticketUpdatedMs(b) - ticketUpdatedMs(a);
+    });
+    return list;
+  }, [items, matchesSearch, listFilter]);
+
+  const counts = useMemo(() => {
+    let available = 0;
+    let mine = 0;
+    let taken = 0;
+    for (const item of items) {
+      const state = ownershipState(item, email, myId);
+      if (state === "open") available += 1;
+      else if (state === "mine") mine += 1;
+      else taken += 1;
+    }
+    return { available, mine, taken };
+  }, [items, email, myId]);
 
   const selectedOwnership = useMemo(() => {
     const state = ownershipState(selected, email, myId);
@@ -336,9 +374,39 @@ export default function SupportQuestionsPane({
     [selected]
   );
 
+  const isTicketSelected = isTicketItem(selected);
+  const statusActions = isTicketSelected
+    ? TICKET_STATUS_ACTIONS
+    : FAQ_STATUS_ACTIONS;
+
+  const ticketMessages = useMemo(() => {
+    const list = Array.isArray(selected?.messages)
+      ? [...selected.messages]
+      : [];
+    list.sort((a, b) =>
+      String(a.createdAt || "").localeCompare(String(b.createdAt || ""))
+    );
+    return list;
+  }, [selected]);
+
+  const canEdit =
+    selectedOwnership.isMine && !claiming && !releasing && !sendingReply;
+  const editsDisabled = !canEdit;
+  const replySubject = selected ? buildReplySubject(selected.question) : "";
+
+  const closeDrawer = () => {
+    setDrawerOpen(false);
+    setSelectedId(null);
+    setSelected(null);
+    setNoteDraft("");
+    setReplyDraft("");
+    setActionMsg(null);
+  };
+
   const openTicket = (item) => {
     setSelectedId(item.id);
     setSelected(item);
+    setDrawerOpen(true);
     setNoteDraft("");
     setReplyDraft("");
     setActionMsg(null);
@@ -346,27 +414,21 @@ export default function SupportQuestionsPane({
     if (state === "taken") {
       setActionMsg({
         type: "error",
-        text: `This question is under ${
+        text: `Under ${
           item.assignedTo?.email || item.assignedTo?.name || "another agent"
         }. View only.`,
       });
     } else if (state === "mine") {
       setActionMsg({
         type: "success",
-        text: "This question is assigned to you.",
+        text: "Assigned to you.",
       });
     }
   };
 
-  const claimTicket = async (fromItem) => {
-    const ticket = fromItem?.id ? fromItem : selected;
+  const claimTicket = async () => {
+    const ticket = selected;
     if (!ticket?.id || claiming) return;
-    if (fromItem?.id) {
-      setSelectedId(fromItem.id);
-      setSelected(fromItem);
-      setNoteDraft("");
-      setReplyDraft("");
-    }
     setClaiming(true);
     setActionMsg(null);
     try {
@@ -376,40 +438,25 @@ export default function SupportQuestionsPane({
         { headers: authHeaders }
       );
       setSelected(res.data?.result || ticket);
-      setSelectedId((res.data?.result || ticket).id);
       if (res.data?.claimed) {
-        showToast(
-          "success",
-          "You can add notes and mark it answered.",
-          "Question assigned to you"
-        );
-        setActionMsg({
-          type: "success",
-          text: "You are assigned to this question.",
-        });
+        showToast("success", "Ticket assigned to you.", "Claimed");
+        setActionMsg({ type: "success", text: "You are assigned." });
       }
       await fetchList({ soft: true });
     } catch (err) {
       if (err.response?.status === 409) {
         const result = err.response?.data?.result || ticket;
+        setSelected(result);
         const ownerEmail =
           result?.assignedTo?.email ||
           result?.assignedTo?.name ||
           "another agent";
-        setSelected(result);
-        showToast(
-          "warning",
-          `This question is under ${ownerEmail}.`,
-          "Already assigned"
-        );
-        setActionMsg({
-          type: "error",
-          text: `This question is under ${ownerEmail}.`,
-        });
+        showToast("warning", `Already under ${ownerEmail}.`, "Taken");
+        setActionMsg({ type: "error", text: `Under ${ownerEmail}.` });
         await fetchList({ soft: true });
       } else {
         const msg =
-          err.response?.data?.message || "Could not claim this question.";
+          err.response?.data?.message || "Could not claim this ticket.";
         setActionMsg({ type: "error", text: msg });
         showToast("error", msg, "Claim failed");
       }
@@ -420,7 +467,7 @@ export default function SupportQuestionsPane({
 
   const releaseTicket = async () => {
     if (!selected?.id || releasing || !selectedOwnership.isMine) return;
-    if (!window.confirm("Release this question for other agents?")) return;
+    if (!window.confirm("Release this ticket for other agents?")) return;
     setReleasing(true);
     try {
       const res = await axios.post(
@@ -430,15 +477,12 @@ export default function SupportQuestionsPane({
       );
       setSelected(res.data?.result || selected);
       setNoteDraft("");
-      showToast("success", "Question is available again.", "Released");
-      setActionMsg({
-        type: "success",
-        text: "Question released.",
-      });
+      showToast("success", "Ticket is available again.", "Released");
+      setActionMsg({ type: "success", text: "Released." });
       await fetchList({ soft: true });
     } catch (err) {
       const msg =
-        err.response?.data?.message || "Could not release this question.";
+        err.response?.data?.message || "Could not release this ticket.";
       setActionMsg({ type: "error", text: msg });
       showToast("error", msg, "Release failed");
     } finally {
@@ -464,32 +508,16 @@ export default function SupportQuestionsPane({
         )
       );
       setNoteDraft("");
-      setActionMsg({ type: "success", text: "Updated successfully." });
+      setActionMsg({ type: "success", text: "Updated." });
       await fetchList({ soft: true, force: true });
     } catch (err) {
-      if (err.response?.status === 409) {
-        const result = err.response?.data?.result || selected;
-        setSelected(result);
-        setItems((prev) =>
-          prev.map((item) =>
-            item.id === result.id ? { ...item, ...result } : item
-          )
-        );
-        setActionMsg({
-          type: "error",
-          text:
-            err.response?.data?.message ||
-            "Only the assigned agent can update this.",
-        });
-      } else {
-        setActionMsg({
-          type: "error",
-          text:
-            err.response?.data?.message ||
-            err.response?.data?.error ||
-            "Update failed.",
-        });
-      }
+      setActionMsg({
+        type: "error",
+        text:
+          err.response?.data?.message ||
+          err.response?.data?.error ||
+          "Update failed.",
+      });
     } finally {
       setSaving(false);
     }
@@ -499,14 +527,9 @@ export default function SupportQuestionsPane({
     if (!selected?.id || sendingReply || !selectedOwnership.isMine) return;
     const message = replyDraft.trim();
     if (message.length < 10) {
-      showToast(
-        "warning",
-        "Write at least 10 characters for the reply.",
-        "Reply too short"
-      );
+      showToast("warning", "Write at least 10 characters.", "Too short");
       return;
     }
-
     setSendingReply(true);
     setActionMsg(null);
     try {
@@ -517,15 +540,8 @@ export default function SupportQuestionsPane({
       );
       setSelected(res.data?.result || selected);
       setReplyDraft("");
-      showToast(
-        "success",
-        `Email sent to ${selected.email}.`,
-        "Reply sent"
-      );
-      setActionMsg({
-        type: "success",
-        text: "Reply email sent. Question marked as answered.",
-      });
+      showToast("success", `Email sent to ${selected.email}.`, "Reply sent");
+      setActionMsg({ type: "success", text: "Email reply sent." });
       await fetchList({ soft: true });
     } catch (err) {
       const msg =
@@ -539,705 +555,484 @@ export default function SupportQuestionsPane({
     }
   };
 
-  const renderCard = (item, keyPrefix = "") => {
-    const state = ownershipState(item, email, myId);
-    const isSelected = selectedId === item.id;
-    const displayName = item.name || item.email || "User";
-    const preview =
-      item.question?.length > 72
-        ? `${item.question.slice(0, 72)}…`
-        : item.question || "—";
-
-    return (
-      <div
-        key={`${keyPrefix}${item.id}`}
-        role="button"
-        tabIndex={0}
-        className={`ssd-card ssd-card--${state}${
-          isSelected ? " is-selected" : ""
-        }`}
-        onClick={() => openTicket(item)}
-        onKeyDown={(e) => {
-          if (e.key === "Enter" || e.key === " ") {
-            e.preventDefault();
-            openTicket(item);
-          }
-        }}
-      >
-        <div className="ssd-card-row ssd-card-row--head">
-          <div className="ssd-card-avatar" aria-hidden="true">
-            {personInitials(item.name, item.email)}
-          </div>
-          <div className="ssd-card-identity">
-            <div className="ssd-card-name-line">
-              <strong>{displayName}</strong>
-              <span
-                className={`ssd-card-status-dot ssd-card-status-dot--${
-                  item.status || "pending"
-                }`}
-                aria-hidden="true"
-              />
-            </div>
-            <div className="ssd-card-phone">
-              <FiMail aria-hidden="true" />
-              <span>{item.email || "—"}</span>
-            </div>
-          </div>
-          <span className={`ssd-pill ssd-pill-${item.status}`}>
-            {formatLabel(item.status)}
-          </span>
-        </div>
-
-        <div className="ssd-card-row ssd-card-row--meta">
-          <div className="ssd-card-email">
-            <FiUser aria-hidden="true" />
-            <span title={ticketCode(item.id)}>#{ticketCode(item.id)}</span>
-          </div>
-          <span className="ssd-card-when">{formatWhen(item.createdAt)}</span>
-        </div>
-
-        <div className="ssd-card-row ssd-card-row--foot">
-          <div className="ssd-card-slot">
-            <FiMessageSquare aria-hidden="true" />
-            <span title={item.question || ""}>{preview}</span>
-          </div>
-          {state === "open" ? (
-            <button
-              type="button"
-              className="ssd-card-claim-sm"
-              disabled={claiming}
-              onClick={(e) => {
-                e.stopPropagation();
-                claimTicket(item);
-              }}
-            >
-              {claiming && selectedId === item.id ? "…" : "Claim"}
-            </button>
-          ) : null}
-        </div>
-      </div>
-    );
+  const sendTicketChat = async () => {
+    if (!selected?.id || sendingReply || !selectedOwnership.isMine) return;
+    const message = replyDraft.trim();
+    if (message.length < 2) {
+      showToast("warning", "Write a short message.", "Too short");
+      return;
+    }
+    setSendingReply(true);
+    setActionMsg(null);
+    try {
+      const res = await axios.post(
+        `${apiUrl}support/questions/${selected.id}/messages`,
+        { message },
+        { headers: authHeaders }
+      );
+      setSelected(res.data?.result || selected);
+      setReplyDraft("");
+      setActionMsg({ type: "success", text: "Message sent." });
+      await fetchList({ soft: true });
+    } catch (err) {
+      const msg =
+        err.response?.data?.message ||
+        err.response?.data?.error ||
+        "Failed to send message.";
+      setActionMsg({ type: "error", text: msg });
+      showToast("error", msg, "Send failed");
+    } finally {
+      setSendingReply(false);
+    }
   };
 
-  const canEdit =
-    selectedOwnership.isMine && !claiming && !releasing && !sendingReply;
-  const editsDisabled = !canEdit;
-  const replySubject = selected ? buildReplySubject(selected.question) : "";
-  const listTotal = available.length + mine.length + taken.length;
-  const selectedReplies = selected?.replies || [];
-  const latestReply =
-    selectedReplies.length === 0
-      ? null
-      : [...selectedReplies].sort((a, b) => {
-          const ta = a.sentAt ? new Date(a.sentAt).getTime() : 0;
-          const tb = b.sentAt ? new Date(b.sentAt).getTime() : 0;
-          return tb - ta;
-        })[0];
-
   return (
-    <div className="ssd-callbacks">
-      <div className="ssd-toolbar">
-        <div className="ssd-filters">
-          <SupportMultiFilterSelect
-            label="Status"
-            values={statusFilter}
-            options={STATUS_OPTIONS}
-            onChange={setStatusFilter}
-            allLabel="All statuses"
-            ariaLabel="Filter by status"
-          />
-          <div className="ssd-search-field">
-            <span className="ssd-search-wrap">
+    <div className="sta-root">
+      <div className="sta-toolbar">
+        <div className="sta-toolbar-left">
+          <div className="sta-filters" role="tablist" aria-label="Ticket filters">
+            {LIST_FILTERS.map((f) => (
+              <button
+                key={f.id}
+                type="button"
+                role="tab"
+                aria-selected={listFilter === f.id}
+                className={`sta-filter-chip${
+                  listFilter === f.id ? " is-active" : ""
+                }`}
+                onClick={() => setListFilter(f.id)}
+              >
+                {f.label}
+                <em>{filterCounts[f.id] ?? 0}</em>
+              </button>
+            ))}
+          </div>
+          <label className="sta-field sta-field--search">
+            <span>Search</span>
+            <span className="sta-search">
               <FiSearch aria-hidden="true" />
               <input
                 type="search"
-                placeholder="Search name, email, or ID…"
+                placeholder="Name, email, ID, category…"
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
               />
             </span>
-          </div>
+          </label>
         </div>
-        <div className="ssd-toolbar-right">
-          <div className="ssd-counts">
-            <span className="ssd-count ssd-count--open">
-              Available <strong>{available.length}</strong>
+        <div className="sta-toolbar-right">
+          <div className="sta-stats">
+            <span>
+              Available <strong>{counts.available}</strong>
             </span>
-            <span className="ssd-count ssd-count--mine">
-              Mine <strong>{mine.length}</strong>
+            <span>
+              Mine <strong>{counts.mine}</strong>
             </span>
-            <span className="ssd-count ssd-count--taken">
-              Taken <strong>{taken.length}</strong>
+            <span>
+              Taken <strong>{counts.taken}</strong>
             </span>
           </div>
           <button
             type="button"
-            className="ssd-btn ssd-btn-ghost ssd-btn-refresh"
+            className="sta-btn sta-btn--ghost"
             onClick={() => {
               fetchList({ soft: false });
               setRefreshIn(SOFT_REFRESH_MS / 1000);
             }}
             disabled={loading}
           >
-            <FiRefreshCw />
-            Refresh {refreshIn}s
+            <FiRefreshCw /> Refresh {refreshIn}s
           </button>
         </div>
       </div>
 
-      {error && <div className="ssd-banner ssd-banner-error">{error}</div>}
+      {error ? <div className="sta-alert sta-alert--error">{error}</div> : null}
 
-      <div className="ssd-layout">
-        <section className="ssd-list-pane">
-          <div className="ssd-pane-scroll" onScroll={markPaneScrolling}>
-            <div className="ssd-list-head">
-              <h2>
-                {listTotal} question{listTotal === 1 ? "" : "s"}
-              </h2>
-            </div>
-            {loading ? (
-              <p className="ssd-empty">Loading questions…</p>
-            ) : items.length === 0 ? (
-              <p className="ssd-empty">No questions found.</p>
-            ) : listTotal === 0 ? (
-              <p className="ssd-empty">No matches for your search.</p>
-            ) : (
-              <>
-                <div className="ssd-group">
-                  <h3>
-                    <span className="ssd-group-dot ssd-group-dot--open" />
-                    Available
-                    <span className="ssd-group-count">{available.length}</span>
-                  </h3>
-                  {available.length === 0 ? (
-                    <p className="ssd-group-empty">No open questions.</p>
-                  ) : (
-                    available.map((item) => renderCard(item, "open-"))
-                  )}
-                </div>
-                <div className="ssd-group">
-                  <h3>
-                    <span className="ssd-group-dot ssd-group-dot--mine" />
-                    Assigned to me
-                    <span className="ssd-group-count">{mine.length}</span>
-                  </h3>
-                  {mine.length === 0 ? (
-                    <p className="ssd-group-empty">
-                      No questions currently assigned to you.
-                    </p>
-                  ) : (
-                    mine.map((item) => renderCard(item, "mine-"))
-                  )}
-                </div>
-                <div className="ssd-group">
-                  <h3>
-                    <span className="ssd-group-dot ssd-group-dot--taken" />
-                    Taken by others
-                    <span className="ssd-group-count">{taken.length}</span>
-                  </h3>
-                  {taken.length === 0 ? (
-                    <p className="ssd-group-empty">
-                      No questions taken by teammates.
-                    </p>
-                  ) : (
-                    taken.map((item) => renderCard(item, "taken-"))
-                  )}
-                </div>
-              </>
-            )}
-          </div>
-        </section>
-
-        <section className="ssd-detail-pane">
-          <div className="ssd-pane-scroll" onScroll={markPaneScrolling}>
-            {!selected ? (
-              <div className="ssd-empty-detail">
-                <div className="ssd-empty-icon" aria-hidden="true">
-                  <FiMessageSquare />
-                </div>
-                <h3>No question selected</h3>
-                <p>
-                  Select a question to view details. Claim only when you want
-                  it.
-                </p>
-              </div>
-            ) : (
-              <div className="ssd-detail">
-                <div className="ssd-detail-hero">
-                  <div className="ssd-detail-hero-main">
-                    <div
-                      className="ssd-avatar ssd-avatar--lg"
-                      aria-hidden="true"
-                    >
-                      {personInitials(selected.name, selected.email)}
-                    </div>
-                    <div className="ssd-detail-hero-text">
-                      <div className="ssd-detail-hero-topline">
-                        <p className="ssd-ticket-id">
-                          Support question #{ticketCode(selected.id)}
-                        </p>
-                        <span
-                          className={`ssd-status-inline ssd-pill-${selected.status}`}
-                        >
-                          {formatLabel(selected.status)}
-                        </span>
-                      </div>
-                      <h2>
-                        {selected.name || selected.email || "User"}
-                        <span className="ssd-detail-claim-inline">
-                          {selectedOwnership.isOpen
-                            ? " · Unassigned"
-                            : selectedOwnership.isMine
-                              ? " · Assigned to you"
-                              : ` · ${
-                                  selected.assignedTo?.email ||
-                                  selected.assignedTo?.name ||
-                                  "another agent"
-                                }`}
-                        </span>
-                      </h2>
-                    </div>
-                  </div>
-                  <div className="ssd-detail-hero-actions">
-                    <a
-                      className="ssd-btn ssd-btn-ghost ssd-btn-sm"
-                      href={`mailto:${selected.email}`}
-                    >
-                      <FiMail /> Email
-                    </a>
-                    {selectedOwnership.isMine && (
-                      <button
-                        type="button"
-                        className="ssd-btn ssd-btn-ghost ssd-btn-sm"
-                        disabled={releasing || claiming}
-                        onClick={releaseTicket}
+      <div className="sta-table-shell">
+        {loading ? (
+          <p className="sta-empty">Loading tickets…</p>
+        ) : filteredRows.length === 0 ? (
+          <p className="sta-empty">No tickets match your filters.</p>
+        ) : (
+          <table className="sta-table">
+            <thead>
+              <tr>
+                <th>ID</th>
+                <th>Type</th>
+                <th>User</th>
+                <th>Category</th>
+                <th>Preview</th>
+                <th>Status</th>
+                <th>Assigned to</th>
+                <th>Updated</th>
+              </tr>
+            </thead>
+            <tbody>
+              {filteredRows.map((item) => {
+                const ticket = isTicketItem(item);
+                const code = ticketCode(item.id, ticket ? "T" : "Q");
+                const state = ownershipState(item, email, myId);
+                const preview = String(item.question || "").slice(0, 64);
+                return (
+                  <tr
+                    key={item.id}
+                    className={`sta-row${
+                      selectedId === item.id ? " is-active" : ""
+                    } sta-row--${state}`}
+                    onClick={() => openTicket(item)}
+                  >
+                    <td className="sta-mono">{code}</td>
+                    <td>
+                      <span
+                        className={`sta-type ${
+                          ticket ? "sta-type--ticket" : "sta-type--faq"
+                        }`}
                       >
-                        <FiUnlock /> Release
-                      </button>
+                        {ticket ? "Ticket" : "FAQ"}
+                      </span>
+                    </td>
+                    <td>
+                      <div className="sta-user">
+                        <strong>{item.name || "User"}</strong>
+                        <span>{item.email || "—"}</span>
+                      </div>
+                    </td>
+                    <td>
+                      {ticket ? formatTicketCategory(item.category) : "—"}
+                    </td>
+                    <td className="sta-preview" title={item.question || ""}>
+                      {preview}
+                      {String(item.question || "").length > 64 ? "…" : ""}
+                    </td>
+                    <td>
+                      <span
+                        className={`sta-status sta-status--${statusTone(
+                          item.status
+                        )}`}
+                      >
+                        {formatLabel(item.status)}
+                      </span>
+                    </td>
+                    <td>
+                      {item.assignedTo?.email ||
+                        item.assignedTo?.name ||
+                        "Unassigned"}
+                    </td>
+                    <td className="sta-when">
+                      {formatWhen(item.updatedAt || item.createdAt)}
+                    </td>
+                  </tr>
+                );
+              })}
+            </tbody>
+          </table>
+        )}
+      </div>
+
+      {drawerOpen && selected ? (
+        <div className="sta-drawer-root" role="presentation">
+          <button
+            type="button"
+            className="sta-drawer-backdrop"
+            aria-label="Close ticket details"
+            onClick={closeDrawer}
+          />
+          <aside
+            className="sta-drawer"
+            role="dialog"
+            aria-modal="true"
+            aria-label="Ticket details"
+          >
+            <header className="sta-drawer-head">
+              <div>
+                <p className="sta-drawer-kicker">
+                  {isTicketSelected ? "Support ticket" : "FAQ question"} ·{" "}
+                  {ticketCode(selected.id, isTicketSelected ? "T" : "Q")}
+                </p>
+                <h2>
+                  {selected.name || selected.email || "User"}
+                  <span className="sta-drawer-sub">
+                    {selectedOwnership.isOpen
+                      ? " · Unassigned"
+                      : selectedOwnership.isMine
+                        ? " · Assigned to you"
+                        : ` · ${
+                            selected.assignedTo?.email ||
+                            selected.assignedTo?.name ||
+                            "another agent"
+                          }`}
+                  </span>
+                </h2>
+              </div>
+              <div className="sta-drawer-head-actions">
+                <span
+                  className={`sta-status sta-status--${statusTone(
+                    selected.status
+                  )}`}
+                >
+                  {formatLabel(selected.status)}
+                </span>
+                <a
+                  className="sta-btn sta-btn--ghost sta-btn--sm"
+                  href={`mailto:${selected.email}`}
+                >
+                  <FiMail /> Email
+                </a>
+                {selectedOwnership.isMine ? (
+                  <button
+                    type="button"
+                    className="sta-btn sta-btn--ghost sta-btn--sm"
+                    disabled={releasing || claiming}
+                    onClick={releaseTicket}
+                  >
+                    <FiUnlock /> Release
+                  </button>
+                ) : null}
+                <button
+                  type="button"
+                  className="sta-icon-btn"
+                  onClick={closeDrawer}
+                  aria-label="Close"
+                >
+                  <FiX />
+                </button>
+              </div>
+            </header>
+
+            <div className="sta-drawer-body">
+              {selectedOwnership.isOpen ? (
+                <div className="sta-claim">
+                  <div>
+                    <strong>Claim this {isTicketSelected ? "ticket" : "question"}?</strong>
+                    <span>Assign it to yourself to reply and update status.</span>
+                  </div>
+                  <button
+                    type="button"
+                    className="sta-btn sta-btn--primary"
+                    disabled={claiming}
+                    onClick={claimTicket}
+                  >
+                    {claiming ? "Claiming…" : "Claim"}
+                  </button>
+                </div>
+              ) : null}
+
+              {selectedOwnership.isLockedToOther ? (
+                <div className="sta-banner sta-banner--warn">
+                  <FiLock /> Only the assigned agent can edit this ticket.
+                </div>
+              ) : null}
+
+              {actionMsg ? (
+                <div className={`sta-banner sta-banner--${actionMsg.type}`}>
+                  {actionMsg.text}
+                </div>
+              ) : null}
+
+              <dl className="sta-meta">
+                <div>
+                  <dt>Contact</dt>
+                  <dd>
+                    <a href={`mailto:${selected.email}`}>{selected.email}</a>
+                  </dd>
+                </div>
+                <div>
+                  <dt>{isTicketSelected ? "Category" : "Source"}</dt>
+                  <dd>
+                    {isTicketSelected
+                      ? formatTicketCategory(selected.category)
+                      : "FAQ Ask Question"}
+                  </dd>
+                </div>
+                <div>
+                  <dt>Assigned</dt>
+                  <dd>
+                    {selected.assignedTo?.email ||
+                      selected.assignedTo?.name ||
+                      "Unassigned"}
+                  </dd>
+                </div>
+                <div>
+                  <dt>Created</dt>
+                  <dd>{formatWhen(selected.createdAt)}</dd>
+                </div>
+              </dl>
+
+              {isTicketSelected ? (
+                <section className="sta-panel">
+                  <h3>Conversation</h3>
+                  <div className="sta-chat">
+                    {ticketMessages.length === 0 ? (
+                      <p className="sta-muted">No messages yet</p>
+                    ) : (
+                      ticketMessages.map((m) => (
+                        <div
+                          key={m.id}
+                          className={`sta-bubble sta-bubble--${
+                            m.senderRole === "agent" ? "agent" : "user"
+                          }`}
+                        >
+                          <div className="sta-bubble-meta">
+                            {m.senderRole === "agent"
+                              ? m.senderName || "Agent"
+                              : selected.name || selected.email || "User"}{" "}
+                            · {formatWhen(m.createdAt)}
+                          </div>
+                          <p>{m.text}</p>
+                        </div>
+                      ))
                     )}
                   </div>
-                </div>
+                </section>
+              ) : (
+                <section className="sta-panel">
+                  <h3>Question</h3>
+                  <p className="sta-question-text">{selected.question}</p>
+                </section>
+              )}
 
-                <div className="ssd-q-body">
-                  <div className="ssd-qa-item ssd-qa-item--question">
-                    <span className="ssd-qa-badge" aria-hidden="true">
-                      Q
-                    </span>
-                    <div className="ssd-qa-content">
-                      <h3>Question</h3>
-                      <p>{selected.question}</p>
-                    </div>
-                  </div>
-                  <div className="ssd-qa-item ssd-qa-item--answer">
-                    <span className="ssd-qa-badge" aria-hidden="true">
-                      A
-                    </span>
-                    <div className="ssd-qa-content">
-                      <h3>Answer</h3>
-                      {latestReply?.message ? (
-                        <>
-                          <p>{latestReply.message}</p>
-                          {selectedReplies.length > 1 ? (
-                            <span className="ssd-qa-meta">
-                              Latest of {selectedReplies.length} email replies
-                            </span>
-                          ) : null}
-                        </>
-                      ) : (
-                        <p className="ssd-qa-empty">No answer sent yet</p>
-                      )}
-                    </div>
-                  </div>
-                </div>
-
-                {selectedOwnership.isOpen && (
-                  <div className="ssd-claim-prompt">
-                    <div>
-                      <strong>Claim this question?</strong>
-                      <span>
-                        Opening does not assign it. Confirm to assign it to you
-                        so teammates cannot take it.
-                      </span>
-                    </div>
-                    <button
-                      type="button"
-                      className="ssd-btn ssd-btn-primary"
-                      disabled={claiming}
-                      onClick={() => claimTicket()}
-                    >
-                      {claiming ? "Claiming…" : "Yes, assign to me"}
-                    </button>
-                  </div>
-                )}
-
-                {selectedOwnership.isLockedToOther && (
-                  <div className="ssd-ownership-banner">
-                    <FiLock aria-hidden="true" />
-                    <div>
-                      <strong>Question already assigned</strong>
-                      <span>
-                        This question is under{" "}
-                        <em>
-                          {selected.assignedTo?.email ||
-                            selected.assignedTo?.name ||
-                            "another agent"}
-                        </em>
-                        . You can view details, but only they can update it.
-                      </span>
-                    </div>
-                    <button
-                      type="button"
-                      className="ssd-link-btn"
-                      onClick={() =>
-                        showToast(
-                          "info",
-                          "Ask the assigned agent to release this question.",
-                          "Request release"
-                        )
-                      }
-                    >
-                      Request release
-                    </button>
-                  </div>
-                )}
-
-                {actionMsg && !selectedOwnership.isLockedToOther && (
-                  <div className={`ssd-banner ssd-banner-${actionMsg.type}`}>
-                    {actionMsg.text}
-                  </div>
-                )}
-
-                <dl className="ssd-facts">
-                  <div className="ssd-fact ssd-fact--contact">
-                    <dt>Contact</dt>
-                    <dd>
-                      <a
-                        className="ssd-fact-link"
-                        href={`mailto:${selected.email}`}
+              <div className="sta-grid-2">
+                <section className={`sta-panel${editsDisabled ? " is-locked" : ""}`}>
+                  <h3>Update status</h3>
+                  <div className="sta-chips">
+                    {statusActions.map((action) => (
+                      <button
+                        key={action.id}
+                        type="button"
+                        className={`sta-chip${
+                          selected.status === action.id ? " is-active" : ""
+                        }`}
+                        disabled={editsDisabled || saving}
+                        onClick={() => updateTicket({ status: action.id })}
                       >
-                        {selected.email}
-                      </a>
-                    </dd>
+                        {selected.status === action.id ? <FiCheck /> : null}
+                        {action.label}
+                      </button>
+                    ))}
                   </div>
-                  <div className="ssd-fact">
-                    <dt>Assigned to</dt>
-                    <dd>
-                      <span className="ssd-fact-primary">
-                        {selected.assignedTo?.email ||
-                          selected.assignedTo?.name ||
-                          "Unassigned"}
-                      </span>
-                    </dd>
-                  </div>
-                  <div className="ssd-fact">
-                    <dt>Created</dt>
-                    <dd>
-                      <span className="ssd-fact-primary">
-                        {formatWhen(selected.createdAt)}
-                      </span>
-                    </dd>
-                  </div>
-                  <div className="ssd-fact">
-                    <dt>Replies</dt>
-                    <dd>
-                      <span className="ssd-fact-primary">
-                        {(selected.replies || []).length}
-                      </span>
-                      <span className="ssd-fact-secondary">Email replies</span>
-                    </dd>
-                  </div>
-                </dl>
+                </section>
 
-                <div className="ssd-panels-row">
-                  <div
-                    className={`ssd-block ssd-panel-card${
-                      editsDisabled ? " is-disabled" : ""
-                    }`}
-                  >
-                    <div className="ssd-block-head">
-                      <h3>Update status</h3>
-                      <p>
-                        {selectedOwnership.isOpen
-                          ? "Claim the question to update status"
-                          : selectedOwnership.isLockedToOther
-                            ? "Read-only — assigned to another agent"
-                            : "Mark how you handled it"}
-                      </p>
-                    </div>
-                    <div className="ssd-action-row">
-                      {STATUS_ACTIONS.map((action) => (
-                        <button
-                          key={action.id}
-                          type="button"
-                          className={`ssd-chip${
-                            selected.status === action.id ? " is-active" : ""
-                          }`}
-                          disabled={editsDisabled || saving}
-                          onClick={() => updateTicket({ status: action.id })}
-                        >
-                          {selected.status === action.id ? (
-                            <FiCheck aria-hidden="true" />
-                          ) : null}
-                          {action.label}
-                        </button>
-                      ))}
-                    </div>
-                  </div>
-
-                  <div
-                    className={`ssd-block ssd-panel-card${
-                      editsDisabled ? " is-disabled" : ""
-                    }`}
-                  >
-                    <div className="ssd-block-head">
-                      <h3>Email reply</h3>
-                      <p>
-                        {editsDisabled
-                          ? "Claim the question to send an email reply"
-                          : "Sends from Stolity noreply — stays on this page"}
-                      </p>
-                    </div>
-                    <label className="ssd-reply-label">
-                      Subject (auto)
+                <section className={`sta-panel${editsDisabled ? " is-locked" : ""}`}>
+                  <h3>{isTicketSelected ? "Chat reply" : "Email reply"}</h3>
+                  {!isTicketSelected ? (
+                    <label className="sta-label">
+                      Subject
                       <input
                         type="text"
-                        className="ssd-reply-subject"
                         value={replySubject}
                         readOnly
                         disabled={editsDisabled}
                       />
                     </label>
-                    <label className="ssd-reply-label">
-                      Message
-                      <textarea
-                        rows={4}
-                        className="ssd-reply-message"
-                        placeholder={
-                          editsDisabled
-                            ? "Claim this question to reply…"
-                            : "Write your reply to the customer…"
-                        }
-                        value={replyDraft}
-                        onChange={(e) => setReplyDraft(e.target.value)}
-                        disabled={editsDisabled || sendingReply}
-                      />
-                    </label>
-                    <p className="ssd-reply-hint">
-                      Email footer will tell the customer to request a callback
-                      from Help &amp; Support for further issues (noreply
-                      sender).
-                    </p>
-                    <button
-                      type="button"
-                      className="ssd-btn ssd-btn-primary"
-                      disabled={
-                        editsDisabled ||
-                        sendingReply ||
-                        replyDraft.trim().length < 10
-                      }
-                      onClick={sendReply}
-                    >
-                      <FiSend />{" "}
-                      {sendingReply ? "Sending…" : "Send reply email"}
-                    </button>
-                  </div>
-                </div>
-
-                <div
-                  className={`ssd-block ssd-panel-card ssd-notes-panel${
-                    editsDisabled ? " is-disabled" : ""
-                  }`}
-                >
-                  <div className="ssd-notes-head">
-                    <div className="ssd-notes-head-main">
-                      <span className="ssd-notes-icon" aria-hidden="true">
-                        <FiMessageSquare />
-                      </span>
-                      <div>
-                        <h3>Notes</h3>
-                        <p>
-                          {editsDisabled
-                            ? "View-only until you claim this question"
-                            : "Pick a suggestion or write your own"}
-                        </p>
-                      </div>
-                    </div>
-                    {!editsDisabled ? (
-                      <span className="ssd-notes-hint-pill">Draft</span>
-                    ) : (
-                      <span className="ssd-notes-hint-pill ssd-notes-hint-pill--locked">
-                        <FiLock aria-hidden="true" /> Locked
-                      </span>
-                    )}
-                  </div>
-
-                  <div className="ssd-notes-suggestions">
-                    <span className="ssd-notes-suggestions-label">
-                      Quick suggestions
-                    </span>
-                    <div className="ssd-quick-notes">
-                      {QUICK_NOTES.map((text) => {
-                        const isActive = noteDraft.trim() === text;
-                        return (
-                          <button
-                            key={text}
-                            type="button"
-                            className={`ssd-suggest-chip${
-                              isActive ? " is-active" : ""
-                            }`}
-                            disabled={editsDisabled || saving}
-                            onClick={() => setNoteDraft(text)}
-                          >
-                            {text}
-                          </button>
-                        );
-                      })}
-                    </div>
-                  </div>
-
-                  <div className="ssd-note-compose">
-                    <label
-                      className="ssd-note-compose-label"
-                      htmlFor="ssd-q-note-draft"
-                    >
-                      Your note
-                    </label>
+                  ) : null}
+                  <label className="sta-label">
+                    Message
                     <textarea
-                      id="ssd-q-note-draft"
-                      rows={3}
+                      rows={4}
+                      value={replyDraft}
+                      onChange={(e) => setReplyDraft(e.target.value)}
+                      disabled={editsDisabled || sendingReply}
                       placeholder={
                         editsDisabled
-                          ? "Claim this question to add notes…"
-                          : "Type a note, or tap a suggestion above…"
+                          ? "Claim to reply…"
+                          : "Write your reply…"
                       }
-                      value={noteDraft}
-                      onChange={(e) => setNoteDraft(e.target.value)}
-                      disabled={editsDisabled}
                     />
-                    <div className="ssd-note-compose-foot">
-                      <span className="ssd-muted">
-                        {noteDraft.trim()
-                          ? `${noteDraft.trim().length} characters`
-                          : "Visible to your team on this question"}
-                      </span>
-                      <div className="ssd-note-compose-actions">
-                        {noteDraft.trim() ? (
-                          <button
-                            type="button"
-                            className="ssd-btn ssd-btn-ghost ssd-btn-sm"
-                            disabled={editsDisabled || saving}
-                            onClick={() => setNoteDraft("")}
-                          >
-                            Clear
-                          </button>
-                        ) : null}
-                        <button
-                          type="button"
-                          className="ssd-btn ssd-btn-primary ssd-btn-sm"
-                          disabled={
-                            editsDisabled || saving || !noteDraft.trim()
-                          }
-                          onClick={() => updateTicket({ note: noteDraft })}
-                        >
-                          <FiCheck /> Add note
-                        </button>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-
-                <div className="ssd-block ssd-panel-card ssd-activity">
-                  <div className="ssd-block-head ssd-activity-head">
-                    <div>
-                      <h3>Activity history</h3>
-                    </div>
-                    <span className="ssd-activity-badge">
-                      {activityEvents.length} event
-                      {activityEvents.length === 1 ? "" : "s"}
-                    </span>
-                  </div>
-                  {activityEvents.length === 0 ? (
-                    <div className="ssd-timeline-empty">
-                      <p>No activity yet</p>
-                      <span>Notes and email replies will appear here</span>
-                    </div>
-                  ) : (
-                    <ol className="ssd-timeline">
-                      {activityEvents.map((event, idx) => {
-                        const isLatest = idx === 0;
-                        return (
-                          <li
-                            key={event.id}
-                            className={`ssd-timeline-item${
-                              isLatest ? " is-latest" : ""
-                            } ssd-timeline-item--${idx % 3}`}
-                          >
-                            <div
-                              className="ssd-timeline-rail"
-                              aria-hidden="true"
-                            >
-                              <span className="ssd-timeline-node">
-                                {isLatest ? (
-                                  <span className="ssd-timeline-node-core" />
-                                ) : null}
-                              </span>
-                            </div>
-                            <article className="ssd-timeline-card">
-                              <header className="ssd-timeline-card-top">
-                                <div className="ssd-timeline-agent">
-                                  <span
-                                    className="ssd-timeline-avatar"
-                                    aria-hidden="true"
-                                  >
-                                    {String(event.agentName)
-                                      .charAt(0)
-                                      .toUpperCase()}
-                                  </span>
-                                  <div className="ssd-timeline-agent-text">
-                                    <strong>{event.agentName}</strong>
-                                    <span className="ssd-timeline-kind">
-                                      {event.kind === "reply"
-                                        ? isLatest
-                                          ? "Latest email reply"
-                                          : "Email reply sent"
-                                        : isLatest
-                                          ? "Latest update"
-                                          : "Note added"}
-                                    </span>
-                                  </div>
-                                </div>
-                                <div className="ssd-timeline-meta">
-                                  {isLatest ? (
-                                    <span className="ssd-timeline-latest-pill">
-                                      Latest
-                                    </span>
-                                  ) : null}
-                                  <time
-                                    className="ssd-timeline-time"
-                                    dateTime={event.at || undefined}
-                                  >
-                                    {formatWhen(event.at)}
-                                  </time>
-                                </div>
-                              </header>
-                              {event.subject ? (
-                                <p className="ssd-timeline-subject">
-                                  {event.subject}
-                                </p>
-                              ) : null}
-                              <p className="ssd-timeline-text">{event.text}</p>
-                            </article>
-                          </li>
-                        );
-                      })}
-                    </ol>
-                  )}
-                </div>
+                  </label>
+                  <button
+                    type="button"
+                    className="sta-btn sta-btn--primary"
+                    disabled={
+                      editsDisabled ||
+                      sendingReply ||
+                      replyDraft.trim().length < (isTicketSelected ? 2 : 10)
+                    }
+                    onClick={isTicketSelected ? sendTicketChat : sendReply}
+                  >
+                    <FiSend />{" "}
+                    {sendingReply
+                      ? "Sending…"
+                      : isTicketSelected
+                        ? "Send message"
+                        : "Send reply email"}
+                  </button>
+                </section>
               </div>
-            )}
-          </div>
-        </section>
-      </div>
+
+              <section className={`sta-panel${editsDisabled ? " is-locked" : ""}`}>
+                <h3>
+                  <FiMessageSquare /> Notes
+                </h3>
+                <div className="sta-chips">
+                  {QUICK_NOTES.map((text) => (
+                    <button
+                      key={text}
+                      type="button"
+                      className={`sta-chip${
+                        noteDraft.trim() === text ? " is-active" : ""
+                      }`}
+                      disabled={editsDisabled || saving}
+                      onClick={() => setNoteDraft(text)}
+                    >
+                      {text}
+                    </button>
+                  ))}
+                </div>
+                <label className="sta-label">
+                  Your note
+                  <textarea
+                    rows={3}
+                    value={noteDraft}
+                    onChange={(e) => setNoteDraft(e.target.value)}
+                    disabled={editsDisabled}
+                    placeholder={
+                      editsDisabled
+                        ? "Claim to add notes…"
+                        : "Internal note for the team…"
+                    }
+                  />
+                </label>
+                <button
+                  type="button"
+                  className="sta-btn sta-btn--primary"
+                  disabled={editsDisabled || saving || !noteDraft.trim()}
+                  onClick={() => updateTicket({ note: noteDraft })}
+                >
+                  <FiCheck /> Add note
+                </button>
+              </section>
+
+              <section className="sta-panel">
+                <div className="sta-panel-head">
+                  <h3>Activity</h3>
+                  <span>{activityEvents.length} events</span>
+                </div>
+                {activityEvents.length === 0 ? (
+                  <p className="sta-muted">No notes or email replies yet.</p>
+                ) : (
+                  <ul className="sta-activity">
+                    {activityEvents.map((event) => (
+                      <li key={event.id}>
+                        <div className="sta-activity-top">
+                          <strong>{event.agentName}</strong>
+                          <time>{formatWhen(event.at)}</time>
+                        </div>
+                        <span className="sta-activity-kind">
+                          {event.kind === "reply" ? "Email reply" : "Note"}
+                        </span>
+                        {event.subject ? (
+                          <p className="sta-activity-subject">{event.subject}</p>
+                        ) : null}
+                        <p>{event.text}</p>
+                      </li>
+                    ))}
+                  </ul>
+                )}
+              </section>
+            </div>
+          </aside>
+        </div>
+      ) : null}
     </div>
   );
 }

@@ -6,11 +6,10 @@ import {
   DOWNLOAD_BATCH_ZIP_AND_DOWNLOAD,
   formatDownloadBytes,
 } from "../utils/downloadBatchLimits";
-import { NATIVE_BROWSER_DOWNLOAD_MAX_FILES } from "../utils/downloadFilePresigned";
 import "./DownloadBatchLimitModal.css";
 
 /**
- * Warn when download will use Browser Direct Stream (not Native Browser Download).
+ * Soft warn for large multi-file / folder downloads (may take time / load the browser).
  * @param {'direct-stream'} level
  * @param {'files'|'folder'|'mixed'} [source]
  */
@@ -28,20 +27,19 @@ export default function DownloadBatchLimitModal({
   const sizeLabel = formatDownloadBytes(totalBytes);
   const countLabel = Number(count).toLocaleString();
   const isFolder = source === "folder";
-  const nativeMax = NATIVE_BROWSER_DOWNLOAD_MAX_FILES;
 
-  const eyebrow = "Browser Direct Stream";
-  const title = "Larger download";
+  const eyebrow = "Large download";
+  const title = "This may take a while";
   let body = "";
   if (isFolder) {
     body =
       count > 0
-        ? `This folder has ${countLabel} files (${sizeLabel}). It will download with Browser Direct Stream (you’ll pick a save folder).`
-        : `This folder (${sizeLabel}) will download with Browser Direct Stream (you’ll pick a save folder).`;
+        ? `You’re about to download a large batch (${countLabel} files · ${sizeLabel}). This can take time and temporarily slow things down.`
+        : `You’re about to download a large batch (${sizeLabel}). This can take time and temporarily slow things down.`;
   } else if (source === "mixed") {
-    body = `This selection (${countLabel} items, ${sizeLabel}) will download with Browser Direct Stream (you’ll pick a save folder).`;
+    body = `You’re about to download a large batch (${countLabel} items · ${sizeLabel}). This can take time and temporarily slow things down.`;
   } else {
-    body = `You selected ${countLabel} files (${sizeLabel}). More than ${nativeMax} files use Browser Direct Stream (you’ll pick a save folder). Up to ${nativeMax} files use Native Browser Download with no extra step.`;
+    body = `You’re about to download a large batch (${countLabel} files · ${sizeLabel}). This can take time and temporarily slow things down.`;
   }
 
   return (
@@ -80,13 +78,6 @@ export default function DownloadBatchLimitModal({
           <div className="dblm-actions">
             {canZipAndDownload && isFolder ? (
               <>
-                <button
-                  type="button"
-                  className="dblm-btn dblm-btn--ghost"
-                  onClick={() => onChoice?.(DOWNLOAD_BATCH_CANCEL)}
-                >
-                  Cancel
-                </button>
                 <button
                   type="button"
                   className="dblm-btn dblm-btn--primary"

@@ -216,6 +216,7 @@ async function writeResponseToDirectory({
     fileName: saveAsName,
     isFolder: false,
     writable,
+    fileHandle,
     onProgress,
     signal,
   });
@@ -584,9 +585,9 @@ export async function downloadMultipleFilesToDirectory({
           onProgress: (percent) => onFileProgress?.(filePath, percent),
         });
         results[i] = { filePath, success: true, cancelled: false, saveAsName };
-        // Let Chrome release stream buffers before the next large file.
+        // Let Chrome release FS / network staging before the next large file.
         if (isLargeFile(estimatedBytes)) {
-          await delay(250);
+          await delay(1500);
         }
       } catch (err) {
         if (isDownloadCancelledError(err)) {

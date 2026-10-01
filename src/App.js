@@ -45,6 +45,7 @@ import SearchUsersPage from './pages/SearchUsersPage';
 import HelpSupportCenter from './pages/HelpSupportCenter';
 import SupportDashboard from './pages/SupportDashboard';
 import FAQPage from './pages/FAQPage';
+import SupportTicketsPage from './pages/SupportTicketsPage';
 import PaymentIntegrationPage from './pages/PaymentIntegrationPage';
 import { ChakraProvider } from "@chakra-ui/react";
 import JobDashboard from '../src/pages/JobPortal/JobDashboard';
@@ -237,6 +238,8 @@ const {
                 <Route path="/HelpSupportCenter" element={<HelpSupportCenter />} />
                 <Route path="/SupportDashboard" element={<SupportDashboard />} />
                 <Route path="/FAQPage" element={<FAQPage />} />
+                <Route path="/SupportTickets" element={<SupportTicketsPage />} />
+                <Route path="/SupportTickets/:ticketId" element={<SupportTicketsPage />} />
                 <Route path="/Payment" element={<PaymentIntegrationPage />} />
                 <Route path="/JobPortalAdmin" element={<JobPortalAdmin />} />
               </Route>

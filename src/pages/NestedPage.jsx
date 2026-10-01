@@ -14,6 +14,7 @@ import {
   postZipOrUnzip,
   getZipUnzipErrorMessage,
   getZipSuccessMessage,
+  isZipUnzipCancelled,
 } from "../utils/zipUnzipRequest";
 import { uploadFolderViaMultipart } from "../utils/uploadFolderViaMultipart";
 import {
@@ -172,6 +173,7 @@ import StarBorderIcon from "@mui/icons-material/StarBorder";
 import svgDoc from "../images/TypesDoc.svg"
 import svgFolder from "../images/TypesFolder.svg"
 import { FaDownload } from "react-icons/fa";
+import { FiLifeBuoy } from "react-icons/fi";
 import svgJpg from "../images/TypesJpg.svg"
 import svgMp3 from "../images/TypesMp3.svg"
 import svgMp4 from "../images/TypesMp4.svg"
@@ -4519,7 +4521,7 @@ const NestedPage = () => {
   async function processZipFile(file, destinationPath = "") {
     if (!file?.fileName) return;
 
-    setLoader2(true);           // ← start loader
+    const abortController = beginZipping(file.fileName, { mode: "zip" });
 
     const apiUrl1 = `${apiUrl}zip-object`;
 
@@ -4534,18 +4536,23 @@ const NestedPage = () => {
           Authorization: `Bearer ${token}`,
         },
         params: isSharedValue ? { shared: filenameRedux } : {},
+        signal: abortController?.signal,
       });
 
       showToast("success", getZipSuccessMessage(zipResult));
       reloadAfterTast();
     } catch (error) {
+      if (isZipUnzipCancelled(error)) {
+        showToast("info", "Zip cancelled.");
+        return;
+      }
       console.error("Error zipping file:", error);
       showToast(
         "error",
         getZipUnzipErrorMessage(error, "Failed to zip file.")
       );
     } finally {
-      setLoader2(false);        // ← always stop loader (success or error)
+      endZipping();
     }
   }
 
@@ -4562,7 +4569,7 @@ const NestedPage = () => {
   async function processUnzipFile(file, destinationPath = "") {
     if (!file?.fileName) return;
 
-    setLoader2(true);   // ← start loader
+    const abortController = beginZipping(file.fileName, { mode: "unzip" });
 
     const apiUrl1 = `${apiUrl}unzip-object`;
 
@@ -4584,18 +4591,23 @@ const NestedPage = () => {
           "Content-Type": "application/json",
         },
         params,
+        signal: abortController?.signal,
       });
 
       showToast("success", "File successfully unzipped!");
       reloadAfterTast();
     } catch (error) {
+      if (isZipUnzipCancelled(error)) {
+        showToast("info", "Unzip cancelled.");
+        return;
+      }
       console.error("Error unzipping file:", error);
       showToast(
         "error",
         getZipUnzipErrorMessage(error, "Failed to unzip file.")
       );
     } finally {
-      setLoader2(false);   // ← always stop loader — success or error
+      endZipping();
     }
   }
 
@@ -5864,11 +5876,21 @@ const NestedPage = () => {
 
               <div className="files-app-header__titles">
                 <h1 className="files-app-header__title">All Files</h1>
-                <div className="files-app-header__welcome files-nav-welcome">
-                  <span className="files-nav-welcome__greet">Welcome back</span>
-                  <span className="files-nav-welcome__name">
-                    {userProfile.name || userData?.userData?.name || userData?.name || name}
-                  </span>
+                <div className="files-app-header__end">
+                  <button
+                    type="button"
+                    className="files-app-header__support"
+                    onClick={() => navigate("/SupportTickets")}
+                  >
+                    <FiLifeBuoy aria-hidden="true" />
+                    Support
+                  </button>
+                  <div className="files-app-header__welcome files-nav-welcome">
+                    <span className="files-nav-welcome__greet">Welcome back</span>
+                    <span className="files-nav-welcome__name">
+                      {userProfile.name || userData?.userData?.name || userData?.name || name}
+                    </span>
+                  </div>
                 </div>
               </div>
 
