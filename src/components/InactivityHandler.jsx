@@ -2,7 +2,7 @@ import React, { useEffect, useRef, useState, useCallback, useContext } from 'rea
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useSelector } from 'react-redux';
 import { UploadContext } from '../pages/UploadContext';
-import { DownloadContext } from '../pages/DownloadContext';
+import { useDownloadList } from '../pages/DownloadContext';
 import { endUserSession } from '../utils/endUserSession';
 
 // TESTING: restore to 15 * 60 * 1000 and WARNING_TIMEOUT 60 * 1000 before release
@@ -16,7 +16,7 @@ const InactivityHandler = () => {
   const showAudioPlayer = useSelector((state) => state.getdata.showAudioPlayer);
 
   const { uploads } = useContext(UploadContext);
-  const { downloads } = useContext(DownloadContext);
+  const downloads = useDownloadList();
 
   const [showWarning, setShowWarning] = useState(false);
   const [secondsLeft, setSecondsLeft] = useState(WARNING_SECONDS);

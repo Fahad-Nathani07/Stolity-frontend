@@ -20,6 +20,7 @@ import SideNav from "../components/SideNav";
 import { showToast } from "../components/ToastProvider";
 import SupportQuestionsPane from "./SupportQuestionsPane";
 import SupportActivityPane from "./SupportActivityPane";
+import SupportUsersPane from "./SupportUsersPane";
 import SupportFilterSelect, {
   SupportMultiFilterSelect,
   markPaneScrolling,
@@ -28,9 +29,10 @@ import { canViewFileActivity } from "../config/fileActivityAccess";
 import "../css/SupportDashboard.css";
 
 const ALL_TABS = [
+  { id: "users", label: "Users", enabled: true },
+  { id: "activity", label: "File Activity", enabled: true },
   { id: "callbacks", label: "Callbacks", enabled: true },
   { id: "questions", label: "Questions", enabled: true },
-  { id: "activity", label: "File Activity", enabled: true },
 ];
 
 const STATUS_OPTIONS = [
@@ -142,9 +144,10 @@ export default function SupportDashboard() {
     [showFileActivity]
   );
 
-  const [activeTab, setActiveTab] = useState("callbacks");
+  const [activeTab, setActiveTab] = useState("users");
   const [questionsCount, setQuestionsCount] = useState(0);
   const [activityCount, setActivityCount] = useState(0);
+  const [usersCount, setUsersCount] = useState(0);
   const [items, setItems] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
@@ -723,7 +726,13 @@ useEffect(() => {
   return (
     <div className="ssd-shell">
       <SideNav />
-      <div className={`ssd-page${activeTab === "activity" ? " ssd-page--activity" : ""}`}>
+      <div
+        className={`ssd-page${
+          activeTab === "activity" || activeTab === "users"
+            ? " ssd-page--activity"
+            : ""
+        }`}
+      >
         <ScrollReveal as="header" className="ssd-header" variant="fadeSoft" delay={0.05} duration={0.75}>
           <div className="ssd-header-left">
             <p className="ssd-breadcrumb">
@@ -794,6 +803,9 @@ useEffect(() => {
                 {tab.id === "activity" && (
                   <span className="ssd-tab-count">{activityCount}</span>
                 )}
+                {tab.id === "users" && (
+                  <span className="ssd-tab-count">{usersCount}</span>
+                )}
                 {!tab.enabled && <span className="ssd-soon">Soon</span>}
               </button>
             ))}
@@ -863,6 +875,17 @@ useEffect(() => {
               apiUrl={apiUrl}
               authHeaders={authHeaders}
               onItemCountChange={setActivityCount}
+            />
+          </div>
+        )}
+
+        {activeTab === "users" && (
+          <div className="ssd-activity-host">
+            <SupportUsersPane
+              apiUrl={apiUrl}
+              authHeaders={authHeaders}
+              agentEmail={email}
+              onItemCountChange={setUsersCount}
             />
           </div>
         )}

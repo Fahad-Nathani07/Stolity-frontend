@@ -32,7 +32,7 @@ import {
   SlidersHorizontal,
 } from "lucide-react";
 
-import { DownloadContext } from "./DownloadContext";
+import { useDownloadActions } from "./DownloadContext";
 import {
   streamDownloadResponse,
   ensureDownloadWritable,
@@ -215,6 +215,13 @@ const DefaultFolder = () => {
     getUpload,
     isPausing,
   } = useContext(UploadContext);
+
+  const {
+    addDownload,
+    updateDownloadProgress,
+    removeDownload,
+    cancelDownload,
+  } = useDownloadActions();
 
   const {
     batchLimitPrompt,
@@ -1553,13 +1560,6 @@ const DefaultFolder = () => {
     setSelectedFile(file);
     setDownloadpopup(true);
   };
-
-  const {
-    addDownload,
-    updateDownloadProgress,
-    removeDownload,
-    cancelDownload,
-  } = useContext(DownloadContext);
 
   const handleConfirmDownload = async () => {
     if (!selectedFile) return;

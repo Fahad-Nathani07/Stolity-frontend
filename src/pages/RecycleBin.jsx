@@ -14,7 +14,6 @@ import {
   getZipUnzipErrorMessage,
   getZipSuccessMessage,
 } from "../utils/zipUnzipRequest";
-import { DownloadContext } from "./DownloadContext";
 import { Prism as SyntaxHighlighter } from "react-syntax-highlighter";
 import { oneLight } from "react-syntax-highlighter/dist/esm/styles/prism";
 import Logo from "../images/logo.png";

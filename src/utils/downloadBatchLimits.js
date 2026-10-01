@@ -1,12 +1,7 @@
 import { estimateDownloadBytes } from "./downloadWithProgress";
+import { NATIVE_BROWSER_DOWNLOAD_MAX_FILES } from "./downloadFilePresigned";
 
-/** Download batch gates: count + average size + hard size cap. */
-
-export const DOWNLOAD_SOFT_WARN_MIN = 100;
-export const DOWNLOAD_ZIP_CHECK_MIN = 1000;
-/** Avg below this with many files → recommend ZIP (1000 files → need ≥ ~1000 MB). */
-export const DOWNLOAD_AVG_SMALL_FILE_MAX_BYTES = 1024 * 1024;
-export const DOWNLOAD_HARD_SIZE_BYTES = 2 * 1024 * 1024 * 1024;
+/** Download batch gates: warn only when Browser Direct Stream will be used. */
 
 export const DOWNLOAD_BATCH_CONTINUE = "continue";
 export const DOWNLOAD_BATCH_CANCEL = "cancel";
@@ -21,23 +16,26 @@ export function formatDownloadBytes(bytes) {
 }
 
 /**
- * @returns {{ level: 'none'|'soft'|'zip-recommend'|'size-limit', count: number, totalBytes: number, avgBytes: number }}
+ * Native Browser Download (≤ NATIVE_BROWSER_DOWNLOAD_MAX_FILES files only) → no gate.
+ * Anything else uses Browser Direct Stream → warn + Continue.
+ *
+ * @returns {{ level: 'none'|'direct-stream', count: number, totalBytes: number, avgBytes: number }}
  */
-export function evaluateDownloadBatchLimits({ count = 0, totalBytes = 0 } = {}) {
+export function evaluateDownloadBatchLimits({
+  count = 0,
+  totalBytes = 0,
+  source = "files",
+} = {}) {
   const safeCount = Math.max(0, Number(count) || 0);
   const safeBytes = Math.max(0, Number(totalBytes) || 0);
   const avgBytes = safeCount > 0 ? safeBytes / safeCount : 0;
 
-  if (safeBytes > DOWNLOAD_HARD_SIZE_BYTES) {
-    return {
-      level: "size-limit",
-      count: safeCount,
-      totalBytes: safeBytes,
-      avgBytes,
-    };
-  }
+  const usesNativeBrowser =
+    source === "files" &&
+    safeCount > 0 &&
+    safeCount <= NATIVE_BROWSER_DOWNLOAD_MAX_FILES;
 
-  if (safeCount < DOWNLOAD_SOFT_WARN_MIN) {
+  if (usesNativeBrowser || safeCount === 0) {
     return {
       level: "none",
       count: safeCount,
@@ -46,20 +44,8 @@ export function evaluateDownloadBatchLimits({ count = 0, totalBytes = 0 } = {}) 
     };
   }
 
-  if (
-    safeCount >= DOWNLOAD_ZIP_CHECK_MIN &&
-    avgBytes < DOWNLOAD_AVG_SMALL_FILE_MAX_BYTES
-  ) {
-    return {
-      level: "zip-recommend",
-      count: safeCount,
-      totalBytes: safeBytes,
-      avgBytes,
-    };
-  }
-
   return {
-    level: "soft",
+    level: "direct-stream",
     count: safeCount,
     totalBytes: safeBytes,
     avgBytes,
@@ -126,7 +112,7 @@ export async function fetchFolderDownloadStats({
  * Build gate input for a selection.
  * Single folder → fetch entry stats (accurate count/size).
  * Files only → listing sizes.
- * Mixed / multi-folder → best-effort from listing (no Zip and download).
+ * Mixed / multi-folder → best-effort from listing.
  */
 export async function resolveDownloadSelectionForGate({
   apiUrl,
@@ -168,7 +154,6 @@ export async function resolveDownloadSelectionForGate({
     };
   }
 
-  // Mixed or multiple folders — size from listing; count is selection units only
   const totalBytes =
     sumListingSizes(files, filedata) + sumListingSizes(folders, filedata);
   return {

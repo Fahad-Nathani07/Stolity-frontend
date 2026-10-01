@@ -15,7 +15,11 @@ export function useDownloadBatchLimitGate() {
   const resolverRef = useRef(null);
 
   const confirmDownloadBatch = useCallback(async (stats) => {
-    const evaluation = evaluateDownloadBatchLimits(stats);
+    const evaluation = evaluateDownloadBatchLimits({
+      count: stats?.count,
+      totalBytes: stats?.totalBytes,
+      source: stats?.source === "folder" ? "folder" : stats?.source || "files",
+    });
     if (!evaluation || evaluation.level === "none") {
       return DOWNLOAD_BATCH_CONTINUE;
     }

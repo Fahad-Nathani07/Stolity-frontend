@@ -643,7 +643,7 @@ const maskEmail = (value) => {
     }
     setOtpBusy(true);
     try {
-      await axios.post(`${apiUrl}resend-otp`, { email: email }, {
+      await axios.post(`${apiUrl}request-otp`, { email: email }, {
         headers: { "Content-Type": "application/json" },
       });
       showToast("success", "OTP resent to your email!");

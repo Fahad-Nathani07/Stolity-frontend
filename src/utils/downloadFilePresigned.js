@@ -383,7 +383,7 @@ export async function ensureSaveDirectory() {
  * Native Browser Download — up to this many selected files (no folder picker).
  * Above this, use Browser Direct Stream into a picked directory.
  */
-export const NATIVE_BROWSER_DOWNLOAD_MAX_FILES = 3;
+export const NATIVE_BROWSER_DOWNLOAD_MAX_FILES = 5;
 
 /**
  * Native Browser Download — hands signed URL(s) to Chrome's download manager

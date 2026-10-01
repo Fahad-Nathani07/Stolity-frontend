@@ -36,6 +36,48 @@ function progressFromBytes(loaded, totalBytes) {
   return Math.min(95, Math.floor(loaded / (5 * 1024 * 1024)));
 }
 
+/** Min gap between UI progress callbacks during streaming (ms). */
+export const PROGRESS_THROTTLE_MS = 200;
+
+/**
+ * Throttle + skip unchanged whole-percent updates.
+ * Always emits 100 via `.end()`.
+ */
+export function createThrottledProgress(
+  onProgress,
+  { intervalMs = PROGRESS_THROTTLE_MS } = {}
+) {
+  if (typeof onProgress !== "function") {
+    return {
+      report() {},
+      end() {},
+    };
+  }
+
+  let lastTs = 0;
+  let lastPct = -1;
+
+  const emit = (pct, loaded, totalBytes) => {
+    lastTs = Date.now();
+    lastPct = pct;
+    onProgress(pct, loaded, totalBytes);
+  };
+
+  return {
+    report(percent, loaded, totalBytes) {
+      const pct = Math.min(100, Math.max(0, Math.round(Number(percent) || 0)));
+      if (pct >= 100) return; // use end()
+      if (pct === lastPct) return;
+      const now = Date.now();
+      if (now - lastTs < intervalMs) return;
+      emit(pct, loaded, totalBytes);
+    },
+    end(loaded, totalBytes) {
+      emit(100, loaded, totalBytes);
+    },
+  };
+}
+
 function triggerBlobDownload(blob, downloadName) {
   const url = URL.createObjectURL(blob);
   const a = document.createElement("a");
@@ -297,11 +339,7 @@ async function pipeResponseToWritable(
   }
 
   let loaded = 0;
-  const report = (percent) => {
-    if (typeof onProgress === "function") {
-      onProgress(percent, loaded, totalBytes);
-    }
-  };
+  const progress = createThrottledProgress(onProgress);
 
   try {
     while (true) {
@@ -315,11 +353,12 @@ async function pipeResponseToWritable(
       // Await each write so Chrome applies backpressure (no TransformStream queue).
       await writable.write(value);
       loaded += value.byteLength || value.length || 0;
-      report(progressFromBytes(loaded, totalBytes));
+      // Drop reference promptly; do not keep chunk arrays.
+      progress.report(progressFromBytes(loaded, totalBytes), loaded, totalBytes);
     }
 
     await writable.close();
-    report(100);
+    progress.end(loaded, totalBytes);
     return loaded;
   } catch (err) {
     try {
@@ -387,6 +426,7 @@ export async function streamDownloadResponse({
     const reader = response.body.getReader();
     const chunks = [];
     let loaded = 0;
+    const progress = createThrottledProgress(onProgress);
 
     while (true) {
       if (signal?.aborted) {
@@ -397,12 +437,11 @@ export async function streamDownloadResponse({
       }
       const { done, value } = await reader.read();
       if (done) break;
+      if (!value || !(value.byteLength || value.length)) continue;
 
       loaded += value.byteLength || value.length || 0;
       chunks.push(value);
-      if (typeof onProgress === "function") {
-        onProgress(progressFromBytes(loaded, totalBytes), loaded, totalBytes);
-      }
+      progress.report(progressFromBytes(loaded, totalBytes), loaded, totalBytes);
     }
 
     if (signal?.aborted) {
@@ -410,9 +449,9 @@ export async function streamDownloadResponse({
     }
 
     triggerBlobDownload(new Blob(chunks, { type: mime }), downloadName);
-    if (typeof onProgress === "function") {
-      onProgress(100, loaded, totalBytes);
-    }
+    // Allow GC of chunk list after Blob is built (Blob holds its own copy/refs).
+    chunks.length = 0;
+    progress.end(loaded, totalBytes);
     return { loaded, totalBytes, streamedToDisk: false };
   } catch (err) {
     // pipeResponseToWritable already aborts the writable on failure.

@@ -19,7 +19,7 @@ import {
   abortMultipartUploadDirect,
   DIRECT_UPLOAD_GAP_MS,
 } from "../utils/uploadFileDirect";
-import { DownloadContext } from "./DownloadContext";
+import { useDownloadActions } from "./DownloadContext";
 import { Prism as SyntaxHighlighter } from "react-syntax-highlighter";
 import { oneLight } from "react-syntax-highlighter/dist/esm/styles/prism";
 import { resolveFileIconPath, normalizeFolderFilesForPreview, encodeStorageUrl } from "../utils/fileIcon";
@@ -300,6 +300,13 @@ const Files = ({setSpanExpanded}) => {
     isPausing, // <-- new
     registerCancelRefresh,
   } = useContext(UploadContext);
+
+  const {
+    addDownload,
+    updateDownloadProgress,
+    removeDownload,
+    cancelDownload,
+  } = useDownloadActions();
 
   //Anurag Declaration
   const token = sessionStorage.getItem("number");
@@ -2984,13 +2991,6 @@ const chkFileorFolder = (file, size) => {
     setSelectedFile(file);
     setDownloadpopup(true);
   };
-
-  const {
-    addDownload,
-    updateDownloadProgress,
-    removeDownload,
-    cancelDownload,
-  } = useContext(DownloadContext);
 
 const handleConfirmDownload = async () => {
     if (!selectedFile) return;

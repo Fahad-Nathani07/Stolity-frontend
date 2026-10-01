@@ -1,5 +1,5 @@
-import React, { useContext, useState, useEffect, useRef } from "react";
-import { DownloadContext } from "./DownloadContext";
+import React, { useState, useEffect, useRef } from "react";
+import { useDownloadList, useDownloadActions } from "./DownloadContext";
 import { FaListUl, FaChevronUp } from "react-icons/fa";
 import DraggableFloatShell from "../components/DraggableFloatShell";
 import {
@@ -13,8 +13,8 @@ import { resolveFileIconPath } from "../utils/fileIcon";
 import "../css/UploadProgressModal.css";
 
 const DownloadProgressModal = () => {
-  const { downloads, cancelDownload, cancelAllDownloads } =
-    useContext(DownloadContext);
+  const downloads = useDownloadList();
+  const { cancelDownload, cancelAllDownloads } = useDownloadActions();
   const [showAll, setShowAll] = useState(false);
   const [minimized, setMinimized] = useState(false);
   const [downloadsMap, setDownloadsMap] = useState({});
@@ -282,4 +282,4 @@ const DownloadProgressModal = () => {
   );
 };
 
-export default DownloadProgressModal;
+export default React.memo(DownloadProgressModal);

@@ -133,16 +133,18 @@ const ForgotPassword = () => {
   const handleRequestOtp = async (e) => {
     e.preventDefault();
 
-    if (!email) {
+    const cleanedEmail = String(email || "").trim();
+    if (!cleanedEmail) {
       showToast("error", "Please enter your email address");
       return;
     }
+    setEmail(cleanedEmail);
 
     setIsLoading(true);
     try {
       const response = await axios.post(
         `${apiUrl}request-otp`,
-        { email },
+        { email: cleanedEmail },
         {
           headers: {
             "Content-Type": "application/json",

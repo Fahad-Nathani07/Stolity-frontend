@@ -21,7 +21,7 @@ import {
   abortMultipartUploadDirect,
   DIRECT_UPLOAD_GAP_MS,
 } from "../utils/uploadFileDirect";
-import { DownloadContext } from "./DownloadContext";
+import { useDownloadActions } from "./DownloadContext";
 import { resolveFileIconPath, normalizeFolderFilesForPreview, encodeStorageUrl } from "../utils/fileIcon";
 import { endUserSession } from "../utils/endUserSession";
 import { buildGetFolderParams } from "../utils/getFolderParams";
@@ -377,6 +377,9 @@ const NestedPage = () => {
     clearUploads,
     registerCancelRefresh,
   } = useContext(UploadContext);
+
+  const { addDownload, updateDownloadProgress, removeDownload } =
+    useDownloadActions();
   //Anurag Declaration
   const apiUrl = process.env.REACT_APP_API_ENDPOINT;
   const [selectedFilter, setSelectedFilter] = useState("Sort By");
@@ -4193,9 +4196,6 @@ useEffect(() => {
     setSelectedFile(file);
     setDownloadpopup(true);
   };
-  const { addDownload, updateDownloadProgress, removeDownload } =
-    useContext(DownloadContext);
-
   const handleConfirmDownload = async () => {
     if (!selectedFile) return;
 

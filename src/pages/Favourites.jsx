@@ -38,7 +38,7 @@ import {
   ZIP_THEN_DOWNLOAD_TOAST,
 } from "../utils/zipFolderThenNativeDownload";
 import { useZippingProgressModal } from "../hooks/useZippingProgressModal";
-import { DownloadContext } from "./DownloadContext";
+import { useDownloadActions } from "./DownloadContext";
 import { Prism as SyntaxHighlighter } from "react-syntax-highlighter";
 import { oneLight } from "react-syntax-highlighter/dist/esm/styles/prism";
 import Logo from "../images/logo.png";
@@ -226,6 +226,13 @@ const Favourites = () => {
   isPausing, // <-- new
   registerCancelRefresh,
 } = useContext(UploadContext);
+
+  const {
+    addDownload,
+    updateDownloadProgress,
+    removeDownload,
+    cancelDownload,
+  } = useDownloadActions();
 
   const {
     batchLimitPrompt,
@@ -2318,13 +2325,6 @@ const handleFileDelete = async (file) => {
     setSelectedFile(file);
     setDownloadpopup(true);
   };
-
-  const {
-    addDownload,
-    updateDownloadProgress,
-    removeDownload,
-    cancelDownload,
-  } = useContext(DownloadContext);
 
   const handleConfirmDownload = async () => {
     if (!selectedFile) return;
