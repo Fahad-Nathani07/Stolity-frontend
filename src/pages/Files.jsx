@@ -163,6 +163,7 @@ import blackboxImg from "../images/blackboxImg.svg"
 import AvatarDefault from "../images/AvatarDefault.jpg";
 
 import { FaLock } from "react-icons/fa";
+import { FiLifeBuoy } from "react-icons/fi";
 
 import {
   Tooltip,
@@ -5255,11 +5256,21 @@ useEffect(()=>{
 
               <div className="files-app-header__titles">
                 <h1 className="files-app-header__title">All Files</h1>
-                <div className="files-app-header__welcome files-nav-welcome">
-                  <span className="files-nav-welcome__greet">Welcome back</span>
-                  <span className="files-nav-welcome__name">
-                    {userProfile.name || userData?.userData?.name || userData?.name || name}
-                  </span>
+                <div className="files-app-header__end">
+                  <button
+                    type="button"
+                    className="files-app-header__support"
+                    onClick={() => navigate("/SupportTickets")}
+                  >
+                    <FiLifeBuoy aria-hidden="true" />
+                    Support
+                  </button>
+                  <div className="files-app-header__welcome files-nav-welcome">
+                    <span className="files-nav-welcome__greet">Welcome back</span>
+                    <span className="files-nav-welcome__name">
+                      {userProfile.name || userData?.userData?.name || userData?.name || name}
+                    </span>
+                  </div>
                 </div>
               </div>
 

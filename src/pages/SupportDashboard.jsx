@@ -32,7 +32,7 @@ const ALL_TABS = [
   { id: "users", label: "Users", enabled: true },
   { id: "activity", label: "File Activity", enabled: true },
   { id: "callbacks", label: "Callbacks", enabled: true },
-  { id: "questions", label: "Questions", enabled: true },
+  { id: "questions", label: "Tickets", enabled: true },
 ];
 
 const STATUS_OPTIONS = [
@@ -857,16 +857,25 @@ useEffect(() => {
         </ScrollReveal>
 
         {activeTab === "questions" && (
-          <ScrollReveal as="div" variant="fadeUp" delay={0.1} duration={0.85}>
-            <SupportQuestionsPane
-              apiUrl={apiUrl}
-              authHeaders={authHeaders}
-              email={email}
-              myId={myId}
-              token={token}
-              onItemCountChange={setQuestionsCount}
-            />
-          </ScrollReveal>
+          <div className="ssd-activity-host">
+            <ScrollReveal
+              as="div"
+              className="ssd-callbacks"
+              variant="fadeUp"
+              delay={0.1}
+              duration={0.85}
+              style={{ flex: "1 1 0", minHeight: 0, maxHeight: "100%", height: "100%", overflow: "hidden", display: "flex", flexDirection: "column" }}
+            >
+              <SupportQuestionsPane
+                apiUrl={apiUrl}
+                authHeaders={authHeaders}
+                email={email}
+                myId={myId}
+                token={token}
+                onItemCountChange={setQuestionsCount}
+              />
+            </ScrollReveal>
+          </div>
         )}
 
         {activeTab === "activity" && showFileActivity && (

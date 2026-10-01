@@ -10,7 +10,6 @@ import {
   FiChevronLeft,
   FiChevronRight,
   FiInbox,
-  FiMousePointer,
 } from "react-icons/fi";
 import { showToast } from "../components/ToastProvider";
 import { markPaneScrolling } from "../components/SupportFilterSelect";
@@ -34,6 +33,33 @@ function shiftDateKey(daysBack) {
   const m = String(d.getMonth() + 1).padStart(2, "0");
   const day = String(d.getDate()).padStart(2, "0");
   return `${y}-${m}-${day}`;
+}
+
+function formatDateKeyPretty(key) {
+  if (!key || !/^\d{4}-\d{2}-\d{2}$/.test(key)) return key || "—";
+  const [y, m, d] = key.split("-").map(Number);
+  try {
+    return new Date(y, m - 1, d).toLocaleDateString("en-IN", {
+      day: "2-digit",
+      month: "short",
+      year: "numeric",
+    });
+  } catch {
+    return key;
+  }
+}
+
+/** Single day → "Today · 01 Oct 2026" or just the date; range → "a → b". */
+function formatActivityRange(from, to, today = todayKey()) {
+  if (!from && !to) return "—";
+  if (from && to && from === to) {
+    const pretty = formatDateKeyPretty(from);
+    return from === today ? `Today · ${pretty}` : pretty;
+  }
+  if (from && to) {
+    return `${formatDateKeyPretty(from)} → ${formatDateKeyPretty(to)}`;
+  }
+  return formatDateKeyPretty(from || to);
 }
 
 function formatWhen(iso) {
@@ -110,6 +136,8 @@ export default function SupportUsersPane({
   const [detailsUserId, setDetailsUserId] = useState(null);
 
   const activeListDate = summary?.activeTodayDate || todayKey();
+  const rangeLabel = formatActivityRange(fromDate, toDate);
+  const activeDayLabel = formatActivityRange(activeListDate, activeListDate);
 
   const filterKey = useMemo(
     () => `${preset}|${fromDate}|${toDate}|${listMode}|${activeListDate}`,
@@ -394,25 +422,22 @@ export default function SupportUsersPane({
           onClick={showRegistrations}
           disabled={busy}
         >
-          <div className="ssd-users-card__top">
-            <span className="ssd-users-card__icon ssd-users-card__icon--accent">
-              <FiUserPlus aria-hidden />
-            </span>
-            <span className="ssd-users-card__hint">
-              <FiMousePointer aria-hidden /> Click to filter
+          <span className="ssd-users-card__icon ssd-users-card__icon--accent">
+            <FiUserPlus aria-hidden />
+          </span>
+          <div className="ssd-users-card__body">
+            <span className="ssd-users-card__label">Registered</span>
+            <strong className="ssd-users-card__value">
+              {datesReady ? Number(summary?.registeredInPeriod) || 0 : "—"}
+            </strong>
+            <span className="ssd-users-card__sub">
+              {datesReady
+                ? rangeLabel
+                : preset === "custom"
+                  ? "Pick From and To"
+                  : rangeLabel}
             </span>
           </div>
-          <span className="ssd-users-card__label">Registered in period</span>
-          <strong className="ssd-users-card__value">
-            {datesReady ? Number(summary?.registeredInPeriod) || 0 : "—"}
-          </strong>
-          <span className="ssd-users-card__sub">
-            {datesReady
-              ? `${fromDate} → ${toDate}`
-              : preset === "custom"
-                ? "Pick From and To"
-                : `${fromDate} → ${toDate}`}
-          </span>
         </button>
 
         <button
@@ -423,34 +448,22 @@ export default function SupportUsersPane({
           onClick={showActiveLogins}
           disabled={busy}
         >
-          <div className="ssd-users-card__top">
-            <span className="ssd-users-card__icon ssd-users-card__icon--accent">
-              <FiActivity aria-hidden />
-            </span>
-            <span className="ssd-users-card__hint">
-              <FiMousePointer aria-hidden /> Click to filter
-            </span>
-          </div>
-          <span className="ssd-users-card__label">Active today</span>
-          <strong className="ssd-users-card__value">
-            {Number(summary?.activeToday) || 0}
-          </strong>
-          <span className="ssd-users-card__sub">
-            {summary?.activeTodayDate || todayKey()} · logins
+          <span className="ssd-users-card__icon ssd-users-card__icon--accent">
+            <FiActivity aria-hidden />
           </span>
+          <div className="ssd-users-card__body">
+            <span className="ssd-users-card__label">Active today</span>
+            <strong className="ssd-users-card__value">
+              {Number(summary?.activeToday) || 0}
+            </strong>
+            <span className="ssd-users-card__sub">{activeDayLabel}</span>
+          </div>
         </button>
 
         <div
           className="ssd-users-card ssd-users-card--static ssd-users-card--merged"
           aria-label="User totals overview"
         >
-          <div className="ssd-users-card__top">
-            <span className="ssd-users-card__icon">
-              <FiUsers aria-hidden />
-            </span>
-            <span className="ssd-users-card__badge">Overview</span>
-          </div>
-          <span className="ssd-users-card__label">All users</span>
           <div className="ssd-users-merged">
             <div className="ssd-users-merged__item">
               <FiUsers aria-hidden />
@@ -504,10 +517,10 @@ export default function SupportUsersPane({
               </h3>
               <p>
                 {listMode === "active"
-                  ? activeListDate
+                  ? activeDayLabel
                   : !datesReady
                     ? "Select From and To to load registrations"
-                    : `${fromDate} → ${toDate}`}
+                    : rangeLabel}
               </p>
             </div>
           </div>
@@ -523,7 +536,6 @@ export default function SupportUsersPane({
                   {listMode === "active" ? "Last login" : "Registered"}
                 </th>
                 <th>Status</th>
-                <th>Actions</th>
               </tr>
             </thead>
             <tbody>
@@ -533,62 +545,65 @@ export default function SupportUsersPane({
                   !Number.isNaN(Number(u.usagePercent)) &&
                   Number(u.usagePercent) > 100;
                 return (
-                <tr
-                  key={u.id}
-                  className={overQuota ? "ssd-users-row--over" : undefined}
-                >
-                  <td title={u.email}>{u.email || "—"}</td>
-                  <td>{u.mobile || "N/A"}</td>
-                  <td>
-                    <span
-                      className={`ssd-pill ${
-                        u.accountType === "Premium"
-                          ? "ssd-pill-warn"
-                          : "ssd-pill-muted"
-                      }`}
-                    >
-                      {u.accountType || "Free"}
-                    </span>
-                  </td>
-                  <td className="ssd-users-table__storage">
-                    <StorageUsageBar
-                      usedLabel={u.storageUsed}
-                      limitLabel={u.storageLimit}
-                      percent={u.usagePercent}
-                    />
-                  </td>
-                  <td>
-                    {listMode === "active"
-                      ? formatWhen(u.lastLoginAt)
-                      : formatWhen(u.registeredAt)}
-                  </td>
-                  <td>
-                    <span
-                      className={`ssd-pill ${
-                        u.isSoftBan
-                          ? "ssd-pill-danger"
-                          : overQuota
+                  <tr
+                    key={u.id}
+                    className={`ssd-users-row${
+                      overQuota ? " ssd-users-row--over" : ""
+                    }`}
+                    onClick={() => setDetailsUserId(u.id)}
+                    onKeyDown={(e) => {
+                      if (e.key === "Enter" || e.key === " ") {
+                        e.preventDefault();
+                        setDetailsUserId(u.id);
+                      }
+                    }}
+                    tabIndex={0}
+                    role="button"
+                    aria-label={`Open details for ${u.email || u.id}`}
+                  >
+                    <td title={u.email}>{u.email || "—"}</td>
+                    <td>{u.mobile || "N/A"}</td>
+                    <td>
+                      <span
+                        className={`ssd-pill ${
+                          u.accountType === "Premium"
+                            ? "ssd-pill-premium"
+                            : "ssd-pill-muted"
+                        }`}
+                      >
+                        {u.accountType || "Free"}
+                      </span>
+                    </td>
+                    <td className="ssd-users-table__storage">
+                      <StorageUsageBar
+                        usedLabel={u.storageUsed}
+                        limitLabel={u.storageLimit}
+                        percent={u.usagePercent}
+                      />
+                    </td>
+                    <td>
+                      {listMode === "active"
+                        ? formatWhen(u.lastLoginAt)
+                        : formatWhen(u.registeredAt)}
+                    </td>
+                    <td>
+                      <span
+                        className={`ssd-pill ${
+                          u.isSoftBan
                             ? "ssd-pill-danger"
-                            : "ssd-pill-success"
-                      }`}
-                    >
-                      {u.isSoftBan
-                        ? u.status || "Soft-Banned"
-                        : overQuota
-                          ? "Over quota"
-                          : u.status || "Active"}
-                    </span>
-                  </td>
-                  <td>
-                    <button
-                      type="button"
-                      className="ssd-btn ssd-btn-ghost ssd-btn-xs"
-                      onClick={() => setDetailsUserId(u.id)}
-                    >
-                      Details
-                    </button>
-                  </td>
-                </tr>
+                            : overQuota
+                              ? "ssd-pill-danger"
+                              : "ssd-pill-success"
+                        }`}
+                      >
+                        {u.isSoftBan
+                          ? u.status || "Soft-Banned"
+                          : overQuota
+                            ? "Over quota"
+                            : u.status || "Active"}
+                      </span>
+                    </td>
+                  </tr>
                 );
               })}
             </tbody>
@@ -599,7 +614,7 @@ export default function SupportUsersPane({
       <div className="ssd-users-pager">
         <span className="ssd-muted">
           {users.length ? `Showing ${fromRow}–${toRow}` : "No rows"}
-          {listMode === "active" ? ` · ${activeListDate}` : ""}
+          {listMode === "active" ? ` · ${activeDayLabel}` : ""}
           {listLoading ? " · Loading…" : ""}
         </span>
         <div className="ssd-users-pager-btns">
@@ -628,8 +643,8 @@ export default function SupportUsersPane({
           userId={detailsUserId}
           apiUrl={apiUrl}
           authHeaders={authHeaders}
-          fromDate={fromDate}
-          toDate={toDate}
+          fromDate={datesReady ? fromDate : todayKey()}
+          toDate={datesReady ? toDate : todayKey()}
           agentEmail={agentEmail}
           onClose={() => setDetailsUserId(null)}
         />

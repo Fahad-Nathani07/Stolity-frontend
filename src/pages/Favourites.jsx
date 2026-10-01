@@ -132,6 +132,7 @@ import svgTxt from "../images/TypesTxt.svg"
 import svgZip from "../images/TypesZip.svg"
 
 import { FaLock } from "react-icons/fa";
+import { FiLifeBuoy } from "react-icons/fi";
 
 import {
   Tooltip,
@@ -4976,7 +4977,7 @@ const Favourites = () => {
                 justifyContent: "space-between",
                 width: "100%",
               }}>
-                <div>
+                <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
                   <h1>Favourites</h1>
                 </div>
 
@@ -4985,6 +4986,14 @@ const Favourites = () => {
                   alignItems: "center",
                   gap: "10px"
                 }}>
+                  <button
+                    type="button"
+                    className="page_title-support-btn"
+                    onClick={() => nav("/SupportTickets")}
+                  >
+                    <FiLifeBuoy aria-hidden="true" />
+                    Support
+                  </button>
                   <div style={{
                     color: "#494949",
                     fontWeight: "510"

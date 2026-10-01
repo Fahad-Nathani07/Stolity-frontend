@@ -173,6 +173,7 @@ import StarBorderIcon from "@mui/icons-material/StarBorder";
 import svgDoc from "../images/TypesDoc.svg"
 import svgFolder from "../images/TypesFolder.svg"
 import { FaDownload } from "react-icons/fa";
+import { FiLifeBuoy } from "react-icons/fi";
 import svgJpg from "../images/TypesJpg.svg"
 import svgMp3 from "../images/TypesMp3.svg"
 import svgMp4 from "../images/TypesMp4.svg"
@@ -5875,11 +5876,21 @@ const NestedPage = () => {
 
               <div className="files-app-header__titles">
                 <h1 className="files-app-header__title">All Files</h1>
-                <div className="files-app-header__welcome files-nav-welcome">
-                  <span className="files-nav-welcome__greet">Welcome back</span>
-                  <span className="files-nav-welcome__name">
-                    {userProfile.name || userData?.userData?.name || userData?.name || name}
-                  </span>
+                <div className="files-app-header__end">
+                  <button
+                    type="button"
+                    className="files-app-header__support"
+                    onClick={() => navigate("/SupportTickets")}
+                  >
+                    <FiLifeBuoy aria-hidden="true" />
+                    Support
+                  </button>
+                  <div className="files-app-header__welcome files-nav-welcome">
+                    <span className="files-nav-welcome__greet">Welcome back</span>
+                    <span className="files-nav-welcome__name">
+                      {userProfile.name || userData?.userData?.name || userData?.name || name}
+                    </span>
+                  </div>
                 </div>
               </div>
 

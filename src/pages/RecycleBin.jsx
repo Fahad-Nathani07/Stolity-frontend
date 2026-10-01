@@ -28,6 +28,7 @@ import { resolveMediaPlayUrl } from "../utils/mediaPlayUrl";
 import { resolveDocumentBlobUrl } from "../utils/documentPreview";
 import EmptyFilesState from "../components/EmptyFilesState";
 import SortByDropdown from "../components/SortByDropdown";
+import { FiLifeBuoy } from "react-icons/fi";
 import { gatePremiumSort } from "../utils/premiumSort";
 import "../css/FilesToolbar.css";
 import "../css/FolderDestModalViewport.css";
@@ -3504,7 +3505,7 @@ const isMultiSizeExceeded = selectedTotalBytes > remainingBytes;
                     justifyContent: "space-between",
                     width: "100%",
               }}>
-                <div>
+                <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
                   <h1>Recycle Bin</h1>
                 </div>
 
@@ -3513,6 +3514,14 @@ const isMultiSizeExceeded = selectedTotalBytes > remainingBytes;
                   alignItems:"center",
                   gap:"10px"
                 }}>
+                  <button
+                    type="button"
+                    className="page_title-support-btn"
+                    onClick={() => nav("/SupportTickets")}
+                  >
+                    <FiLifeBuoy aria-hidden="true" />
+                    Support
+                  </button>
                   <div style={{
                     color: "#494949",
                     fontWeight:"510"
