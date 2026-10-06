@@ -6,10 +6,10 @@
   vertical-align: middle;
 }
 
-/* Table list: keep name column ellipsis + room for the tip above */
+/* Table list: name uses available column width; CSS ellipsis when needed */
 .file-item > .trunc-tip-wrap {
   flex: 1 1 auto;
-  max-width: 85%;
+  max-width: 100%;
   min-width: 0;
 }
 

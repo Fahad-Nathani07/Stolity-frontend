@@ -61,6 +61,7 @@ import NewLogo from "./images/NewLogo.svg";
 import InactivityHandler from './components/InactivityHandler';
 import StorageWarningModal from './components/StorageWarningModal';
 import PrivateRoute from './components/PrivateRoute';
+import ReferralCapture from './components/ReferralCapture';
 import { installRowActionDropdownPosition } from './utils/rowActionDropdownPosition';
 
 
@@ -139,6 +140,7 @@ const {
       <DownloadProvider>
         <Router basename="/">
       <AnalyticsPageViews />
+      <ReferralCapture />
       <InactivityHandler />
       <StorageWarningModal />
       <ToastRoot />
@@ -197,7 +199,9 @@ const {
             <Routes>
               {/* Public routes */}
               <Route path="/Login" element={<Login spanExpanded={spanExpanded} setSpanExpanded={setSpanExpanded} />} />
+              <Route path="/login" element={<Login spanExpanded={spanExpanded} setSpanExpanded={setSpanExpanded} />} />
               <Route path="/Signup" element={<Signup />} />
+              <Route path="/signup" element={<Signup />} />
               <Route path="/ForgotPassword" element={<ForgotPassword />} />
               <Route path="/SignupWithGoogle" element={<SignupWithGoogle />} />
               <Route path="/pre-login" element={<PreLogin />} />

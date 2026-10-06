@@ -25,6 +25,10 @@ import protectionIcon from "../images/protectionIcon.svg";
 import axios from "axios";
 import { FaArrowLeft } from "react-icons/fa";
 import { showToast } from "../components/ToastProvider";
+import {
+  getStoredReferralCode,
+  attributeStoredReferral,
+} from "../utils/referralCapture";
 
 const Signup = () => {
   const apiUrl = process.env.REACT_APP_API_ENDPOINT;
@@ -111,7 +115,8 @@ const Signup = () => {
     if (buttonClicked) {
       const buttonTimeout = setTimeout(() => {
         setButtonClicked(false);
-        navigate("/login");
+        // Keep /Login casing (route is /Login); ref already attributed server-side via OTP
+        navigate("/Login");
       }, 1500);
       return () => clearTimeout(buttonTimeout);
     }
@@ -149,9 +154,13 @@ const Signup = () => {
 
     setIsLoading(true);
     try {
+      const referralCode = getStoredReferralCode() || undefined;
       const response = await axios.post(
         `${apiUrl}register-otp`,
-        { email },
+        {
+          email,
+          ...(referralCode ? { referralCode } : {}),
+        },
         {
           headers: {
             "Content-Type": "application/json",
@@ -170,27 +179,56 @@ const Signup = () => {
     }
   };
 
-  // STEP 2: Verify OTP
+  // STEP 2: Verify OTP via API — only then advance to signup form
   const handleVerifyOtp = async (e) => {
     e.preventDefault();
 
-    if (!otp) {
-      showToast("error", "Please enter the OTP");
+    const code = String(otp || "").trim();
+    if (!code || code.length !== 6) {
+      showToast("error", "Please enter the 6-digit OTP");
       return;
     }
 
-    showToast("success", "Proceeding to complete signup...");
-    // showToast("success", "OTP verified! Complete your signup");
-    setStep(3); // Move to final signup step
+    setIsLoading(true);
+    try {
+      const response = await axios.post(
+        `${apiUrl}verify-register-otp`,
+        { email, otp: code },
+        { headers: { "Content-Type": "application/json" } }
+      );
+
+      if (!response.data?.valid) {
+        showToast(
+          "error",
+          response.data?.message || "Invalid OTP. Please try again."
+        );
+        return;
+      }
+
+      showToast("success", "OTP verified! Complete your signup");
+      setStep(3);
+    } catch (error) {
+      console.error("Error verifying OTP:", error);
+      showToast(
+        "error",
+        error.response?.data?.message || "Invalid OTP. Please try again."
+      );
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   // Resend OTP
   const handleResendOtp = async () => {
     setIsLoading(true);
     try {
+      const referralCode = getStoredReferralCode() || undefined;
       const response = await axios.post(
         `${apiUrl}register-otp`,
-        { email },
+        {
+          email,
+          ...(referralCode ? { referralCode } : {}),
+        },
         {
           headers: {
             "Content-Type": "application/json",
@@ -199,6 +237,7 @@ const Signup = () => {
       );
 
       console.log("OTP resent:", response.data);
+      setOtp("");
       showToast("success", "OTP resent to your email!");
     } catch (error) {
       console.error("Error resending OTP:", error);
@@ -223,15 +262,18 @@ const Signup = () => {
       return;
     }
 
-    setButtonClicked(true);
+    // Do NOT navigate until register succeeds — early /login redirect was dropping
+    // in-flight attribution and made ?ref= disappear from the address bar.
     setSpanExpanded(true);
     setIsLoading(true);
 
     try {
+      // Keep stolity_ref in localStorage through register → login.
+      // Signup attribution runs after successful login.
       const res = await axios.post(
         `${apiUrl}verified-register-user`,
         {
-          name: name,
+          name: name.trim(),
           email: email,
           password: password,
           confirmPassword: confirmPassword,
@@ -245,9 +287,11 @@ const Signup = () => {
       );
       console.log(res.data);
       showToast("success", "Account has been created successfully!");
+      setButtonClicked(true); // start success animation → /Login after API done
     } catch (error) {
       console.error("Error creating account:", error);
       showToast("error", error.response?.data?.message || "Error creating account!");
+      setSpanExpanded(false);
       setIsLoading(false);
     }
   };
@@ -281,6 +325,12 @@ const Signup = () => {
       if (data.loginId) {
         sessionStorage.setItem("userId", data.loginId.toString());
       }
+
+      // Google signup skips /Login — attribute here while ref is still stored
+      if (getStoredReferralCode()) {
+        await attributeStoredReferral(apiUrl, data.accessToken);
+      }
+
       navigate("/Files");
     } catch (error) {
       setSpanExpanded(false);
@@ -491,12 +541,7 @@ const Signup = () => {
               <button
                 type="submit"
                 className="btn_login ripple_effect"
-                disabled={isLoading}
-                style={{
-                  background: "linear-gradient(135deg, #E5660F 0%, #FF8C42 100%)",
-                  border: "none",
-                  boxShadow: "0 4px 15px rgba(255, 171, 73, 0.3)",
-                }}
+                disabled={isLoading || String(otp || "").trim().length !== 6}
               >
                 {isLoading ? "Verifying..." : "Verify OTP"}
               </button>
@@ -585,7 +630,7 @@ const Signup = () => {
                   className="form-control form_control"
                   placeholder="Enter full name"
                   value={name}
-                  onChange={(e) => setName(e.target.value.trim())}
+                  onChange={(e) => setName(e.target.value)}
                   autoComplete="off"
                   name="fullname"
                 />

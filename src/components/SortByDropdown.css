@@ -81,6 +81,10 @@
   text-align: left;
 }
 
+.sort-by-label--short {
+  display: none;
+}
+
 .sort-by-dropdown.is-active .sort-by-label {
   color: #9a3412;
 }
@@ -162,6 +166,27 @@
     0 4px 6px rgba(15, 23, 42, 0.04),
     0 18px 36px rgba(15, 23, 42, 0.12);
   animation: sort-by-menu-in 0.16s ease;
+  box-sizing: border-box;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+/* Portaled fixed menu — used on all viewports so sticky filter never clips it */
+.sort-by-menu--portal {
+  position: fixed;
+  top: auto;
+  left: auto;
+  min-width: 0;
+}
+
+.sort-by-menu-scroll {
+  min-height: 0;
+  overflow-x: hidden;
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+  flex: 1 1 auto;
+  padding-bottom: 2px;
 }
 
 @keyframes sort-by-menu-in {
@@ -308,11 +333,26 @@
   opacity: 0.75;
 }
 
-@media (max-width: 640px) {
-  .sort-by-menu {
-    left: auto;
-    right: 0;
-    width: min(280px, calc(100vw - 32px));
-    min-width: 0;
+@media (max-width: 767px) {
+  .sort-by-label--full {
+    display: none;
+  }
+
+  .sort-by-label--short {
+    display: inline;
+  }
+
+  .sort-by-menu--portal {
+    border-radius: 16px;
+    padding: 8px;
+  }
+
+  .sort-by-item {
+    padding: 8px 10px;
+    min-height: 40px;
+  }
+
+  .sort-by-item-main {
+    font-size: 13.5px;
   }
 }

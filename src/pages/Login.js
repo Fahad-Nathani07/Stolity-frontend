@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from "react";
+import React, { useState, useEffect, useCallback, useRef } from "react";
 import CustomGoogleAuthButton from "../components/CustomGoogleAuthButton";
 import { useNavigate } from "react-router-dom";
 import axios from "axios";
@@ -19,6 +19,10 @@ import { setUserProfileFromUserData, normalizeAvatarUrl } from "../store/userPro
 
 import { FaArrowLeft } from "react-icons/fa";
 import "../css/LoginGraphicTip.css";
+import {
+  getStoredReferralCode,
+  attributeStoredReferral,
+} from "../utils/referralCapture";
 
 const REMEMBER_EMAIL_KEY = "stolity_remember_email";
 
@@ -72,6 +76,8 @@ const Login = ({ setSpanExpanded, spanExpanded }) => {
   // ────────────────────────────────────────────────
   const [showPassword, setShowPassword] = useState(false);
   const togglePasswordVisibility = () => setShowPassword(!showPassword);
+  const emailInputRef = useRef(null);
+  const passwordInputRef = useRef(null);
 
   // ────────────────────────────────────────────────
   //   Slide animation
@@ -233,29 +239,74 @@ const Login = ({ setSpanExpanded, spanExpanded }) => {
     }
   };
 
+  // Browser autofill paints values without firing React onChange — sync DOM → state
+  const syncAutofillFromDom = useCallback(() => {
+    const emailEl = emailInputRef.current;
+    const passEl = passwordInputRef.current;
+    if (emailEl) {
+      const nextEmail = emailEl.value || "";
+      setEmail((prev) => (prev === nextEmail ? prev : nextEmail));
+      if (nextEmail.trim()) setEmailError("");
+    }
+    if (passEl) {
+      const nextPass = passEl.value || "";
+      setPassword((prev) => (prev === nextPass ? prev : nextPass));
+      if (nextPass.trim()) setPasswordError("");
+    }
+  }, []);
+
+  useEffect(() => {
+    if (!isPageReady) return undefined;
+
+    // Chrome/Edge often autofill after first paint; poll briefly
+    const timers = [50, 150, 400, 800, 1500].map((ms) =>
+      setTimeout(syncAutofillFromDom, ms)
+    );
+    const onFocus = () => syncAutofillFromDom();
+    window.addEventListener("focus", onFocus);
+    document.addEventListener("visibilitychange", onFocus);
+
+    return () => {
+      timers.forEach(clearTimeout);
+      window.removeEventListener("focus", onFocus);
+      document.removeEventListener("visibilitychange", onFocus);
+    };
+  }, [isPageReady, syncAutofillFromDom]);
+
   // ────────────────────────────────────────────────
   //   LOGIN REQUEST - with attempt logic
   // ────────────────────────────────────────────────
   const handleReq = useCallback(async () => {
+    // Prefer live input values (browser autofill may not have updated React state yet)
+    const loginEmail = (emailInputRef.current?.value || email).trim();
+    const loginPassword = passwordInputRef.current?.value || password;
+
     // Already locked?
     if (lockoutUntil && lockoutUntil > Date.now()) {
       showToast("warning", `Account locked. Try again in ${Math.ceil(countdownSeconds / 60)} minutes.`);
       return;
     }
 
+    if (!loginEmail || !String(loginPassword).trim()) {
+      showToast("warning", "Enter email and password to continue");
+      return;
+    }
+
     if (isLoggingIn) return;
     setIsLoggingIn(true);
+    if (loginEmail !== email) setEmail(loginEmail);
+    if (loginPassword !== password) setPassword(loginPassword);
 
     try {
       const res = await axios.post(
         `${apiEndPoint}login-user`,
-        { email, password },
+        { email: loginEmail, password: loginPassword },
         { headers: { "Content-Type": "application/json" } }
       );
 
       if (res.status === 200) {
         // SUCCESS → reset attempts
-        const key = `login_attempts_${email.toLowerCase().trim()}`;
+        const key = `login_attempts_${loginEmail.toLowerCase()}`;
         localStorage.removeItem(key);
         setLoginAttempts(0);
         setLockoutUntil(null);
@@ -302,12 +353,21 @@ const Login = ({ setSpanExpanded, spanExpanded }) => {
         );
 
         setError(null);
-        dispatch(loginUser({ email, password }));
+        dispatch(loginUser({ email: loginEmail, password: loginPassword }));
 
         if (rememberMe) {
-          localStorage.setItem(REMEMBER_EMAIL_KEY, email.toLowerCase().trim());
+          localStorage.setItem(REMEMBER_EMAIL_KEY, loginEmail.toLowerCase());
         } else {
           localStorage.removeItem(REMEMBER_EMAIL_KEY);
+        }
+
+        // Affiliate: attribute once, then remove stolity_ref so logout/login cannot re-count
+        if (getStoredReferralCode()) {
+          try {
+            await attributeStoredReferral(apiEndPoint, accessToken);
+          } catch {
+            /* non-blocking */
+          }
         }
       } else {
         setIsLoggingIn(false);
@@ -328,7 +388,7 @@ const Login = ({ setSpanExpanded, spanExpanded }) => {
         newAttempts = loginAttempts + 1;
         setLoginAttempts(newAttempts);
 
-        const key = `login_attempts_${email.toLowerCase().trim()}`;
+        const key = `login_attempts_${loginEmail.toLowerCase()}`;
 
         if (newAttempts >= 5) {
           const lockUntil = Date.now() + 15 * 60 * 1000;
@@ -390,7 +450,12 @@ const Login = ({ setSpanExpanded, spanExpanded }) => {
 
   const handleSubmit = (event) => {
     event.preventDefault();
-    if (!canSubmitLogin) return;
+    // Autofill may still be ahead of React state on first click
+    syncAutofillFromDom();
+    const emailValue = (emailInputRef.current?.value || email).trim();
+    const passwordValue = (passwordInputRef.current?.value || password).trim();
+    if (!emailValue || !passwordValue || isLoggingIn) return;
+    if (lockoutUntil && lockoutUntil > Date.now()) return;
     if (emailError === "" && passwordError === "") {
       handleReq();
     }
@@ -468,6 +533,12 @@ const Login = ({ setSpanExpanded, spanExpanded }) => {
         })
       );
       dispatch(setGoogleAuth(true));
+
+      // Affiliate attribution after Google auth (new or first login with stored ref)
+      if (getStoredReferralCode()) {
+        await attributeStoredReferral(apiEndPoint, a);
+      }
+
       navigate("/Files");
     } catch (error) {
       setSpanExpanded(false);
@@ -586,12 +657,16 @@ const Login = ({ setSpanExpanded, spanExpanded }) => {
                     <div className="form_group">
                       <label className="login_label">Email address</label>
                       <input
+                        ref={emailInputRef}
                         type="email"
-                        className={`form-control form_control ${emailError ? "is-invalid" : ""}`}
                         name="email"
+                        autoComplete="email"
+                        className={`form-control form_control ${emailError ? "is-invalid" : ""}`}
                         placeholder="Enter Email address"
                         value={email}
                         onChange={handleEmail}
+                        onInput={handleEmail}
+                        onAnimationStart={syncAutofillFromDom}
                       />
                     </div>
                     {emailError && <div className="error-message">{emailError}</div>}
@@ -600,11 +675,16 @@ const Login = ({ setSpanExpanded, spanExpanded }) => {
                       <label className="login_label">Password</label>
                       <div className="text_field">
                         <input
+                          ref={passwordInputRef}
                           type={showPassword ? "text" : "password"}
+                          name="password"
+                          autoComplete="current-password"
                           className="form-control form_control"
                           placeholder="Enter your Password"
                           value={password}
                           onChange={handlePass}
+                          onInput={handlePass}
+                          onAnimationStart={syncAutofillFromDom}
                         />
                         <div className="icon_field" onClick={togglePasswordVisibility}>
                           {showPassword ? <PasswordShow /> : <PasswordHide />}

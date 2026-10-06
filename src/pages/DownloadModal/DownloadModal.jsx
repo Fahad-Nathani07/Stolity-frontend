@@ -108,7 +108,19 @@ const DownloadModal = ({
   const resolveFolderPath = () => {
     const chosen = downloadPath !== null ? downloadPath : path;
     if (chosen == null || chosen === "") return "";
-    return String(chosen).replace(/^\/+|\/+$/g, "");
+    let cleaned = String(chosen).replace(/^\/+|\/+$/g, "");
+
+    // Shared folder: destination must be relative to shared root
+    // (same as uploadFileDirect / getFolder params).
+    if (isSharedValue && filenameRedux) {
+      const root = String(filenameRedux).replace(/^\/+|\/+$/g, "");
+      if (cleaned === root) return "";
+      if (root && cleaned.startsWith(`${root}/`)) {
+        cleaned = cleaned.slice(root.length + 1);
+      }
+    }
+
+    return cleaned;
   };
 
   const handleSubmit = async (e) => {

@@ -6,10 +6,12 @@ import React, {
   useState,
 } from "react";
 import { useNavigate, useParams, useSearchParams } from "react-router-dom";
+import { useSelector } from "react-redux";
 import axios from "axios";
 import { FiArrowLeft, FiPlus, FiSend, FiLifeBuoy } from "react-icons/fi";
 import SideNav from "../components/SideNav";
 import { showToast } from "../components/ToastProvider";
+import AvatarDefault from "../images/AvatarDefault.jpg";
 import {
   SUPPORT_TICKET_CATEGORIES,
   formatTicketCategory,
@@ -18,7 +20,8 @@ import {
   TICKET_MESSAGE_MIN,
   TICKET_MESSAGE_MAX,
 } from "../utils/supportTicketConstants";
-import "../css/SettingsPageBreadcrumb.css";
+import "../css/FilesToolbar.css";
+import "../css/FilesPage.css";
 import "../css/SupportTickets.css";
 
 const apiUrl = process.env.REACT_APP_API_ENDPOINT;
@@ -83,6 +86,20 @@ export default function SupportTicketsPage() {
   const { ticketId } = useParams();
   const [searchParams] = useSearchParams();
   const wantNew = searchParams.get("new") === "1" || ticketId === "new";
+  const userProfile = useSelector((state) => state.userProfile);
+  const FILES_MOBILE_BP = 767;
+  const [isMobile, setIsMobile] = useState(
+    () =>
+      typeof window !== "undefined" && window.innerWidth <= FILES_MOBILE_BP
+  );
+
+  useEffect(() => {
+    const mq = window.matchMedia(`(max-width: ${FILES_MOBILE_BP}px)`);
+    const onChange = () => setIsMobile(mq.matches);
+    onChange();
+    mq.addEventListener("change", onChange);
+    return () => mq.removeEventListener("change", onChange);
+  }, []);
 
   const [tickets, setTickets] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -97,6 +114,10 @@ export default function SupportTicketsPage() {
   const messagesEndRef = useRef(null);
 
   const view = wantNew ? "new" : ticketId ? "chat" : "list";
+  const displayName =
+    userProfile?.name || sessionStorage.getItem("name") || "User";
+  const avatarUrl =
+    userProfile?.avatar || sessionStorage.getItem("avatar") || "";
 
   const fetchTickets = useCallback(async () => {
     try {
@@ -250,21 +271,68 @@ export default function SupportTicketsPage() {
   };
 
   return (
-    <div className="faq-main-wrapper2">
+    <div
+      className={`stu-layout files-layout${
+        isMobile ? " files-layout--mobile" : ""
+      }`}
+    >
       <SideNav />
-      <div className="stolity-settings-header">
-        <div className="stolity-settings-breadcrumb">
-          <span>Settings</span>
-          <span className="stolity-settings-breadcrumb-sep" aria-hidden="true">
-            ›
-          </span>
-          <span className="stolity-settings-breadcrumb-current">
-            Support Tickets
-          </span>
+      <nav className="navbar p-0 fixed-top d-flex flex-row files-navbar">
+        <div className="navbar-menu-wrapper flex-grow files-navbar__shell">
+          <header className="files-app-header">
+            <div className="files-app-header__titles">
+              <h1 className="files-app-header__title">Support Tickets</h1>
+              <div className="files-app-header__end">
+                {view === "list" ? (
+                  <button
+                    type="button"
+                    className="files-app-header__support"
+                    title="Raise ticket"
+                    aria-label="Raise ticket"
+                    onClick={() => navigate("/SupportTickets/new")}
+                  >
+                    <FiPlus aria-hidden="true" />
+                    Raise
+                  </button>
+                ) : (
+                  <button
+                    type="button"
+                    className="files-app-header__support"
+                    title="All tickets"
+                    aria-label="All tickets"
+                    onClick={() => navigate("/SupportTickets")}
+                  >
+                    <FiLifeBuoy aria-hidden="true" />
+                    Tickets
+                  </button>
+                )}
+                <div className="files-app-header__welcome files-nav-welcome">
+                  <span className="files-nav-welcome__greet">Welcome back</span>
+                  <span className="files-nav-welcome__name">{displayName}</span>
+                </div>
+              </div>
+            </div>
+            <button
+              type="button"
+              className="files-app-header__profile"
+              title="Edit profile"
+              aria-label="Open profile"
+              onClick={() => navigate("/UserProfile")}
+            >
+              <img
+                src={avatarUrl || AvatarDefault}
+                alt=""
+                onError={(e) => {
+                  e.target.onerror = null;
+                  e.target.src = AvatarDefault;
+                }}
+              />
+            </button>
+          </header>
         </div>
-      </div>
+      </nav>
 
-      <div className="faq-main-wrapper stu-page">
+      <div className={`stu-page${view === "chat" ? " stu-page--chat" : ""}`}>
             {view === "list" ? (
               <div className="stu-shell">
                 <header className="stu-hero">
@@ -282,7 +350,7 @@ export default function SupportTicketsPage() {
                   </div>
                   <button
                     type="button"
-                    className="stu-btn stu-btn--primary"
+                    className="stu-btn stu-btn--primary stu-hero-cta"
                     onClick={() => navigate("/SupportTickets/new")}
                   >
                     <FiPlus /> Raise Ticket
@@ -349,52 +417,88 @@ export default function SupportTicketsPage() {
                       ) : null}
                     </div>
                   ) : (
-                    <div className="stu-table-wrap">
-                      <table className="stu-table">
-                        <thead>
-                          <tr>
-                            <th>ID</th>
-                            <th>Category</th>
-                            <th>Message</th>
-                            <th>Status</th>
-                            <th>Updated</th>
-                          </tr>
-                        </thead>
-                        <tbody>
-                          {visibleTickets.map((t) => (
-                            <tr
-                              key={t.id}
-                              onClick={() =>
-                                navigate(`/SupportTickets/${t.id}`)
-                              }
-                            >
-                              <td className="stu-mono">
-                                {ticketDisplayCode(t.id)}
-                              </td>
-                              <td>{formatTicketCategory(t.category)}</td>
-                              <td className="stu-preview" title={t.question}>
-                                {String(t.question || "").slice(0, 80)}
-                                {String(t.question || "").length > 80
-                                  ? "…"
-                                  : ""}
-                              </td>
-                              <td>
-                                <span
-                                  className={`stu-status stu-status--${statusTone(
-                                    t.status
-                                  )}`}
-                                >
-                                  {formatTicketStatus(t.status)}
-                                </span>
-                              </td>
-                              <td className="stu-when">
-                                {formatWhen(t.updatedAt || t.createdAt)}
-                              </td>
+                    <>
+                      <div className="stu-table-wrap stu-table-wrap--desktop">
+                        <table className="stu-table">
+                          <thead>
+                            <tr>
+                              <th>ID</th>
+                              <th>Category</th>
+                              <th>Message</th>
+                              <th>Status</th>
+                              <th>Updated</th>
                             </tr>
-                          ))}
-                        </tbody>
-                      </table>
-                    </div>
+                          </thead>
+                          <tbody>
+                            {visibleTickets.map((t) => (
+                              <tr
+                                key={t.id}
+                                onClick={() =>
+                                  navigate(`/SupportTickets/${t.id}`)
+                                }
+                              >
+                                <td className="stu-mono">
+                                  {ticketDisplayCode(t.id)}
+                                </td>
+                                <td>{formatTicketCategory(t.category)}</td>
+                                <td className="stu-preview" title={t.question}>
+                                  {String(t.question || "").slice(0, 80)}
+                                  {String(t.question || "").length > 80
+                                    ? "…"
+                                    : ""}
+                                </td>
+                                <td>
+                                  <span
+                                    className={`stu-status stu-status--${statusTone(
+                                      t.status
+                                    )}`}
+                                  >
+                                    {formatTicketStatus(t.status)}
+                                  </span>
+                                </td>
+                                <td className="stu-when">
+                                  {formatWhen(t.updatedAt || t.createdAt)}
+                                </td>
+                              </tr>
+                            ))}
+                          </tbody>
+                        </table>
+                      </div>
+
+                      <div className="stu-ticket-cards" aria-label="Tickets">
+                        {visibleTickets.map((t) => (
+                          <button
+                            key={t.id}
+                            type="button"
+                            className="stu-ticket-card"
+                            onClick={() => navigate(`/SupportTickets/${t.id}`)}
+                          >
+                            <div className="stu-ticket-card__top">
+                              <span className="stu-mono">
+                                {ticketDisplayCode(t.id)}
+                              </span>
+                              <span
+                                className={`stu-status stu-status--${statusTone(
+                                  t.status
+                                )}`}
+                              >
+                                {formatTicketStatus(t.status)}
+                              </span>
+                            </div>
+                            <div className="stu-ticket-card__cat">
+                              {formatTicketCategory(t.category)}
+                            </div>
+                            <p className="stu-ticket-card__preview">
+                              {String(t.question || "").slice(0, 110)}
+                              {String(t.question || "").length > 110 ? "…" : ""}
+                            </p>
+                            <div className="stu-ticket-card__when">
+                              {formatWhen(t.updatedAt || t.createdAt)}
+                            </div>
+                          </button>
+                        ))}
+                      </div>
+                    </>
                   )}
                 </div>
               </div>

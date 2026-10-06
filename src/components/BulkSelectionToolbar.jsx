@@ -210,7 +210,12 @@ export default function BulkSelectionToolbar({
           disabled={!isOpen}
           tabIndex={isOpen ? 0 : -1}
         >
-          {isSelectAll ? "Deselect all" : "Select all"}
+          <span className="bulk-selection-float__text-full">
+            {isSelectAll ? "Deselect all" : "Select all"}
+          </span>
+          <span className="bulk-selection-float__text-short" aria-hidden="true">
+            {isSelectAll ? "None" : "All"}
+          </span>
         </button>
 
         <div className="bulk-selection-float__divider" aria-hidden="true" />

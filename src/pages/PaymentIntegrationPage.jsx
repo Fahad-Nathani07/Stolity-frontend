@@ -117,7 +117,8 @@ const generatePaymentQR = async () => {
       body: JSON.stringify({
         amount: amount,
         name: userName,                    // ← now dynamic!
-        upiId: "7030734568@ybl",
+        // upiId: "7030734568@ybl",
+        upiId: "9403856909@ybl",
         userId: userId     
       })
     }

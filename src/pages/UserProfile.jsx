@@ -1,21 +1,14 @@
 import React, { useEffect, useRef, useState } from "react";
-import Logo from "../images/logo.png";
 import SideNav from "../components/SideNav";
 import Footer from "../components/Footer";
-import ToggleNav from "../components/ToggleNav";
 import ImgProfile from "../images/img-profile.svg";
-import fullscreeen from "../images/fullscreen.png";
-import zoomin from "../images/zoomin.png";
-import zoomout from "../images/zoomout.png";
 import iconCalendar from "../images/iconCalendar.svg";
 import IconExcel from "../images/IconExcel.svg";
 import IconPPT from "../images/IconPPT.svg";
 import IconAI from "../images/IconAI.svg";
 import IconFigma from "../images/IconFigma.svg";
 import IconFolder from "../images/folder.svg";
-import VideoPlayer from "../components/VideoPlayer";
-import { resolveVideoPlayUrl } from "../utils/videoPlayer";
-import { buildFileStreamUrl, preloadStreamedImage } from "../utils/fileStream";
+import { preloadStreamedImage } from "../utils/fileStream";
 import { resolveMediaPlayUrl } from "../utils/mediaPlayUrl";
 import { resolveDocumentBlobUrl } from "../utils/documentPreview";
 import Avatar1 from "../images/Avatar1.svg";
@@ -24,6 +17,7 @@ import Avatar2 from "../images/Avatar2.svg";
 import Avatar3 from "../images/Avatar3.svg";
 import Avatar4 from "../images/Avatar4.svg";
 import deleteIcon3 from "../images/mediaPlayer/trash1.svg";
+import deleteIcon from "../images/deleteIcon2.svg";
 import DeletePopup from "../images/deletePopup.svg";
 import ImgStolityApp from "../images/img-stolity-app.png";
 import { ReactComponent as PasswordShow } from "../images/icon-eye.svg";
@@ -31,6 +25,7 @@ import { ReactComponent as PasswordHide } from "../images/icon-eye-hide.svg";
 import axios from "axios";
 import { Modal as RsuiteModal } from "rsuite";
 import { useNavigate } from "react-router-dom";
+import { FiLifeBuoy } from "react-icons/fi";
 import loaderGif from "../images/Loaders/Animation4.gif";
 import svgDoc from "../images/TypesDoc.svg"
 import svgFolder from "../images/TypesFolder.svg"
@@ -47,6 +42,11 @@ import { setUserProfile, normalizeAvatarUrl } from "../store/userProfileSlice";
 import { usePlayAudio } from "../hooks/usePlayAudio";
 import { useSessionEndCleanup } from "../hooks/useSessionEndCleanup";
 import { isAudioExtension } from "../utils/audioPlayer";
+import { LONG_RUNNING_AWS_REQUEST_OPTIONS } from "../utils/longRunningAwsRequest";
+import CustomFileModal from "./CustomFileModal";
+import "../css/FilesToolbar.css";
+import "../css/FilesPage.css";
+import "../css/UserProfile.css";
 
 import { Progress, Modal } from "antd";
 
@@ -89,6 +89,20 @@ const months = [
 const UserProfile = () => {
   const dispatch = useDispatch();
   const { playAudioFile } = usePlayAudio();
+  const FILES_MOBILE_BP = 767;
+  const [isMobile, setIsMobile] = useState(
+    () =>
+      typeof window !== "undefined" && window.innerWidth <= FILES_MOBILE_BP
+  );
+
+  useEffect(() => {
+    const mq = window.matchMedia(`(max-width: ${FILES_MOBILE_BP}px)`);
+    const onChange = () => setIsMobile(mq.matches);
+    onChange();
+    mq.addEventListener("change", onChange);
+    return () => mq.removeEventListener("change", onChange);
+  }, []);
+
   const apiUrl = process.env.REACT_APP_API_ENDPOINT;
   const userProfile = useSelector((state) => state.userProfile);
   const email = userProfile.email || sessionStorage.getItem("email");
@@ -1019,12 +1033,16 @@ const maskEmail = (value) => {
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
   const [showImage, setShowImage] = useState(false);
   const [videoSrc, setVideoSrc] = useState("");
-  const [resolvedVideoUrl, setResolvedVideoUrl] = useState("");
   const [imageSrc, setImageSrc] = useState("");
   const [pdfSrc, setPdfSrc] = useState("");
+  const [docSrc, setDocSrc] = useState("");
   const [audioSrc, setAudioSrc] = useState("");
   const [isProgressVisible, setIsProgressVisible] = useState(false);
   const [modalFile, setModalFile] = useState("");
+  const [folders, setFolders] = useState([]);
+  const [selectedFolder, setSelectedFolder] = useState(null);
+  const [triggerUpdate, setTriggerUpdate] = useState(false);
+  const [previewFile, setPreviewFile] = useState(null);
 
   useSessionEndCleanup(() => {
     setShowImage(false);
@@ -1033,34 +1051,37 @@ const maskEmail = (value) => {
   });
 
   useEffect(() => {
-    if (!videoSrc || !apiUrl || !token) {
-      setResolvedVideoUrl("");
-      return undefined;
-    }
-    if (String(videoSrc).startsWith("blob:")) {
-      setResolvedVideoUrl(videoSrc);
-      return undefined;
-    }
-    let cancelled = false;
-    const controller =
-      typeof AbortController !== "undefined" ? new AbortController() : null;
-    setResolvedVideoUrl("");
-    resolveVideoPlayUrl(apiUrl, token, videoSrc, {
-      signal: controller?.signal,
-    })
-      .then((url) => {
-        if (!cancelled) setResolvedVideoUrl(url);
-      })
-      .catch((err) => {
-        if (!cancelled && err?.name !== "AbortError") {
-          console.error("Video play URL failed", err);
-        }
-      });
-    return () => {
-      cancelled = true;
-      controller?.abort?.();
+    if (!showImage) return undefined;
+    const fetchInitialFolders = async () => {
+      try {
+        const res = await axios.get(`${apiUrl}get-recent-folders`, {
+          headers: {
+            Authorization: `Bearer ${token}`,
+            "Content-Type": "application/json",
+          },
+        });
+        setFolders(res.data.result || []);
+      } catch (error) {
+        console.error("There is a error at", error);
+      }
     };
-  }, [videoSrc, apiUrl, token]);
+    fetchInitialFolders();
+    return undefined;
+  }, [showImage, apiUrl, token]);
+
+  function getModifiedRecentFolderText(input) {
+    const index = input.indexOf("/");
+    if (index !== -1 && index < input.length - 1) {
+      const textAfterSlash = input.substring(index + 1);
+      return textAfterSlash.replace(/\//g, "<");
+    }
+    return "";
+  }
+
+  const folderOptions = folders.map((folder) => ({
+    value: getModifiedRecentFolderText(folder.folder),
+    label: getModifiedRecentFolderText(folder.folder),
+  }));
 
   //Image getting function
   const getImageInfo = async (filename) => {
@@ -1133,60 +1154,66 @@ const maskEmail = (value) => {
     };
   }, [audioSrc]);
 
-  const zoomIn = () => setZoomLevel((prevZoom) => Math.min(prevZoom + 0.2, 3));
-  const zoomOut = () => setZoomLevel((prevZoom) => Math.max(prevZoom - 0.2, 1));
   const toggleFullscreen = () => {
-    const modalElement = document.getElementById("modal-container");
-
-    if (!isFullscreen) {
-      if (modalElement.requestFullscreen) {
-        modalElement.requestFullscreen();
-      } else if (modalElement.mozRequestFullScreen) {
-        // Firefox
-        modalElement.mozRequestFullScreen();
-      } else if (modalElement.webkitRequestFullscreen) {
-        // Chrome, Safari, and Opera
-        modalElement.webkitRequestFullscreen();
-      } else if (modalElement.msRequestFullscreen) {
-        // IE/Edge
-        modalElement.msRequestFullscreen();
-      }
-    } else {
-      if (document.exitFullscreen) {
-        document.exitFullscreen();
-      } else if (document.mozCancelFullScreen) {
-        // Firefox
-        document.mozCancelFullScreen();
-      } else if (document.webkitExitFullscreen) {
-        // Chrome, Safari, and Opera
-        document.webkitExitFullscreen();
-      } else if (document.msExitFullscreen) {
-        // IE/Edge
-        document.msExitFullscreen();
-      }
-    }
-
     setIsFullscreen((prev) => !prev);
   };
 
   const handleImageShow = () => setShowImage(true);
   const handleImageClose = () => {
-    // console.log("Close button clicked!");
-
-    // Exit fullscreen if currently in fullscreen mode
     if (document.fullscreenElement) {
       document.exitFullscreen();
     }
 
-    setIsFullscreen(false); // Reset fullscreen state
-    setZoomLevel(1); // Reset zoom level to default
+    setIsFullscreen(false);
+    setZoomLevel(1);
     setShowImage(false);
     setCurrentImageIndex(0);
     setImageSrc("");
     setVideoSrc("");
     setAudioSrc("");
     setPdfSrc("");
+    setDocSrc("");
+    setErrorMessage2("");
+    setSelectedFolder(null);
+    setPreviewFile(null);
   };
+
+  const deleteFromModal = async (filename) => {
+    const lastSlashIndex = filename.lastIndexOf("/");
+    const dataToSend =
+      lastSlashIndex === -1
+        ? { sourceFolder: "", keys: [filename] }
+        : {
+            sourceFolder: filename
+              .substring(0, lastSlashIndex)
+              .replace(/\/$/, ""),
+            keys: [filename.substring(lastSlashIndex + 1)],
+          };
+
+    try {
+      await axios.delete(`${apiUrl}soft-delete`, {
+        ...LONG_RUNNING_AWS_REQUEST_OPTIONS,
+        data: dataToSend,
+        headers: {
+          Authorization: `Bearer ${token}`,
+          "Content-Type": "application/json",
+        },
+      });
+      showToast("success", "File moved to recycle bin successfully");
+      handleImageClose();
+      await getRecentFiles();
+    } catch (error) {
+      showToast("error", "There's an error while moving file to recycle bin!");
+    }
+  };
+
+  const onMoveSuccessFromModal = async () => {
+    handleImageClose();
+    await getRecentFiles();
+  };
+
+  const handleChange = () => {};
+  const handleOpenCreateFolder = () => {};
 
   // Add this helper function at the top of your component file, outside the component
   const getFileIcon = (file) => {
@@ -1470,25 +1497,60 @@ const maskEmail = (value) => {
 
   return (
     <>
-<SideNav />
-      <div className="container-fluid page-body-wrapper">
-        <nav className="navbar p-0 fixed-top d-flex flex-row">
-          <div className="navbar-brand-wrapper d-flex d-lg-none align-items-center justify-content-center">
-            <a className="navbar-brand brand-logo-mini" href="#">
-              <img src={Logo} alt="logo" />
-            </a>
-          </div>
-          <div className="navbar-menu-wrapper flex-grow d-flex align-items-stretch">
-            <ToggleNav />
-            <div className="navbar-nav page_title">
-              <h1>User Profile</h1>
-            </div>
+      <SideNav />
+      <div
+        className={`container-fluid page-body-wrapper files-layout user-profile-layout${
+          isMobile ? " files-layout--mobile" : ""
+        }`}
+      >
+        <nav className="navbar p-0 fixed-top d-flex flex-row files-navbar">
+          <div className="navbar-menu-wrapper flex-grow files-navbar__shell">
+            <header className="files-app-header">
+              <div className="files-app-header__titles">
+                <h1 className="files-app-header__title">User Profile</h1>
+                <div className="files-app-header__end">
+                  <button
+                    type="button"
+                    className="files-app-header__support"
+                    title="Support"
+                    aria-label="Support"
+                    onClick={() => navigate("/SupportTickets")}
+                  >
+                    <FiLifeBuoy aria-hidden="true" />
+                    Support
+                  </button>
+                  <div className="files-app-header__welcome files-nav-welcome">
+                    <span className="files-nav-welcome__greet">Welcome back</span>
+                    <span className="files-nav-welcome__name">
+                      {name || userProfile.name || finalName || "User"}
+                    </span>
+                  </div>
+                </div>
+              </div>
+
+              <button
+                type="button"
+                className="files-app-header__profile"
+                title="Edit profile"
+                aria-label="Open profile"
+                onClick={showModal}
+              >
+                <img
+                  src={avatar || AvatarDefault}
+                  alt=""
+                  onError={(e) => {
+                    e.target.onerror = null;
+                    e.target.src = AvatarDefault;
+                  }}
+                />
+              </button>
+            </header>
           </div>
         </nav>
 
         {/* Main Content */}
-        <div className="main-panel">
-          <div className="content-wrapper" style={{ padding: "15px" }}>
+        <div className="main-panel user-profile-page">
+          <div className="content-wrapper">
             <div className="row">
               <ScrollReveal as="div" className="col-lg-6 mt-2" variant="fadeUp" delay={0.1} duration={0.85}>
                 <div className="profile_box">
@@ -1549,7 +1611,7 @@ const maskEmail = (value) => {
                   <div className="profile_row">
                     <div
                       className="CircularProgress_bar"
-                      style={{ textAlign: "center", paddingLeft: 30 }}
+                      style={{ textAlign: "center", paddingLeft: isMobile ? 0 : 30 }}
                     >
                       {/* <Progress
                         type="circle"
@@ -1608,7 +1670,7 @@ const maskEmail = (value) => {
                             </div>
                           );
                         }}
-                        size={180}
+                        size={isMobile ? 140 : 180}
                       />
 
                     </div>
@@ -1939,10 +2001,19 @@ const maskEmail = (value) => {
         open={isModalOpen}
         footer={null}
         onCancel={handleCancel}
-        width={760}
+        width={isMobile ? "calc(100vw - 24px)" : 760}
         centered
         destroyOnClose
         wrapClassName="edit-profile-modal-wrap"
+        zIndex={1200}
+        styles={
+          isMobile
+            ? {
+                mask: { zIndex: 1190 },
+                wrapper: { zIndex: 1200 },
+              }
+            : undefined
+        }
       >
         <div className="edit-profile-modal">
           <div className="edit-profile-header">
@@ -2066,7 +2137,7 @@ const maskEmail = (value) => {
               </div>
             )}
 
-            <div className="row">
+            <div className="row edit-profile-fields-row">
               {/* First Name */}
               <div className="col-6">
                 <div className="form-group">
@@ -2140,7 +2211,7 @@ const maskEmail = (value) => {
               </div>
 
               {/* Mobile */}
-              <div className="col-6">
+              <div className="col-12">
                 <div className="form-group">
                   <label className="form-label">
                     Mobile <span style={{ color: "#dc3545" }}>*</span>
@@ -2231,7 +2302,7 @@ const maskEmail = (value) => {
 
                 <div className="row">
                   {/* Current Password */}
-                  <div className="col-4">
+                  <div className="col-12 col-md-4">
                     <div className="form-group">
                       <label className="form-label">Current Password</label>
                       <div style={{ position: 'relative' }}>
@@ -2287,7 +2358,7 @@ const maskEmail = (value) => {
                   </div>
 
                   {/* New Password */}
-                  <div className="col-4">
+                  <div className="col-12 col-md-4">
                     <div className="form-group">
                       <label className="form-label">New Password</label>
                       <div style={{ position: 'relative' }}>
@@ -2404,7 +2475,7 @@ const maskEmail = (value) => {
                   </div>
 
                   {/* Confirm Password */}
-                  <div className="col-4">
+                  <div className="col-12 col-md-4">
                     <div className="form-group">
                       <label className="form-label">Confirm Password</label>
                       <div style={{ position: 'relative' }}>
@@ -2732,271 +2803,38 @@ const maskEmail = (value) => {
         </div>
       </Modal>
 
-      {/*All files Shower */}
-      {showImage && (
-        <div
-          style={{
-            position: "fixed",
-            inset: 0,
-            backgroundColor: "rgba(0, 0, 0, 0.6)",
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "center",
-            zIndex: 1300,
-            padding: "16px",
-            overflow: "auto",
-          }}
-          onClick={handleImageClose}           // click outside → close
-        >
-          {/* Inner container - stops click propagation */}
-          <div
-            style={{
-              width: isFullscreen ? "100vw" : "100vw",
-              // maxWidth: isFullscreen ? "none" : "800px",
-              height: isFullscreen ? "100vh" : "90vh",
-              // backgroundColor: "white",
-              borderRadius: isFullscreen ? "0" : "12px",
-              overflow: "hidden",
-              // boxShadow: "0 10px 40px rgba(0,0,0,0.4)",
-              display: "flex",
-              flexDirection: "column",
-              position: "relative",
-            }}
-            onClick={(e) => e.stopPropagation()}   // prevent close when clicking inside
-          >
-            {/* Close button */}
-            <button
-              onClick={handleImageClose}
-              style={{
-                position: "absolute",
-                top: "16px",
-                right: "16px",
-                background: "rgba(0,0,0,0.5)",
-                color: "white",
-                border: "none",
-                borderRadius: "50%",
-                width: "40px",
-                height: "40px",
-                fontSize: "28px",
-                lineHeight: "40px",
-                textAlign: "center",
-                cursor: "pointer",
-                zIndex: 10,
-              }}
-            >
-              ×
-            </button>
+      <CustomFileModal
+        show={showImage}
+        onClose={handleImageClose}
+        isFullscreen={isFullscreen}
+        videoSrc={videoSrc}
+        pdfSrc={pdfSrc}
+        imageSrc={imageSrc}
+        audioSrc={audioSrc}
+        errorMessage2={errorMessage2}
+        isProgressVisible={isProgressVisible}
+        apiUrl={apiUrl}
+        token={token}
+        toggleFullscreen={toggleFullscreen}
+        handlePrev={handlePrev}
+        handleNext={handleNext}
+        folderOptions={folderOptions}
+        selectedFolder={selectedFolder}
+        handleChange={handleChange}
+        deleteFromModal={deleteFromModal}
+        modalFile={modalFile}
+        deleteIcon={deleteIcon}
+        docSrc={docSrc}
+        fileName={modalFile}
+        setModalFile={setModalFile}
+        triggerUpdate={triggerUpdate}
+        setTriggerUpdate={setTriggerUpdate}
+        onRenameSuccess={getRecentFiles}
+        onMoveSuccess={onMoveSuccessFromModal}
+        handleOpenCreateFolder={handleOpenCreateFolder}
+        previewFile={previewFile}
+      />
 
-            {/* Loader overlay when loading */}
-            {isProgressVisible && (
-              <div
-                style={{
-                  position: "absolute",
-                  inset: 0,
-                  background: "rgba(255, 255, 255, 0)",
-                  // background: "rgba(255,255,255,0.7)",
-                  display: "flex",
-                  alignItems: "center",
-                  justifyContent: "center",
-                  zIndex: 20,
-                }}
-              >
-                {/* <img src={loaderGif} alt="Loading..." style={{ width: "80px" }} /> */}
-                <Loader2 />
-              </div>
-            )}
-
-            {/* Main content area */}
-            <div
-              style={{
-                flex: 1,
-                position: "relative",
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "center",
-                overflow: "auto",
-                padding: isFullscreen ? "0" : "20px",
-                background: isFullscreen ? "#000" : "#ffffff00",
-              }}
-            >
-              {/* Prev button */}
-              <button
-                onClick={handlePrev}
-                style={{
-                  position: "absolute",
-                  left: "20px",
-                  top: "50%",
-                  transform: "translateY(-50%)",
-                  background: "rgba(0, 0, 0, 0.28)",
-                  border: "none",
-                  borderRadius: "50%",
-                  width: "50px",
-                  height: "50px",
-                  fontSize: "28px",
-                  cursor: "pointer",
-                  color: "white",
-                  zIndex: 5,
-                  // boxShadow: "0 2px 10px rgba(0,0,0,0.2)",
-                }}
-              >
-                ❮
-              </button>
-
-              {/* Content */}
-              <div
-                style={{
-                  width: "90%",
-                  height: "100%",
-                  display: "flex",
-                  alignItems: "center",
-                  justifyContent: "center",
-                  transform: `scale(${zoomLevel})`,
-                  transition: "transform 0.25s ease",
-                }}
-              >
-                {videoSrc && resolvedVideoUrl ? (
-                  <VideoPlayer
-                    key={resolvedVideoUrl}
-                    url={resolvedVideoUrl}
-                    fileName={videoSrc}
-                  />
-                ) : videoSrc ? (
-                  <Loader2 />
-                ) : pdfSrc ? (
-                  <iframe
-                    src={pdfSrc}
-                    title="PDF Preview"
-                    style={{
-                      width: "100%",
-                      height: "100%",
-                      border: "none",
-                      background: "white",
-                    }}
-                  />
-                ) : imageSrc ? (
-                  <img
-                    src={imageSrc}
-                    alt="Preview"
-                    decoding="async"
-                    style={{
-                      maxWidth: "100%",
-                      maxHeight: "100%",
-                      objectFit: "contain",
-                      borderRadius: "8px",
-                    }}
-                  />
-                ) : audioSrc ? (
-                  <audio
-                    controls
-                    autoPlay
-                    style={{ width: "80%", maxWidth: "600px" }}
-                  >
-                    <source src={audioSrc} type="audio/mpeg" />
-                    <source src={audioSrc} type="audio/ogg" />
-                    <source src={audioSrc} type="audio/wav" />
-                    Your browser does not support the audio element.
-                  </audio>
-                ) : errorMessage2 ? (
-                  <div style={{
-                    textAlign: "center", color: "#d32f2f", fontSize: "18px", background: "white",
-                    padding: " 5px 15px", borderRadius: "7px"
-                  }}>
-                    {errorMessage2}
-                  </div>
-                ) : (
-                  <div style={{ color: "#666", fontSize: "18px" }}>
-                    No preview available
-                  </div>
-                )}
-              </div>
-
-              {/* Next button */}
-              <button
-                onClick={handleNext}
-                style={{
-                  position: "absolute",
-                  right: "20px",
-                  top: "50%",
-                  transform: "translateY(-50%)",
-                  background: "rgba(0, 0, 0, 0.27)",
-                  color: "white",
-                  border: "none",
-                  borderRadius: "50%",
-                  width: "50px",
-                  height: "50px",
-                  fontSize: "28px",
-                  cursor: "pointer",
-                  zIndex: 5,
-                  // boxShadow: "0 2px 10px rgba(0,0,0,0.2)",
-                }}
-              >
-                ❯
-              </button>
-            </div>
-
-            {/* Footer controls */}
-            <div
-              style={{
-                padding: "12px 20px",
-                // borderTop: "1px solid #000000",
-                // background: "white",
-                display: "flex",
-                justifyContent: "center",
-                gap: "16px",
-                flexWrap: "wrap",
-              }}
-            >
-              {/* <div
-          style={{
-            display: "flex",
-            alignItems: "center",
-            gap: "8px",
-            background: "#f5f5f5",
-            padding: "8px 16px",
-            borderRadius: "6px",
-            border: "1px solid #ddd",
-          }}
-        >
-          <button
-            onClick={zoomIn}
-            style={{ background: "none", border: "none", cursor: "pointer" }}
-          >
-            <img src={zoomin} alt="Zoom In" style={{ width: "20px" }} />
-          </button>
-          <span style={{ fontWeight: 500 }}>Zoom</span>
-          <button
-            onClick={zoomOut}
-            style={{ background: "none", border: "none", cursor: "pointer" }}
-          >
-            <img src={zoomout} alt="Zoom Out" style={{ width: "20px" }} />
-          </button>
-        </div> */}
-
-              {/* <button
-          onClick={toggleFullscreen}
-          style={{
-            display: "flex",
-            alignItems: "center",
-            gap: "8px",
-            padding: "8px 16px",
-            background: "#f5f5f5",
-            border: "1px solid #ddd",
-            borderRadius: "6px",
-            cursor: "pointer",
-            fontSize: "14px",
-          }}
-        >
-          <img
-            src={fullscreeen}
-            alt="Fullscreen"
-            style={{ width: "18px", height: "18px" }}
-          />
-          {isFullscreen ? "Exit Fullscreen" : "Fullscreen"}
-        </button> */}
-            </div>
-          </div>
-        </div>
-      )}
 
     </>
   );

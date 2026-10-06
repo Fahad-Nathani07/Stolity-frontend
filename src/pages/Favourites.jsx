@@ -14,6 +14,7 @@ import {
   getZipSuccessMessage,
   isZipUnzipCancelled,
 } from "../utils/zipUnzipRequest";
+import { SHOW_ZIP_UNZIP_ACTIONS } from "../utils/featureFlags";
 import { uploadFolderViaMultipart } from "../utils/uploadFolderViaMultipart";
 import {
   uploadOneFileDirect,
@@ -42,7 +43,6 @@ import { useZippingProgressModal } from "../hooks/useZippingProgressModal";
 import { useDownloadActions } from "./DownloadContext";
 import { Prism as SyntaxHighlighter } from "react-syntax-highlighter";
 import { oneLight } from "react-syntax-highlighter/dist/esm/styles/prism";
-import Logo from "../images/logo.png";
 import AvatarDefault from "../images/AvatarDefault.jpg";
 import sharedIcon from "../images/shared_icon.svg";
 import { resolveFileIconPath, encodeStorageUrl } from "../utils/fileIcon";
@@ -84,6 +84,7 @@ import {
 } from "../utils/previewModalNavigation";
 import { afterMinLoaderDisplay } from "../utils/actionLoaderDelay";
 import "../css/FilesToolbar.css";
+import "../css/FilesPage.css";
 import CardFilePreview from "../components/CardFilePreview";
 import FilesPaginationFooter from "../components/FilesPaginationFooter";
 import { useStickyListHeader } from "../hooks/useStickyListHeader";
@@ -153,7 +154,6 @@ import { Modal as BootstrapModal } from "react-bootstrap";
 
 import SideNav from "../components/SideNav";
 import Footer from "../components/Footer";
-import ToggleNav from "../components/ToggleNav";
 import TruncatedTooltip from "../components/TruncatedTooltip";
 
 //LIGHTBOX
@@ -535,7 +535,31 @@ const Favourites = () => {
   const [moveFol, setMoveFol] = useState(false);
 
   const [view, setView] = useState(localStorage.getItem("view") || "list");
-  const { filterBarRef, tableBoxRef, tableBoxClassName } = useStickyListHeader(view, false);
+  const FILES_MOBILE_BP = 767;
+  const [isMobile, setIsMobile] = useState(
+    () =>
+      typeof window !== "undefined" && window.innerWidth <= FILES_MOBILE_BP
+  );
+
+  useEffect(() => {
+    const mq = window.matchMedia(`(max-width: ${FILES_MOBILE_BP}px)`);
+    const onChange = () => setIsMobile(mq.matches);
+    onChange();
+    mq.addEventListener("change", onChange);
+    return () => mq.removeEventListener("change", onChange);
+  }, []);
+
+  useEffect(() => {
+    if (isMobile && view !== "list") {
+      setView("list");
+    }
+  }, [isMobile, view]);
+
+  const displayView = isMobile ? "list" : view;
+  const { filterBarRef, tableBoxRef, tableBoxClassName } = useStickyListHeader(
+    displayView,
+    false
+  );
 
   useEffect(() => {
     syncSelectionDomClass();
@@ -562,8 +586,9 @@ const Favourites = () => {
   }, []);
 
   const toggleView = (selectedView) => {
+    if (isMobile && selectedView === "grid") return;
     setView(selectedView);
-    localStorage.setItem("view", selectedView); // Save selection in localStorage
+    localStorage.setItem("view", selectedView);
   };
 
   const runOnce = useRef(false);
@@ -844,19 +869,36 @@ const Favourites = () => {
       ...keys2.map((fileName) => ({ fileName, isFolder: true })),
     ];
 
-    // One shared controller for the whole batch so Cancel / ✕ aborts remaining
-    // files even after the first few have already finished.
+    // Per-file AbortController so row ✕ cancels only that file.
+    // Batch controller is for "Cancel all" and cascades to each file.
     const batchAbortController = new AbortController();
     items.forEach((item, i) => {
       const downloadId = Date.now() + Math.random() + i;
+      const fileAbortController = new AbortController();
+      batchAbortController.signal.addEventListener(
+        "abort",
+        () => {
+          try {
+            fileAbortController.abort();
+          } catch (_) {}
+        },
+        { once: true }
+      );
       addDownload(
         downloadId,
         item.fileName,
-        batchAbortController,
-        item.isFolder
+        fileAbortController,
+        item.isFolder,
+        {
+          batchAbortController,
+          sizeInBytes:
+            estimateDownloadBytes(
+              filedata?.find?.((f) => f.fileName === item.fileName)
+            ) || 0,
+        }
       );
       item.downloadId = downloadId;
-      item.abortController = batchAbortController;
+      item.abortController = fileAbortController;
       item.endpoint = item.isFolder ? "download-folder" : "download-file-url";
     });
 
@@ -919,12 +961,20 @@ const Favourites = () => {
         fileItems.length <= NATIVE_BROWSER_DOWNLOAD_MAX_FILES
       ) {
         for (const item of fileItems) {
+          if (batchSignal.aborted) break;
+          if (item.abortController?.signal?.aborted) {
+            cancelled += 1;
+            scheduleDownloadRemoval(removeDownload, item.downloadId, {
+              delayMs: 0,
+            });
+            continue;
+          }
           try {
             await downloadFileNativeBrowser({
               apiUrl,
               token,
               filePath: item.fileName,
-              signal: batchSignal,
+              signal: item.abortController?.signal || batchSignal,
               onProgress: (percent) => {
                 updateDownloadProgress(item.downloadId, percent);
               },
@@ -949,6 +999,12 @@ const Favourites = () => {
             token,
             filePaths: fileItems.map((item) => item.fileName),
             signal: batchSignal,
+            signalsByPath: Object.fromEntries(
+              fileItems.map((item) => [
+                item.fileName,
+                item.abortController.signal,
+              ])
+            ),
             dirHandle: sharedDirHandle,
             estimatedBytesByPath: Object.fromEntries(
               fileItems.map((item) => [
@@ -1005,6 +1061,12 @@ const Favourites = () => {
             token,
             folderPaths: folderItems.map((item) => item.fileName),
             signal: batchSignal,
+            signalsByPath: Object.fromEntries(
+              folderItems.map((item) => [
+                item.fileName,
+                item.abortController.signal,
+              ])
+            ),
             dirHandle: sharedDirHandle,
             onFolderProgress: (folderPath, percent) => {
               const item = itemByPath[folderPath];
@@ -2401,7 +2463,9 @@ const Favourites = () => {
     let succeeded = false;
     let handedToBrowser = false;
 
-    addDownload(downloadId, fileName, abortController, isFolder);
+    addDownload(downloadId, fileName, abortController, isFolder, {
+      sizeInBytes: estimateDownloadBytes(selectedFile) || 0,
+    });
     setDownloadpopup(false);
     isSetLoading(true);
     setProgress(0);
@@ -4960,85 +5024,54 @@ const Favourites = () => {
       />
 
       <SideNav />
-      <div className="container-fluid page-body-wrapper">
+      <div className={`container-fluid page-body-wrapper files-layout${isMobile ? " files-layout--mobile" : ""}`}>
         {/* partial:partials/_navbar.html */}
-        <nav className="navbar p-0 fixed-top d-flex flex-row">
-          <div className="navbar-brand-wrapper d-flex d-lg-none align-items-center justify-content-center">
-            <a className="navbar-brand brand-logo-mini" href="#">
-              <img src={Logo} alt="logo" />
-            </a>
-          </div>
-          <div className="navbar-menu-wrapper flex-grow d-flex align-items-stretch">
-            <ToggleNav />
-            <div className="navbar-nav page_title">
-              <div style={{
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "space-between",
-                width: "100%",
-              }}>
-                <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-                  <h1>Favourites</h1>
-                </div>
-
-                <div style={{
-                  display: 'flex',
-                  alignItems: "center",
-                  gap: "10px"
-                }}>
+        <nav className="navbar p-0 fixed-top d-flex flex-row files-navbar">
+          <div className="navbar-menu-wrapper flex-grow files-navbar__shell">
+            <header className="files-app-header">
+              <div className="files-app-header__titles">
+                <h1 className="files-app-header__title">Favourites</h1>
+                <div className="files-app-header__end">
                   <button
                     type="button"
-                    className="page_title-support-btn"
+                    className="files-app-header__support"
+                    title="Support"
+                    aria-label="Support"
                     onClick={() => nav("/SupportTickets")}
                   >
                     <FiLifeBuoy aria-hidden="true" />
                     Support
                   </button>
-                  <div style={{
-                    color: "#494949",
-                    fontWeight: "510"
-                  }}>
-                    <div style={{ fontSize: "12px" }}>Welcome, Back!</div>
-                    <div style={{ fontSize: "16px" }}>{userProfile.name || userData?.userData?.name || userData?.name || name}</div>
-                  </div>
-
-                  <div
-                    role="button"
-                    tabIndex={0}
-                    title="Edit profile"
-                    aria-label="Open profile"
-                    onClick={() => nav("/UserProfile")}
-                    onKeyDown={(e) => {
-                      if (e.key === "Enter" || e.key === " ") {
-                        e.preventDefault();
-                        nav("/UserProfile");
-                      }
-                    }}
-                    style={{
-                      height: "45px",
-                      width: "45px",
-                      borderRadius: "100px",
-                      overflow: "hidden",
-                      cursor: "pointer",
-                      flexShrink: 0,
-                    }}>
-                    <img
-                      src={avatarUrl || AvatarDefault}
-                      alt="Profile"
-                      style={{ width: "100%", height: "100%", objectFit: "cover" }}
-                      onError={(e) => {
-                        e.target.onerror = null;
-                        e.target.src = AvatarDefault;
-                      }}
-                    />
+                  <div className="files-app-header__welcome files-nav-welcome">
+                    <span className="files-nav-welcome__greet">Welcome back</span>
+                    <span className="files-nav-welcome__name">
+                      {userProfile.name || userData?.userData?.name || userData?.name || name}
+                    </span>
                   </div>
                 </div>
               </div>
-            </div>
+
+              <button
+                type="button"
+                className="files-app-header__profile"
+                title="Edit profile"
+                aria-label="Open profile"
+                onClick={() => nav("/UserProfile")}
+              >
+                <img
+                  src={avatarUrl || AvatarDefault}
+                  alt=""
+                  onError={(e) => {
+                    e.target.onerror = null;
+                    e.target.src = AvatarDefault;
+                  }}
+                />
+              </button>
+            </header>
           </div>
         </nav>
         {/* partial */}
-        <div className="main-panel">
+        <div className="main-panel files-page">
           <div className="content-wrapper">
             <div className={tableBoxClassName} ref={tableBoxRef}>
               <div className="filerbar_row" ref={filterBarRef}>
@@ -5054,6 +5087,7 @@ const Favourites = () => {
 
                 <div className="files-toolbar filter-row-new">
                   <div className="files-toolbar__main">
+                    {!isMobile && (
                     <div className="files-toolbar__view">
                       <div
                         className={`switcher-container ${view === "list" ? "list-active" : "grid-active"
@@ -5076,6 +5110,7 @@ const Favourites = () => {
                         />
                       </div>
                     </div>
+                    )}
 
                     <div className="files-toolbar__filters">
                       <div className="files-toolbar__sort">
@@ -5106,9 +5141,16 @@ const Favourites = () => {
                                 aria-hidden
                               />
                               <span className="sort-filter-label">
-                                {selectedFileTypes.length > 0
-                                  ? `File Type (${selectedFileTypes.length})`
-                                  : "File Type"}
+                                <span className="sort-filter-label--full">
+                                  {selectedFileTypes.length > 0
+                                    ? `File Type (${selectedFileTypes.length})`
+                                    : "File Type"}
+                                </span>
+                                <span className="sort-filter-label--short" aria-hidden="true">
+                                  {selectedFileTypes.length > 0
+                                    ? `Type (${selectedFileTypes.length})`
+                                    : "Type"}
+                                </span>
                               </span>
                               {!isPremium && (
                                 <img
@@ -5301,7 +5343,7 @@ const Favourites = () => {
 
 
               <div id="dataView">
-                {view === "list" ? (
+                {displayView === "list" ? (
                   placeholderLoading ? (
                     <div
                       className="table-responsive"
@@ -5866,7 +5908,7 @@ const Favourites = () => {
                                         </a>
                                       )}
 
-                                      {file.fileName.includes(".zip") ? (
+                                      {SHOW_ZIP_UNZIP_ACTIONS && (file.fileName.includes(".zip") ? (
                                         <a
                                           className={`dropdown-item dropdown-item-custom ${file?.isShared
                                               ? "disabled blur-effect"
@@ -5918,7 +5960,7 @@ const Favourites = () => {
                                           />
                                           Zip
                                         </a>
-                                      )}
+                                      ))}
 
                                       {/* {file.isFolder === false && ( */}
                                       <a
@@ -5947,7 +5989,7 @@ const Favourites = () => {
                                         />
                                         Download
                                       </a>
-                                      {/* )} */}
+                                      {/* ))} */}
 
                                       {/* <a
                                           className={`dropdown-item dropdown-item-custom ${
@@ -6410,7 +6452,7 @@ const Favourites = () => {
 
 
 
-                                  {file.fileName.includes(".zip") ? (
+                                  {SHOW_ZIP_UNZIP_ACTIONS && (file.fileName.includes(".zip") ? (
                                     <a
                                       className={`dropdown-item dropdown-item-custom ${file?.isShared
                                           ? "disabled blur-effect"
@@ -6462,7 +6504,7 @@ const Favourites = () => {
                                       />
                                       Zip
                                     </a>
-                                  )}
+                                  ))}
                                   {/* {file.isFolder === false && ( */}
                                   <a
                                     className={`dropdown-item dropdown-item-custom ${file?.isShared
@@ -6489,7 +6531,7 @@ const Favourites = () => {
                                     />
                                     Download
                                   </a>
-                                  {/* )} */}
+                                  {/* ))} */}
                                   {/* <a
                                       className={`dropdown-item dropdown-item-custom ${
                                         file?.isShared
@@ -6836,19 +6878,22 @@ const Favourites = () => {
                 <Tab>
                   <div className="my-tab-item">
                     <i className="mdi mdi-file-document-box-multiple-outline"></i>
-                    <span>Files</span>
+                    <span className="tab-label-full">Files</span>
+                    <span className="tab-label-short">Files</span>
                   </div>
                 </Tab>
                 <Tab>
                   <div className="my-tab-item">
                     <i className="mdi mdi-folder-multiple-outline"></i>
-                    <span>Upload Folder</span>
+                    <span className="tab-label-full">Upload Folder</span>
+                    <span className="tab-label-short">Upload</span>
                   </div>
                 </Tab>
                 <Tab>
                   <div className="my-tab-item">
                     <i className="mdi mdi-folder-multiple-outline"></i>
-                    <span>Folder</span>
+                    <span className="tab-label-full">Folder</span>
+                    <span className="tab-label-short">Folder</span>
                   </div>
                 </Tab>
               </TabList>

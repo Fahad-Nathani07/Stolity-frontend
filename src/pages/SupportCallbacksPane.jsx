@@ -2,48 +2,54 @@ import React, { useCallback, useEffect, useMemo, useRef, useState } from "react"
 import axios from "axios";
 import {
   FiRefreshCw,
+  FiPhone,
   FiMail,
   FiMessageSquare,
   FiCheck,
   FiLock,
   FiUnlock,
-  FiSend,
+  FiUserPlus,
   FiSearch,
   FiX,
 } from "react-icons/fi";
 import { showToast } from "../components/ToastProvider";
-import {
-  formatTicketCategory,
-  formatTicketStatus,
-} from "../utils/supportTicketConstants";
+import SupportFilterSelect from "../components/SupportFilterSelect";
 import "../css/SupportTicketsAdmin.css";
 
-const FAQ_STATUS_ACTIONS = [
+const STATUS_ACTIONS = [
+  { id: "no_answer", label: "No answer" },
+  { id: "call_later", label: "Call later" },
+  { id: "rescheduled", label: "Rescheduled" },
+  { id: "completed", label: "Completed" },
   { id: "assigned", label: "In progress" },
-  { id: "answered", label: "Answered" },
-  { id: "closed", label: "Closed" },
-];
-
-const TICKET_STATUS_ACTIONS = [
-  { id: "open", label: "Open" },
-  { id: "in_progress", label: "In Progress" },
-  { id: "closed", label: "Closed" },
 ];
 
 const QUICK_NOTES = [
-  "Replied by email",
-  "Need more details from user",
-  "FAQ covers this — pointed them there",
-  "Escalated internally",
-  "Resolved",
+  "Didn't pick up",
+  "Asked to call later",
+  "Wrong / unreachable number",
+  "Spoke — issue resolved",
+  "Needs follow-up",
+  "Rescheduled preferred time",
+];
+
+const TIME_WINDOWS = {
+  morning: { label: "Morning", range: "9:00 AM – 12:00 PM" },
+  afternoon: { label: "Afternoon", range: "12:00 PM – 4:00 PM" },
+  evening: { label: "Evening", range: "4:00 PM – 6:00 PM" },
+};
+
+const LIST_FILTERS = [
+  { id: "all", label: "All" },
+  { id: "unassigned", label: "Unassigned" },
+  { id: "in_progress", label: "In Progress" },
+  { id: "completed", label: "Completed" },
 ];
 
 const SOFT_REFRESH_MS = 30_000;
 
 function formatLabel(value) {
   if (!value) return "—";
-  const mapped = formatTicketStatus(value);
-  if (mapped && mapped !== value) return mapped;
   return String(value)
     .replace(/_/g, " ")
     .replace(/\b\w/g, (c) => c.toUpperCase());
@@ -63,7 +69,7 @@ function formatWhen(iso) {
   }
 }
 
-function ticketCode(id, prefix = "Q") {
+function ticketCode(id, prefix = "CB") {
   if (!id) return "————";
   return `${prefix}-${String(id).replace(/[^a-zA-Z0-9]/g, "").slice(-4).toUpperCase() || "XXXX"}`;
 }
@@ -82,57 +88,26 @@ function ownershipState(item, myEmail, myId) {
   return "taken";
 }
 
-function buildReplySubject(questionText) {
-  const snippet = String(questionText || "")
-    .replace(/\s+/g, " ")
-    .trim()
-    .slice(0, 48);
-  if (!snippet) return "Re: Your Stolity support question";
-  return `Re: Your Stolity question — ${snippet}${
-    String(questionText || "").trim().length > 48 ? "…" : ""
-  }`;
-}
-
-function buildActivityEvents(item) {
-  const notes = (item?.notes || []).map((note, idx) => ({
-    id: note.id || `note-${note.createdAt || idx}`,
-    kind: "note",
-    at: note.createdAt || "",
-    agentName: note.addedByName || note.addedByEmail || "Agent",
-    text: note.text || "",
-    subject: null,
-  }));
-  const replies = (item?.replies || []).map((reply, idx) => ({
-    id: reply.id || `reply-${reply.sentAt || idx}`,
-    kind: "reply",
-    at: reply.sentAt || "",
-    agentName: reply.sentByName || reply.sentByEmail || "Agent",
-    text: reply.message || "",
-    subject: reply.subject || null,
-  }));
-  return [...notes, ...replies].sort((a, b) => {
-    const ta = a.at ? new Date(a.at).getTime() : 0;
-    const tb = b.at ? new Date(b.at).getTime() : 0;
-    return tb - ta;
-  });
-}
-
-function isTicketItem(item) {
-  return String(item?.source || "").toLowerCase() === "ticket";
-}
-
 function statusTone(status) {
   const s = String(status || "").toLowerCase();
-  if (s === "open" || s === "pending") return "open";
-  if (s === "in_progress" || s === "assigned") return "progress";
-  if (s === "closed" || s === "answered") return "done";
+  if (s === "pending") return "open";
+  if (
+    s === "assigned" ||
+    s === "contacted" ||
+    s === "no_answer" ||
+    s === "call_later" ||
+    s === "rescheduled"
+  ) {
+    return "progress";
+  }
+  if (s === "completed") return "done";
   return "neutral";
 }
 
 /** Admin buckets: unassigned / in_progress / completed */
-function adminTicketBucket(item) {
+function adminCallbackBucket(item) {
   const s = String(item?.status || "").toLowerCase();
-  if (s === "closed" || s === "answered") return "completed";
+  if (s === "completed") return "completed";
   if (!item?.assignedTo) return "unassigned";
   return "in_progress";
 }
@@ -144,20 +119,18 @@ function adminBucketRank(bucket) {
   return 3;
 }
 
-function ticketUpdatedMs(item) {
+function callbackUpdatedMs(item) {
   const iso = item?.updatedAt || item?.createdAt || "";
   const ms = iso ? Date.parse(iso) : 0;
   return Number.isFinite(ms) ? ms : 0;
 }
 
-const LIST_FILTERS = [
-  { id: "all", label: "All" },
-  { id: "unassigned", label: "Unassigned" },
-  { id: "in_progress", label: "In Progress" },
-  { id: "completed", label: "Completed" },
-];
+function displayName(item) {
+  const name = [item?.firstName, item?.lastName].filter(Boolean).join(" ").trim();
+  return name || item?.email || "User";
+}
 
-export default function SupportQuestionsPane({
+export default function SupportCallbacksPane({
   apiUrl,
   authHeaders,
   email,
@@ -176,15 +149,15 @@ export default function SupportQuestionsPane({
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [claiming, setClaiming] = useState(false);
   const [releasing, setReleasing] = useState(false);
+  const [reassigning, setReassigning] = useState(false);
   const [saving, setSaving] = useState(false);
-  const [sendingReply, setSendingReply] = useState(false);
   const [noteDraft, setNoteDraft] = useState("");
-  const [replyDraft, setReplyDraft] = useState("");
+  const [reassignEmail, setReassignEmail] = useState("");
+  const [showReassign, setShowReassign] = useState(false);
   const [actionMsg, setActionMsg] = useState(null);
   const [refreshIn, setRefreshIn] = useState(SOFT_REFRESH_MS / 1000);
 
   const noteDraftRef = useRef("");
-  const replyDraftRef = useRef("");
   const savingRef = useRef(false);
   const claimingRef = useRef(false);
   const selectedIdRef = useRef(null);
@@ -192,9 +165,6 @@ export default function SupportQuestionsPane({
   useEffect(() => {
     noteDraftRef.current = noteDraft;
   }, [noteDraft]);
-  useEffect(() => {
-    replyDraftRef.current = replyDraft;
-  }, [replyDraft]);
   useEffect(() => {
     savingRef.current = saving;
   }, [saving]);
@@ -205,14 +175,14 @@ export default function SupportQuestionsPane({
     selectedIdRef.current = selectedId;
   }, [selectedId]);
 
+  const unassignedCount = useMemo(
+    () => items.filter((item) => adminCallbackBucket(item) === "unassigned").length,
+    [items]
+  );
+
   useEffect(() => {
     onItemCountChange?.(items.length);
   }, [items.length, onItemCountChange]);
-
-  const unassignedCount = useMemo(
-    () => items.filter((item) => adminTicketBucket(item) === "unassigned").length,
-    [items]
-  );
 
   useEffect(() => {
     onUnassignedCountChange?.(unassignedCount);
@@ -228,7 +198,7 @@ export default function SupportQuestionsPane({
       setDrawerOpen(false);
       setActionMsg({
         type: "error",
-        text: "This ticket is no longer in the list.",
+        text: "This callback is no longer in the list.",
       });
       return;
     }
@@ -242,7 +212,6 @@ export default function SupportQuestionsPane({
         soft &&
         !force &&
         (noteDraftRef.current.trim() ||
-          replyDraftRef.current.trim() ||
           savingRef.current ||
           claimingRef.current)
       ) {
@@ -255,7 +224,7 @@ export default function SupportQuestionsPane({
       }
 
       try {
-        const res = await axios.get(`${apiUrl}support/questions`, {
+        const res = await axios.get(`${apiUrl}support/callback-requests`, {
           headers: authHeaders,
         });
         const list = res.data?.result || [];
@@ -266,7 +235,7 @@ export default function SupportQuestionsPane({
           setError(
             err.response?.data?.message ||
               err.response?.data?.error ||
-              "Failed to load tickets."
+              "Failed to load callback requests."
           );
         }
       } finally {
@@ -310,14 +279,14 @@ export default function SupportQuestionsPane({
     (item) => {
       const q = searchQuery.trim().toLowerCase();
       if (!q) return true;
-      const isTicket = isTicketItem(item);
       const hay = [
-        item.name,
+        item.firstName,
+        item.lastName,
         item.email,
-        item.question,
-        item.category,
+        item.mobile,
         item.status,
-        ticketCode(item.id, isTicket ? "T" : "Q"),
+        item.preferredTime,
+        ticketCode(item.id),
         item.assignedTo?.email,
         item.assignedTo?.name,
       ]
@@ -337,7 +306,7 @@ export default function SupportQuestionsPane({
       completed: 0,
     };
     for (const item of items) {
-      counts[adminTicketBucket(item)] += 1;
+      counts[adminCallbackBucket(item)] += 1;
     }
     return counts;
   }, [items]);
@@ -345,14 +314,14 @@ export default function SupportQuestionsPane({
   const filteredRows = useMemo(() => {
     let list = items.filter(matchesSearch);
     if (listFilter !== "all") {
-      list = list.filter((item) => adminTicketBucket(item) === listFilter);
+      list = list.filter((item) => adminCallbackBucket(item) === listFilter);
     }
     list = [...list].sort((a, b) => {
       const rankDiff =
-        adminBucketRank(adminTicketBucket(a)) -
-        adminBucketRank(adminTicketBucket(b));
+        adminBucketRank(adminCallbackBucket(a)) -
+        adminBucketRank(adminCallbackBucket(b));
       if (rankDiff !== 0) return rankDiff;
-      return ticketUpdatedMs(b) - ticketUpdatedMs(a);
+      return callbackUpdatedMs(b) - callbackUpdatedMs(a);
     });
     return list;
   }, [items, matchesSearch, listFilter]);
@@ -370,6 +339,17 @@ export default function SupportQuestionsPane({
     return { available, mine, taken };
   }, [items, email, myId]);
 
+  const teammateOptions = useMemo(() => {
+    const set = new Set();
+    items.forEach((item) => {
+      const e = String(item.assignedTo?.email || "").toLowerCase();
+      if (e.includes("infomanav") && e !== email) set.add(e);
+    });
+    return Array.from(set)
+      .sort()
+      .map((e) => ({ id: e, label: e }));
+  }, [items, email]);
+
   const selectedOwnership = useMemo(() => {
     const state = ownershipState(selected, email, myId);
     return {
@@ -379,38 +359,23 @@ export default function SupportQuestionsPane({
     };
   }, [selected, email, myId]);
 
-  const activityEvents = useMemo(
-    () => (selected ? buildActivityEvents(selected) : []),
-    [selected]
-  );
-
-  const isTicketSelected = isTicketItem(selected);
-  const statusActions = isTicketSelected
-    ? TICKET_STATUS_ACTIONS
-    : FAQ_STATUS_ACTIONS;
-
-  const ticketMessages = useMemo(() => {
-    const list = Array.isArray(selected?.messages)
-      ? [...selected.messages]
-      : [];
-    list.sort((a, b) =>
-      String(a.createdAt || "").localeCompare(String(b.createdAt || ""))
-    );
-    return list;
+  const activityNotes = useMemo(() => {
+    if (!selected?.notes) return [];
+    return [...selected.notes].reverse();
   }, [selected]);
 
   const canEdit =
-    selectedOwnership.isMine && !claiming && !releasing && !sendingReply;
+    selectedOwnership.isMine && !claiming && !releasing && !reassigning;
   const editsDisabled = !canEdit;
-  const replySubject = selected ? buildReplySubject(selected.question) : "";
 
   const closeDrawer = () => {
     setDrawerOpen(false);
     setSelectedId(null);
     setSelected(null);
     setNoteDraft("");
-    setReplyDraft("");
     setActionMsg(null);
+    setShowReassign(false);
+    setReassignEmail("");
   };
 
   const openTicket = (item) => {
@@ -418,8 +383,9 @@ export default function SupportQuestionsPane({
     setSelected(item);
     setDrawerOpen(true);
     setNoteDraft("");
-    setReplyDraft("");
     setActionMsg(null);
+    setShowReassign(false);
+    setReassignEmail("");
     const state = ownershipState(item, email, myId);
     if (state === "taken") {
       setActionMsg({
@@ -443,13 +409,13 @@ export default function SupportQuestionsPane({
     setActionMsg(null);
     try {
       const res = await axios.post(
-        `${apiUrl}support/questions/${ticket.id}/claim`,
+        `${apiUrl}support/callback-requests/${ticket.id}/claim`,
         {},
         { headers: authHeaders }
       );
       setSelected(res.data?.result || ticket);
       if (res.data?.claimed) {
-        showToast("success", "Ticket assigned to you.", "Claimed");
+        showToast("success", "Callback assigned to you.", "Claimed");
         setActionMsg({ type: "success", text: "You are assigned." });
       }
       await fetchList({ soft: true });
@@ -466,7 +432,7 @@ export default function SupportQuestionsPane({
         await fetchList({ soft: true });
       } else {
         const msg =
-          err.response?.data?.message || "Could not claim this ticket.";
+          err.response?.data?.message || "Could not claim this callback.";
         setActionMsg({ type: "error", text: msg });
         showToast("error", msg, "Claim failed");
       }
@@ -477,26 +443,70 @@ export default function SupportQuestionsPane({
 
   const releaseTicket = async () => {
     if (!selected?.id || releasing || !selectedOwnership.isMine) return;
-    if (!window.confirm("Release this ticket for other agents?")) return;
+    if (!window.confirm("Release this callback for other agents?")) return;
     setReleasing(true);
     try {
       const res = await axios.post(
-        `${apiUrl}support/questions/${selected.id}/release`,
+        `${apiUrl}support/callback-requests/${selected.id}/release`,
         {},
         { headers: authHeaders }
       );
       setSelected(res.data?.result || selected);
       setNoteDraft("");
-      showToast("success", "Ticket is available again.", "Released");
+      showToast("success", "Callback is available again.", "Released");
       setActionMsg({ type: "success", text: "Released." });
       await fetchList({ soft: true });
     } catch (err) {
       const msg =
-        err.response?.data?.message || "Could not release this ticket.";
+        err.response?.data?.message || "Could not release this callback.";
       setActionMsg({ type: "error", text: msg });
       showToast("error", msg, "Release failed");
     } finally {
       setReleasing(false);
+    }
+  };
+
+  const reassignTicket = async () => {
+    if (!selected?.id || reassigning || !selectedOwnership.isMine) return;
+    const target = String(reassignEmail || "").trim().toLowerCase();
+    if (!target) {
+      showToast("warning", "Enter a teammate email.", "Reassign");
+      return;
+    }
+    if (!target.includes("infomanav")) {
+      showToast(
+        "warning",
+        "Only Infomanav emails can receive callbacks.",
+        "Reassign"
+      );
+      return;
+    }
+
+    setReassigning(true);
+    setActionMsg(null);
+    try {
+      const res = await axios.post(
+        `${apiUrl}support/callback-requests/${selected.id}/reassign`,
+        { email: target },
+        { headers: authHeaders }
+      );
+      setSelected(res.data?.result || selected);
+      setNoteDraft("");
+      setShowReassign(false);
+      setReassignEmail("");
+      showToast("success", `Now under ${target}.`, "Reassigned");
+      setActionMsg({
+        type: "error",
+        text: `Under ${target}. View only.`,
+      });
+      await fetchList({ soft: true });
+    } catch (err) {
+      const msg =
+        err.response?.data?.message || "Could not reassign this callback.";
+      setActionMsg({ type: "error", text: msg });
+      showToast("error", msg, "Reassign failed");
+    } finally {
+      setReassigning(false);
     }
   };
 
@@ -506,7 +516,7 @@ export default function SupportQuestionsPane({
     setActionMsg(null);
     try {
       const res = await axios.patch(
-        `${apiUrl}support/questions/${selected.id}`,
+        `${apiUrl}support/callback-requests/${selected.id}`,
         payload,
         { headers: authHeaders }
       );
@@ -533,74 +543,11 @@ export default function SupportQuestionsPane({
     }
   };
 
-  const sendReply = async () => {
-    if (!selected?.id || sendingReply || !selectedOwnership.isMine) return;
-    const message = replyDraft.trim();
-    if (message.length < 10) {
-      showToast("warning", "Write at least 10 characters.", "Too short");
-      return;
-    }
-    setSendingReply(true);
-    setActionMsg(null);
-    try {
-      const res = await axios.post(
-        `${apiUrl}support/questions/${selected.id}/reply`,
-        { message },
-        { headers: authHeaders }
-      );
-      setSelected(res.data?.result || selected);
-      setReplyDraft("");
-      showToast("success", `Email sent to ${selected.email}.`, "Reply sent");
-      setActionMsg({ type: "success", text: "Email reply sent." });
-      await fetchList({ soft: true });
-    } catch (err) {
-      const msg =
-        err.response?.data?.message ||
-        err.response?.data?.error ||
-        "Failed to send reply email.";
-      setActionMsg({ type: "error", text: msg });
-      showToast("error", msg, "Send failed");
-    } finally {
-      setSendingReply(false);
-    }
-  };
-
-  const sendTicketChat = async () => {
-    if (!selected?.id || sendingReply || !selectedOwnership.isMine) return;
-    const message = replyDraft.trim();
-    if (message.length < 2) {
-      showToast("warning", "Write a short message.", "Too short");
-      return;
-    }
-    setSendingReply(true);
-    setActionMsg(null);
-    try {
-      const res = await axios.post(
-        `${apiUrl}support/questions/${selected.id}/messages`,
-        { message },
-        { headers: authHeaders }
-      );
-      setSelected(res.data?.result || selected);
-      setReplyDraft("");
-      setActionMsg({ type: "success", text: "Message sent." });
-      await fetchList({ soft: true });
-    } catch (err) {
-      const msg =
-        err.response?.data?.message ||
-        err.response?.data?.error ||
-        "Failed to send message.";
-      setActionMsg({ type: "error", text: msg });
-      showToast("error", msg, "Send failed");
-    } finally {
-      setSendingReply(false);
-    }
-  };
-
   return (
     <div className="sta-root">
       <div className="sta-toolbar">
         <div className="sta-toolbar-left">
-          <div className="sta-filters" role="tablist" aria-label="Ticket filters">
+          <div className="sta-filters" role="tablist" aria-label="Callback filters">
             {LIST_FILTERS.map((f) => (
               <button
                 key={f.id}
@@ -623,7 +570,7 @@ export default function SupportQuestionsPane({
               <FiSearch aria-hidden="true" />
               <input
                 type="search"
-                placeholder="Name, email, ID, category…"
+                placeholder="Name, phone, email, ID…"
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
               />
@@ -660,18 +607,17 @@ export default function SupportQuestionsPane({
 
       <div className="sta-table-shell">
         {loading ? (
-          <p className="sta-empty">Loading tickets…</p>
+          <p className="sta-empty">Loading callbacks…</p>
         ) : filteredRows.length === 0 ? (
-          <p className="sta-empty">No tickets match your filters.</p>
+          <p className="sta-empty">No callbacks match your filters.</p>
         ) : (
           <table className="sta-table">
             <thead>
               <tr>
                 <th>ID</th>
-                <th>Type</th>
                 <th>User</th>
-                <th>Category</th>
-                <th>Preview</th>
+                <th>Phone</th>
+                <th>Preferred time</th>
                 <th>Status</th>
                 <th>Assigned to</th>
                 <th>Updated</th>
@@ -679,10 +625,9 @@ export default function SupportQuestionsPane({
             </thead>
             <tbody>
               {filteredRows.map((item) => {
-                const ticket = isTicketItem(item);
-                const code = ticketCode(item.id, ticket ? "T" : "Q");
+                const code = ticketCode(item.id);
                 const state = ownershipState(item, email, myId);
-                const preview = String(item.question || "").slice(0, 64);
+                const windowMeta = TIME_WINDOWS[item.preferredTime];
                 return (
                   <tr
                     key={item.id}
@@ -693,26 +638,16 @@ export default function SupportQuestionsPane({
                   >
                     <td className="sta-mono">{code}</td>
                     <td>
-                      <span
-                        className={`sta-type ${
-                          ticket ? "sta-type--ticket" : "sta-type--faq"
-                        }`}
-                      >
-                        {ticket ? "Ticket" : "FAQ"}
-                      </span>
-                    </td>
-                    <td>
                       <div className="sta-user">
-                        <strong>{item.name || "User"}</strong>
+                        <strong>{displayName(item)}</strong>
                         <span>{item.email || "—"}</span>
                       </div>
                     </td>
+                    <td>{item.mobile || "—"}</td>
                     <td>
-                      {ticket ? formatTicketCategory(item.category) : "—"}
-                    </td>
-                    <td className="sta-preview" title={item.question || ""}>
-                      {preview}
-                      {String(item.question || "").length > 64 ? "…" : ""}
+                      {windowMeta
+                        ? `${windowMeta.label}`
+                        : formatLabel(item.preferredTime)}
                     </td>
                     <td>
                       <span
@@ -744,23 +679,22 @@ export default function SupportQuestionsPane({
           <button
             type="button"
             className="sta-drawer-backdrop"
-            aria-label="Close ticket details"
+            aria-label="Close callback details"
             onClick={closeDrawer}
           />
           <aside
             className="sta-drawer"
             role="dialog"
             aria-modal="true"
-            aria-label="Ticket details"
+            aria-label="Callback details"
           >
             <header className="sta-drawer-head">
               <div>
                 <p className="sta-drawer-kicker">
-                  {isTicketSelected ? "Support ticket" : "FAQ question"} ·{" "}
-                  {ticketCode(selected.id, isTicketSelected ? "T" : "Q")}
+                  Callback request · {ticketCode(selected.id)}
                 </p>
                 <h2>
-                  {selected.name || selected.email || "User"}
+                  {displayName(selected)}
                   <span className="sta-drawer-sub">
                     {selectedOwnership.isOpen
                       ? " · Unassigned"
@@ -788,15 +722,31 @@ export default function SupportQuestionsPane({
                 >
                   <FiMail /> Email
                 </a>
+                <a
+                  className="sta-btn sta-btn--ghost sta-btn--sm"
+                  href={`tel:${selected.mobile}`}
+                >
+                  <FiPhone /> Call
+                </a>
                 {selectedOwnership.isMine ? (
-                  <button
-                    type="button"
-                    className="sta-btn sta-btn--ghost sta-btn--sm"
-                    disabled={releasing || claiming}
-                    onClick={releaseTicket}
-                  >
-                    <FiUnlock /> Release
-                  </button>
+                  <>
+                    <button
+                      type="button"
+                      className="sta-btn sta-btn--ghost sta-btn--sm"
+                      disabled={releasing || claiming || reassigning}
+                      onClick={releaseTicket}
+                    >
+                      <FiUnlock /> Release
+                    </button>
+                    <button
+                      type="button"
+                      className="sta-btn sta-btn--ghost sta-btn--sm"
+                      disabled={releasing || claiming || reassigning}
+                      onClick={() => setShowReassign((v) => !v)}
+                    >
+                      <FiUserPlus /> Reassign
+                    </button>
+                  </>
                 ) : null}
                 <button
                   type="button"
@@ -813,8 +763,8 @@ export default function SupportQuestionsPane({
               {selectedOwnership.isOpen ? (
                 <div className="sta-claim">
                   <div>
-                    <strong>Claim this {isTicketSelected ? "ticket" : "question"}?</strong>
-                    <span>Assign it to yourself to reply and update status.</span>
+                    <strong>Claim this callback?</strong>
+                    <span>Assign it to yourself to call and update status.</span>
                   </div>
                   <button
                     type="button"
@@ -829,8 +779,52 @@ export default function SupportQuestionsPane({
 
               {selectedOwnership.isLockedToOther ? (
                 <div className="sta-banner sta-banner--warn">
-                  <FiLock /> Only the assigned agent can edit this ticket.
+                  <FiLock /> Only the assigned agent can edit this callback.
                 </div>
+              ) : null}
+
+              {selectedOwnership.isMine && showReassign ? (
+                <section className="sta-panel">
+                  <h3>Reassign callback</h3>
+                  <p className="sta-muted">
+                    Pick a teammate or type an Infomanav email.
+                  </p>
+                  <div className="sta-grid-2" style={{ marginTop: 12 }}>
+                    <label className="sta-label">
+                      Teammate
+                      <SupportFilterSelect
+                        label=""
+                        value={
+                          teammateOptions.some((opt) => opt.id === reassignEmail)
+                            ? reassignEmail
+                            : ""
+                        }
+                        options={teammateOptions}
+                        placeholder="Select teammate…"
+                        ariaLabel="Reassign to teammate"
+                        onChange={(id) => setReassignEmail(id)}
+                      />
+                    </label>
+                    <label className="sta-label">
+                      Or enter email
+                      <input
+                        type="email"
+                        placeholder="name@infomanav.in"
+                        value={reassignEmail}
+                        onChange={(e) => setReassignEmail(e.target.value)}
+                      />
+                    </label>
+                  </div>
+                  <button
+                    type="button"
+                    className="sta-btn sta-btn--primary"
+                    style={{ marginTop: 12 }}
+                    disabled={reassigning || !reassignEmail.trim()}
+                    onClick={reassignTicket}
+                  >
+                    {reassigning ? "Reassigning…" : "Confirm reassign"}
+                  </button>
+                </section>
               ) : null}
 
               {actionMsg ? (
@@ -841,17 +835,27 @@ export default function SupportQuestionsPane({
 
               <dl className="sta-meta">
                 <div>
-                  <dt>Contact</dt>
+                  <dt>Phone</dt>
                   <dd>
-                    <a href={`mailto:${selected.email}`}>{selected.email}</a>
+                    <a href={`tel:${selected.mobile}`}>
+                      {selected.mobile || "—"}
+                    </a>
                   </dd>
                 </div>
                 <div>
-                  <dt>{isTicketSelected ? "Category" : "Source"}</dt>
+                  <dt>Email</dt>
                   <dd>
-                    {isTicketSelected
-                      ? formatTicketCategory(selected.category)
-                      : "FAQ Ask Question"}
+                    <a href={`mailto:${selected.email}`}>
+                      {selected.email || "—"}
+                    </a>
+                  </dd>
+                </div>
+                <div>
+                  <dt>Preferred time</dt>
+                  <dd>
+                    {TIME_WINDOWS[selected.preferredTime]
+                      ? `${TIME_WINDOWS[selected.preferredTime].label} (${TIME_WINDOWS[selected.preferredTime].range})`
+                      : formatLabel(selected.preferredTime)}
                   </dd>
                 </div>
                 <div>
@@ -866,46 +870,21 @@ export default function SupportQuestionsPane({
                   <dt>Created</dt>
                   <dd>{formatWhen(selected.createdAt)}</dd>
                 </div>
+                {selected.source ? (
+                  <div>
+                    <dt>Source</dt>
+                    <dd>{formatLabel(selected.source)}</dd>
+                  </div>
+                ) : null}
               </dl>
 
-              {isTicketSelected ? (
-                <section className="sta-panel">
-                  <h3>Conversation</h3>
-                  <div className="sta-chat">
-                    {ticketMessages.length === 0 ? (
-                      <p className="sta-muted">No messages yet</p>
-                    ) : (
-                      ticketMessages.map((m) => (
-                        <div
-                          key={m.id}
-                          className={`sta-bubble sta-bubble--${
-                            m.senderRole === "agent" ? "agent" : "user"
-                          }`}
-                        >
-                          <div className="sta-bubble-meta">
-                            {m.senderRole === "agent"
-                              ? m.senderName || "Agent"
-                              : selected.name || selected.email || "User"}{" "}
-                            · {formatWhen(m.createdAt)}
-                          </div>
-                          <p>{m.text}</p>
-                        </div>
-                      ))
-                    )}
-                  </div>
-                </section>
-              ) : (
-                <section className="sta-panel">
-                  <h3>Question</h3>
-                  <p className="sta-question-text">{selected.question}</p>
-                </section>
-              )}
-
               <div className="sta-grid-2">
-                <section className={`sta-panel${editsDisabled ? " is-locked" : ""}`}>
+                <section
+                  className={`sta-panel${editsDisabled ? " is-locked" : ""}`}
+                >
                   <h3>Update status</h3>
                   <div className="sta-chips">
-                    {statusActions.map((action) => (
+                    {STATUS_ACTIONS.map((action) => (
                       <button
                         key={action.id}
                         type="button"
@@ -922,54 +901,38 @@ export default function SupportQuestionsPane({
                   </div>
                 </section>
 
-                <section className={`sta-panel${editsDisabled ? " is-locked" : ""}`}>
-                  <h3>{isTicketSelected ? "Chat reply" : "Email reply"}</h3>
-                  {!isTicketSelected ? (
-                    <label className="sta-label">
-                      Subject
-                      <input
-                        type="text"
-                        value={replySubject}
-                        readOnly
-                        disabled={editsDisabled}
-                      />
-                    </label>
-                  ) : null}
-                  <label className="sta-label">
-                    Message
-                    <textarea
-                      rows={4}
-                      value={replyDraft}
-                      onChange={(e) => setReplyDraft(e.target.value)}
-                      disabled={editsDisabled || sendingReply}
-                      placeholder={
-                        editsDisabled
-                          ? "Claim to reply…"
-                          : "Write your reply…"
-                      }
-                    />
-                  </label>
-                  <button
-                    type="button"
-                    className="sta-btn sta-btn--primary"
-                    disabled={
-                      editsDisabled ||
-                      sendingReply ||
-                      replyDraft.trim().length < (isTicketSelected ? 2 : 10)
-                    }
-                    onClick={isTicketSelected ? sendTicketChat : sendReply}
-                  >
-                    <FiSend />{" "}
-                    {sendingReply
-                      ? "Sending…"
-                      : isTicketSelected
-                        ? "Send message"
-                        : "Send reply email"}
-                  </button>
+                <section
+                  className={`sta-panel${editsDisabled ? " is-locked" : ""}`}
+                >
+                  <h3>Preferred time window</h3>
+                  <div className="sta-chips">
+                    {["morning", "afternoon", "evening"].map((slot) => (
+                      <button
+                        key={slot}
+                        type="button"
+                        className={`sta-chip${
+                          selected.preferredTime === slot ? " is-active" : ""
+                        }`}
+                        disabled={editsDisabled || saving}
+                        onClick={() =>
+                          updateTicket({
+                            preferredTime: slot,
+                            status: "rescheduled",
+                            note: `Preferred time changed to ${slot}`,
+                          })
+                        }
+                      >
+                        {selected.preferredTime === slot ? <FiCheck /> : null}
+                        {TIME_WINDOWS[slot].label}
+                      </button>
+                    ))}
+                  </div>
                 </section>
               </div>
 
-              <section className={`sta-panel${editsDisabled ? " is-locked" : ""}`}>
+              <section
+                className={`sta-panel${editsDisabled ? " is-locked" : ""}`}
+              >
                 <h3>
                   <FiMessageSquare /> Notes
                 </h3>
@@ -1015,25 +978,22 @@ export default function SupportQuestionsPane({
               <section className="sta-panel">
                 <div className="sta-panel-head">
                   <h3>Activity</h3>
-                  <span>{activityEvents.length} events</span>
+                  <span>{activityNotes.length} events</span>
                 </div>
-                {activityEvents.length === 0 ? (
-                  <p className="sta-muted">No notes or email replies yet.</p>
+                {activityNotes.length === 0 ? (
+                  <p className="sta-muted">No notes yet.</p>
                 ) : (
                   <ul className="sta-activity">
-                    {activityEvents.map((event) => (
-                      <li key={event.id}>
+                    {activityNotes.map((note, idx) => (
+                      <li key={note.id || `${note.createdAt}-${idx}`}>
                         <div className="sta-activity-top">
-                          <strong>{event.agentName}</strong>
-                          <time>{formatWhen(event.at)}</time>
+                          <strong>
+                            {note.addedByName || note.addedByEmail || "Agent"}
+                          </strong>
+                          <time>{formatWhen(note.createdAt)}</time>
                         </div>
-                        <span className="sta-activity-kind">
-                          {event.kind === "reply" ? "Email reply" : "Note"}
-                        </span>
-                        {event.subject ? (
-                          <p className="sta-activity-subject">{event.subject}</p>
-                        ) : null}
-                        <p>{event.text}</p>
+                        <span className="sta-activity-kind">Note</span>
+                        <p>{note.text}</p>
                       </li>
                     ))}
                   </ul>

@@ -7,15 +7,14 @@ import {
   FiUserPlus,
   FiAward,
   FiActivity,
-  FiChevronLeft,
-  FiChevronRight,
   FiInbox,
 } from "react-icons/fi";
 import { showToast } from "../components/ToastProvider";
 import { markPaneScrolling } from "../components/SupportFilterSelect";
+import FilesPaginationFooter from "../components/FilesPaginationFooter";
 import SupportUserDetailsModal from "./SupportUserDetailsModal";
 
-const PAGE_SIZE = 25;
+const DEFAULT_PAGE_SIZE = 25;
 
 function todayKey() {
   const d = new Date();
@@ -75,6 +74,44 @@ function formatWhen(iso) {
   }
 }
 
+function formatPremiumExpiry(user) {
+  if (!user || user.accountType !== "Premium") return "—";
+
+  let days = user.expiresInDays;
+  if (days == null && user.expirationAt) {
+    const expMs = Date.parse(user.expirationAt);
+    if (!Number.isNaN(expMs) && expMs > Date.now()) {
+      days = Math.max(
+        0,
+        Math.ceil((expMs - Date.now()) / (24 * 60 * 60 * 1000))
+      );
+    }
+  }
+  if (days == null || Number.isNaN(Number(days))) return "—";
+
+  const n = Number(days);
+  if (n <= 0) return "Expires today";
+  if (n === 1) return "Expires in 1 day";
+  return `Expires in ${n} days`;
+}
+
+function premiumExpiryTone(user) {
+  if (!user || user.accountType !== "Premium") return "muted";
+  const days =
+    user.expiresInDays != null
+      ? Number(user.expiresInDays)
+      : user.expirationAt
+        ? Math.ceil(
+            (Date.parse(user.expirationAt) - Date.now()) /
+              (24 * 60 * 60 * 1000)
+          )
+        : null;
+  if (days == null || Number.isNaN(days)) return "muted";
+  if (days <= 3) return "danger";
+  if (days <= 14) return "warn";
+  return "ok";
+}
+
 function StorageUsageBar({ usedLabel, limitLabel, percent }) {
   const pct =
     percent == null || Number.isNaN(Number(percent))
@@ -123,12 +160,15 @@ export default function SupportUsersPane({
   const [fromDate, setFromDate] = useState(todayKey);
   const [toDate, setToDate] = useState(todayKey);
   const [listMode, setListMode] = useState("registered");
+  /** none | asc | desc — client-side sort of current list by premium expiry */
+  const [expirySort, setExpirySort] = useState("none");
   const [summary, setSummary] = useState(null);
   const [users, setUsers] = useState([]);
   const [loading, setLoading] = useState(true);
   const [listLoading, setListLoading] = useState(false);
   const [error, setError] = useState("");
   const [page, setPage] = useState(1);
+  const [pageSize, setPageSize] = useState(DEFAULT_PAGE_SIZE);
   const [cursor, setCursor] = useState(null);
   const [cursorStack, setCursorStack] = useState([]);
   const [nextCursor, setNextCursor] = useState(null);
@@ -222,7 +262,7 @@ export default function SupportUsersPane({
             headers: authHeaders,
             params: {
               date: activeListDate,
-              limit: PAGE_SIZE,
+              limit: pageSize,
               includeStorage: 1,
               ...(requestCursor ? { cursor: requestCursor } : {}),
             },
@@ -233,7 +273,7 @@ export default function SupportUsersPane({
             params: {
               from: fromDate,
               to: toDate,
-              limit: PAGE_SIZE,
+              limit: pageSize,
               includeStorage: 1,
               ...(requestCursor ? { cursor: requestCursor } : {}),
             },
@@ -263,8 +303,46 @@ export default function SupportUsersPane({
       listMode,
       activeListDate,
       datesReady,
+      pageSize,
     ]
   );
+
+  const displayedUsers = useMemo(() => {
+    if (expirySort !== "asc" && expirySort !== "desc") return users;
+    const dir = expirySort === "asc" ? 1 : -1;
+    const rank = (u) => {
+      if (u?.accountType === "Premium") {
+        if (u.expiresInDays != null && !Number.isNaN(Number(u.expiresInDays))) {
+          return Number(u.expiresInDays);
+        }
+        if (u.expirationAt) {
+          const ms = Date.parse(u.expirationAt);
+          if (!Number.isNaN(ms)) {
+            return Math.max(
+              0,
+              Math.ceil((ms - Date.now()) / (24 * 60 * 60 * 1000))
+            );
+          }
+        }
+      }
+      // Free / unknown go last for both directions
+      return Number.POSITIVE_INFINITY;
+    };
+    return [...users].sort((a, b) => {
+      const ra = rank(a);
+      const rb = rank(b);
+      if (ra === rb) {
+        return String(a.email || "").localeCompare(String(b.email || ""));
+      }
+      // Keep non-premium at the end even for desc
+      if (!Number.isFinite(ra) && Number.isFinite(rb)) return 1;
+      if (Number.isFinite(ra) && !Number.isFinite(rb)) return -1;
+      if (!Number.isFinite(ra) && !Number.isFinite(rb)) {
+        return String(a.email || "").localeCompare(String(b.email || ""));
+      }
+      return (ra - rb) * dir;
+    });
+  }, [users, expirySort]);
 
   useEffect(() => {
     if (filterKeyRef.current === filterKey) return;
@@ -323,6 +401,108 @@ export default function SupportUsersPane({
     setPage((p) => p + 1);
   };
 
+  const jumpToPage = async (target) => {
+    if (!apiUrl || !authHeaders?.Authorization || busy) return;
+    const goal = Math.max(1, Number(target) || 1);
+    if (goal === activePage) return;
+
+    if (goal === 1) {
+      setPage(1);
+      setCursor(null);
+      setCursorStack([]);
+      return;
+    }
+
+    setListLoading(true);
+    setError("");
+    try {
+      let cur = null;
+      const stack = [];
+      let pageNum = 1;
+      let usersPage = [];
+      let more = false;
+      let nxt = null;
+
+      while (pageNum <= goal) {
+        let listRes;
+        if (listMode === "active") {
+          listRes = await axios.get(`${apiUrl}support/users/active`, {
+            headers: authHeaders,
+            params: {
+              date: activeListDate,
+              limit: pageSize,
+              includeStorage: 1,
+              ...(cur ? { cursor: cur } : {}),
+            },
+          });
+        } else {
+          if (!datesReady) break;
+          listRes = await axios.get(`${apiUrl}support/users`, {
+            headers: authHeaders,
+            params: {
+              from: fromDate,
+              to: toDate,
+              limit: pageSize,
+              includeStorage: 1,
+              ...(cur ? { cursor: cur } : {}),
+            },
+          });
+        }
+        const data = listRes.data || {};
+        usersPage = Array.isArray(data.users) ? data.users : [];
+        more = Boolean(data.hasMore && data.nextCursor);
+        nxt = data.nextCursor || null;
+
+        if (pageNum === goal || !more || !nxt) {
+          setUsers(usersPage);
+          setPage(pageNum);
+          setCursor(cur);
+          setCursorStack(stack);
+          setHasMore(more);
+          setNextCursor(nxt);
+          break;
+        }
+        stack.push(cur);
+        cur = nxt;
+        pageNum += 1;
+      }
+    } catch (err) {
+      const msg =
+        err?.response?.data?.message ||
+        err?.message ||
+        "Failed to load users";
+      setError(msg);
+      showToast("error", msg);
+    } finally {
+      setListLoading(false);
+    }
+  };
+
+  const handlePageChange = (nextPage) => {
+    if (busy) return;
+    if (nextPage === activePage) return;
+    if (nextPage === activePage + 1) {
+      goNext();
+      return;
+    }
+    if (nextPage === activePage - 1) {
+      goPrev();
+      return;
+    }
+    void jumpToPage(nextPage);
+  };
+
+  const handlePageSizeChange = (size) => {
+    const next = Number(size) || DEFAULT_PAGE_SIZE;
+    if (next === pageSize) return;
+    setPageSize(next);
+    setPage(1);
+    setCursor(null);
+    setCursorStack([]);
+    setNextCursor(null);
+    setHasMore(false);
+  };
+
   const refreshAll = () => {
     filterKeyRef.current = filterKey;
     resetPager();
@@ -341,9 +521,15 @@ export default function SupportUsersPane({
   };
 
   const busy = loading || listLoading;
-  const fromRow =
-    users.length === 0 ? 0 : (activePage - 1) * PAGE_SIZE + 1;
-  const toRow = (activePage - 1) * PAGE_SIZE + users.length;
+  const summaryTotal =
+    listMode === "active"
+      ? Number(summary?.activeToday) || 0
+      : Number(summary?.registeredInPeriod) || 0;
+  const loadedThrough = (activePage - 1) * pageSize + displayedUsers.length;
+  const totalEntries = Math.max(
+    summaryTotal,
+    hasMore ? loadedThrough + 1 : loadedThrough
+  );
 
   return (
     <div className="ssd-callbacks ssd-users">
@@ -401,16 +587,31 @@ export default function SupportUsersPane({
           </div>
         </div>
 
-        <button
-          type="button"
-          className="ssd-btn ssd-btn-ghost ssd-btn-refresh"
-          onClick={refreshAll}
-          disabled={busy}
-          title="Refresh users"
-        >
-          <FiRefreshCw />
-          Refresh
-        </button>
+        <div className="ssd-users-toolbar__right">
+          <label className="ssd-users-sort">
+            <span>Premium expiry</span>
+            <select
+              value={expirySort}
+              disabled={busy}
+              onChange={(e) => setExpirySort(e.target.value)}
+              aria-label="Sort by premium expiry"
+            >
+              <option value="none">Default</option>
+              <option value="asc">Soonest first ↑</option>
+              <option value="desc">Latest first ↓</option>
+            </select>
+          </label>
+          <button
+            type="button"
+            className="ssd-btn ssd-btn-ghost ssd-btn-refresh"
+            onClick={refreshAll}
+            disabled={busy}
+            title="Refresh users"
+          >
+            <FiRefreshCw />
+            Refresh
+          </button>
+        </div>
       </div>
 
       <div className="ssd-users-stats">
@@ -491,7 +692,7 @@ export default function SupportUsersPane({
       </div>
 
       <div className="ssd-users-table-wrap" onScroll={markPaneScrolling}>
-        {busy && !users.length ? (
+        {busy && !displayedUsers.length ? (
           <div className="ssd-users-empty">
             <div className="ssd-users-empty-card">
               <span className="ssd-users-empty-spin" aria-hidden />
@@ -502,7 +703,7 @@ export default function SupportUsersPane({
               </p>
             </div>
           </div>
-        ) : users.length === 0 ? (
+        ) : displayedUsers.length === 0 ? (
           <div className="ssd-users-empty">
             <div className="ssd-users-empty-card">
               <div className="ssd-users-empty-icon" aria-hidden>
@@ -531,6 +732,7 @@ export default function SupportUsersPane({
                 <th>Email</th>
                 <th>Mobile</th>
                 <th>Account</th>
+                <th>Premium expiry</th>
                 <th>Storage</th>
                 <th>
                   {listMode === "active" ? "Last login" : "Registered"}
@@ -539,11 +741,12 @@ export default function SupportUsersPane({
               </tr>
             </thead>
             <tbody>
-              {users.map((u) => {
+              {displayedUsers.map((u) => {
                 const overQuota =
                   u.usagePercent != null &&
                   !Number.isNaN(Number(u.usagePercent)) &&
                   Number(u.usagePercent) > 100;
+                const expiryTone = premiumExpiryTone(u);
                 return (
                   <tr
                     key={u.id}
@@ -572,6 +775,18 @@ export default function SupportUsersPane({
                         }`}
                       >
                         {u.accountType || "Free"}
+                      </span>
+                    </td>
+                    <td>
+                      <span
+                        className={`ssd-expiry ssd-expiry--${expiryTone}`}
+                        title={
+                          u.expirationAt
+                            ? formatWhen(u.expirationAt)
+                            : undefined
+                        }
+                      >
+                        {formatPremiumExpiry(u)}
                       </span>
                     </td>
                     <td className="ssd-users-table__storage">
@@ -611,32 +826,13 @@ export default function SupportUsersPane({
         )}
       </div>
 
-      <div className="ssd-users-pager">
-        <span className="ssd-muted">
-          {users.length ? `Showing ${fromRow}–${toRow}` : "No rows"}
-          {listMode === "active" ? ` · ${activeDayLabel}` : ""}
-          {listLoading ? " · Loading…" : ""}
-        </span>
-        <div className="ssd-users-pager-btns">
-          <button
-            type="button"
-            className="ssd-btn ssd-btn-ghost ssd-btn-xs"
-            onClick={goPrev}
-            disabled={busy || activePage <= 1 || !cursorStack.length}
-          >
-            <FiChevronLeft /> Prev
-          </button>
-          <span className="ssd-muted">Page {activePage}</span>
-          <button
-            type="button"
-            className="ssd-btn ssd-btn-ghost ssd-btn-xs"
-            onClick={goNext}
-            disabled={busy || !hasMore || !nextCursor}
-          >
-            Next <FiChevronRight />
-          </button>
-        </div>
-      </div>
+      <FilesPaginationFooter
+        totalEntries={totalEntries}
+        currentPage={activePage}
+        itemsPerPage={pageSize}
+        onPageChange={handlePageChange}
+        onItemsPerPageChange={handlePageSizeChange}
+      />
 
       {detailsUserId && (
         <SupportUserDetailsModal

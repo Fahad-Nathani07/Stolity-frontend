@@ -29,6 +29,10 @@ import { FiHeadphones } from "react-icons/fi";
 import { useDispatch, useSelector } from "react-redux";
 
 import axios from "axios";
+import "../css/SideNav.css";
+
+/* Match theme off-canvas hide at max-width 991px (style.css .sidebar-offcanvas) */
+const SIDENAV_MOBILE_BP = 991;
 
 const SideNav = () => {
   const [openMenus, setOpenMenus] = useState({});
@@ -56,9 +60,26 @@ const SideNav = () => {
   ).toLowerCase();
   const showSupportDashboard = agentEmail.includes("infomanav");
 
+  const [isMobile, setIsMobile] = useState(
+    () =>
+      typeof window !== "undefined" && window.innerWidth <= SIDENAV_MOBILE_BP
+  );
   const [showUpgradeModal, setShowUpgradeModal] = useState(false);
   const [showLogoutModal, setShowLogoutModal] = useState(false);
   const [isLoggingOut, setIsLoggingOut] = useState(false);
+
+  useEffect(() => {
+    const mq = window.matchMedia(`(max-width: ${SIDENAV_MOBILE_BP}px)`);
+    const onChange = () => setIsMobile(mq.matches);
+    onChange();
+    mq.addEventListener("change", onChange);
+    return () => mq.removeEventListener("change", onChange);
+  }, []);
+
+  useEffect(() => {
+    document.body.classList.toggle("sidenav-mobile", isMobile);
+    return () => document.body.classList.remove("sidenav-mobile");
+  }, [isMobile]);
   const subscription = useSelector((state) => state.subscription.subscription);
   const folderSize = useSelector((state) => state.subscription.folderSize);
   const isPremium =
@@ -150,8 +171,10 @@ const SideNav = () => {
       "/UserProfile": "UserProfile",
       "/JobPortalAdmin": "JobPortalAdmin",
       "/JobPortal": "JobPortal",
-      "/HelpSupportCenter": "HelpSupportCenter",
-      "/FAQPage": "FAQPage",
+      "/HelpSupportCenter": "SettingsPages",
+      "/FAQPage": "SettingsPages",
+      "/SupportTickets": "SettingsPages",
+      "/Payment": "SettingsPages",
       "/SupportDashboard": "SupportDashboard",
     };
     const menu = Object.keys(pathMap).find((key) => path.startsWith(key));
@@ -162,6 +185,7 @@ const SideNav = () => {
     setActiveMenu(activeMenu);
     setOpenMenus(activeMenu ? { [activeMenu]: true } : {});
     setSidebarOpen(true);
+    setShowSettingsMenu(false);
   }, [location.pathname]);
 
   useEffect(() => {
@@ -297,11 +321,20 @@ const SideNav = () => {
         </div>
       )}
 
-      {/* Sidebar - always visible */}
+      {isMobile && showSettingsMenu && (
+        <button
+          type="button"
+          className="sidebar--mobile-backdrop"
+          aria-label="Close settings menu"
+          onClick={() => setShowSettingsMenu(false)}
+        />
+      )}
+
+      {/* Sidebar — desktop rail / mobile bottom bar */}
       <nav
         className={`sidebar sidebar-offcanvas ${
           sidebarOpen ? "open" : "closed"
-        }`}
+        }${isMobile ? " sidebar--mobile" : ""}`}
         id="sidebar"
       >
         <div className="sidebar-brand-wrapper d-none d-lg-flex align-items-center justify-content-center fixed-top">
@@ -328,7 +361,10 @@ const SideNav = () => {
               <Link
                 className="nav-link ripple_effect"
                 to="/Files"
-                onClick={() => setSidebarOpen(true)}
+                onClick={() => {
+                  setSidebarOpen(true);
+                  setShowSettingsMenu(false);
+                }}
               >
                 <span
                   className={`menu-icon ${
@@ -372,7 +408,10 @@ const SideNav = () => {
                 <Link
                   className="nav-link ripple_effect"
                   to="/Favourites"
-                  onClick={() => setSidebarOpen(true)}
+                  onClick={() => {
+                    setSidebarOpen(true);
+                    setShowSettingsMenu(false);
+                  }}
                 >
                   <span
                     className={`menu-icon ${
@@ -403,7 +442,10 @@ const SideNav = () => {
               <Link
                 className="nav-link ripple_effect"
                 to="/Bin"
-                onClick={() => setSidebarOpen(true)}
+                onClick={() => {
+                  setSidebarOpen(true);
+                  setShowSettingsMenu(false);
+                }}
               >
                 <span
                   className={`menu-icon ${
@@ -464,7 +506,10 @@ const SideNav = () => {
               <Link
                 className="nav-link ripple_effect"
                 to="/UserProfile"
-                onClick={() => setSidebarOpen(true)}
+                onClick={() => {
+                  setSidebarOpen(true);
+                  setShowSettingsMenu(false);
+                }}
               >
                 <span
                   className={`menu-icon ${
@@ -500,14 +545,17 @@ const SideNav = () => {
 
             {showSupportDashboard && (
               <li
-                className={`nav-item menu-items ${
+                className={`nav-item menu-items sidebar-nav-item--secondary ${
                   activeMenu === "SupportDashboard" ? "active" : ""
                 }`}
               >
                 <Link
                   className="nav-link ripple_effect"
                   to="/SupportDashboard"
-                  onClick={() => setSidebarOpen(true)}
+                  onClick={() => {
+                    setSidebarOpen(true);
+                    setShowSettingsMenu(false);
+                  }}
                   title="Support dashboard"
                 >
                   <span
@@ -531,11 +579,14 @@ const SideNav = () => {
             )}
 
             {showSuperAdminPanel && (
-              <li className={`nav-item menu-items ${activeMenu === "JobPortalAdmin" ? "active" : ""}`}>
+              <li className={`nav-item menu-items sidebar-nav-item--secondary ${activeMenu === "JobPortalAdmin" ? "active" : ""}`}>
                 <Link
                   className="nav-link ripple_effect"
                   to="/JobPortalAdmin"
-                  onClick={() => setSidebarOpen(true)}
+                  onClick={() => {
+                    setSidebarOpen(true);
+                    setShowSettingsMenu(false);
+                  }}
                 >
                   <span className={`menu-icon ${activeMenu === "JobPortalAdmin" ? "active-icon" : ""}`}>
                     <img 
@@ -549,11 +600,14 @@ const SideNav = () => {
             )}
 
             {showJobPortal && (
-              <li className={`nav-item menu-items ${activeMenu === "JobPortal" ? "active" : ""}`}>
+              <li className={`nav-item menu-items sidebar-nav-item--secondary ${activeMenu === "JobPortal" ? "active" : ""}`}>
                 <Link
                   className="nav-link ripple_effect"
                   to="/JobPortal"
-                  onClick={() => setSidebarOpen(true)}
+                  onClick={() => {
+                    setSidebarOpen(true);
+                    setShowSettingsMenu(false);
+                  }}
                 >
                   <span className={`menu-icon ${activeMenu === "JobPortal" ? "active-icon" : ""}`}>
                     <img 
@@ -570,10 +624,12 @@ const SideNav = () => {
           <div>
             <div className="sidebar-settings-wrapper" ref={settingsRef} style={{ position: "relative" }}>
               <button
-                className="settings-gear-btn ripple_effect"
-                onClick={() => setShowSettingsMenu(v => !v)}
+                type="button"
+                className={`settings-gear-btn ripple_effect${showSettingsMenu ? " is-open" : ""}${
+                  activeMenu === "SettingsPages" ? " is-active" : ""
+                }`}
+                onClick={() => setShowSettingsMenu((v) => !v)}
                 style={{
-                  background: "none",
                   border: "none",
                   outline: "none",
                   padding: "0",
@@ -583,120 +639,233 @@ const SideNav = () => {
                   alignItems: "center",
                   cursor: "pointer",
                   width: "44px",
-                  height: "44px"
+                  height: "44px",
                 }}
                 aria-label="Settings"
+                aria-expanded={showSettingsMenu}
               >
-                <img src={SettingsGearIcon} alt="Settings" style={{ width: "24px", height: "24px" }} />
+                <img src={SettingsGearIcon} alt="" style={{ width: "24px", height: "24px" }} />
               </button>
 
               {showSettingsMenu && (
                 <div
                   className="settings-dropdown-menu"
-                  style={{
-                    position: "absolute",
-                    left: "100%",
-                    top: "50%",
-                    transform: "translateY(-110%) translateX(-32px)",
-                    background: "#ffffffff",
-                    boxShadow: "0 14px 36px rgba(255,171,73,0.15)",
-                    borderRadius: "16px",
-                    padding: "8px 0",
-                    minWidth: "190px",
-                    zIndex: 22,
-                    display: "flex",
-                    flexDirection: "column",
-                    alignItems: "stretch",
-                    border: "1.5px solid #FFF1E8",
-                    animation: "fadeInRight 0.18s",
-                  }}
+                  style={
+                    isMobile
+                      ? {
+                          background: "#fff",
+                          boxShadow: "0 14px 36px rgba(255,171,73,0.15)",
+                          borderRadius: "16px",
+                          padding: "8px 0",
+                          border: "1.5px solid #FFF1E8",
+                          display: "flex",
+                          flexDirection: "column",
+                          alignItems: "stretch",
+                        }
+                      : {
+                          position: "absolute",
+                          left: "100%",
+                          top: "50%",
+                          transform: "translateY(-110%) translateX(-32px)",
+                          background: "#ffffffff",
+                          boxShadow: "0 14px 36px rgba(255,171,73,0.15)",
+                          borderRadius: "16px",
+                          padding: "8px 0",
+                          minWidth: "190px",
+                          zIndex: 22,
+                          display: "flex",
+                          flexDirection: "column",
+                          alignItems: "stretch",
+                          border: "1.5px solid #FFF1E8",
+                          animation: "fadeInRight 0.18s",
+                        }
+                  }
                 >
                   <button
+                    type="button"
                     className="settings-menu-item"
-                    style={{
-                      background: "none",
-                      border: "none",
-                      padding: "13px 28px",
-                      fontSize: "15px",
-                      color: "#222",
-                      cursor: "pointer",
-                      textAlign: "left",
-                      fontWeight: 500,
-                      letterSpacing: "-0.03em",
-                      transition: "background .16s, color .16s"
+                    style={
+                      isMobile
+                        ? undefined
+                        : {
+                            background: "none",
+                            border: "none",
+                            padding: "13px 28px",
+                            fontSize: "15px",
+                            color: "#222",
+                            cursor: "pointer",
+                            textAlign: "left",
+                            fontWeight: 500,
+                            letterSpacing: "-0.03em",
+                            transition: "background .16s, color .16s",
+                          }
+                    }
+                    onClick={() => {
+                      navigate("/Payment");
+                      setShowSettingsMenu(false);
                     }}
-                    onClick={() => { navigate("/Payment"); setShowSettingsMenu(false); }}
-                    onMouseOver={e => (e.currentTarget.style.color = "#E5660F")}
-                    onMouseOut={e => (e.currentTarget.style.color = "#222")}
+                    onMouseOver={(e) => {
+                      if (!isMobile) e.currentTarget.style.color = "#E5660F";
+                    }}
+                    onMouseOut={(e) => {
+                      if (!isMobile) e.currentTarget.style.color = "#222";
+                    }}
                   >
                     Upgrade Plan
                   </button>
                   <button
+                    type="button"
                     className="settings-menu-item"
-                    style={{
-                      background: "none",
-                      border: "none",
-                      padding: "13px 28px",
-                      fontSize: "15px",
-                      color: "#222",
-                      cursor: "pointer",
-                      textAlign: "left",
-                      fontWeight: 500,
-                      letterSpacing: "-0.03em",
-                      transition: "background .16s, color .16s"
+                    style={
+                      isMobile
+                        ? undefined
+                        : {
+                            background: "none",
+                            border: "none",
+                            padding: "13px 28px",
+                            fontSize: "15px",
+                            color: "#222",
+                            cursor: "pointer",
+                            textAlign: "left",
+                            fontWeight: 500,
+                            letterSpacing: "-0.03em",
+                            transition: "background .16s, color .16s",
+                          }
+                    }
+                    onClick={() => {
+                      navigate("/HelpSupportCenter");
+                      setShowSettingsMenu(false);
                     }}
-                    onClick={() => { navigate("/HelpSupportCenter"); setShowSettingsMenu(false); }}
-                    onMouseOver={e => (e.currentTarget.style.color = "#E5660F")}
-                    onMouseOut={e => (e.currentTarget.style.color = "#222")}
+                    onMouseOver={(e) => {
+                      if (!isMobile) e.currentTarget.style.color = "#E5660F";
+                    }}
+                    onMouseOut={(e) => {
+                      if (!isMobile) e.currentTarget.style.color = "#222";
+                    }}
                   >
                     Help & Support Center
                   </button>
                   <button
+                    type="button"
                     className="settings-menu-item"
-                    style={{
-                      background: "none",
-                      border: "none",
-                      padding: "13px 28px",
-                      fontSize: "15px",
-                      color: "#222",
-                      cursor: "pointer",
-                      textAlign: "left",
-                      fontWeight: 500,
-                      letterSpacing: "-0.03em",
-                      transition: "background .16s, color .16s"
+                    style={
+                      isMobile
+                        ? undefined
+                        : {
+                            background: "none",
+                            border: "none",
+                            padding: "13px 28px",
+                            fontSize: "15px",
+                            color: "#222",
+                            cursor: "pointer",
+                            textAlign: "left",
+                            fontWeight: 500,
+                            letterSpacing: "-0.03em",
+                            transition: "background .16s, color .16s",
+                          }
+                    }
+                    onClick={() => {
+                      navigate("/SupportTickets");
+                      setShowSettingsMenu(false);
                     }}
-                    onClick={() => { navigate("/SupportTickets"); setShowSettingsMenu(false); }}
-                    onMouseOver={e => (e.currentTarget.style.color = "#E5660F")}
-                    onMouseOut={e => (e.currentTarget.style.color = "#222")}
+                    onMouseOver={(e) => {
+                      if (!isMobile) e.currentTarget.style.color = "#E5660F";
+                    }}
+                    onMouseOut={(e) => {
+                      if (!isMobile) e.currentTarget.style.color = "#222";
+                    }}
                   >
                     Support Tickets
                   </button>
                   <button
+                    type="button"
                     className="settings-menu-item"
-                    style={{
-                      background: "none",
-                      border: "none",
-                      padding: "13px 28px",
-                      fontSize: "15px",
-                      color: "#222",
-                      cursor: "pointer",
-                      textAlign: "left",
-                      fontWeight: 500,
-                      letterSpacing: "-0.03em",
-                      transition: "background .16s, color .16s"
+                    style={
+                      isMobile
+                        ? undefined
+                        : {
+                            background: "none",
+                            border: "none",
+                            padding: "13px 28px",
+                            fontSize: "15px",
+                            color: "#222",
+                            cursor: "pointer",
+                            textAlign: "left",
+                            fontWeight: 500,
+                            letterSpacing: "-0.03em",
+                            transition: "background .16s, color .16s",
+                          }
+                    }
+                    onClick={() => {
+                      navigate("/FAQPage");
+                      setShowSettingsMenu(false);
                     }}
-                    onClick={() => { navigate("/FAQPage"); setShowSettingsMenu(false); }}
-                    onMouseOver={e => (e.currentTarget.style.color = "#E5660F")}
-                    onMouseOut={e => (e.currentTarget.style.color = "#222")}
+                    onMouseOver={(e) => {
+                      if (!isMobile) e.currentTarget.style.color = "#E5660F";
+                    }}
+                    onMouseOut={(e) => {
+                      if (!isMobile) e.currentTarget.style.color = "#222";
+                    }}
                   >
                     FAQ
                   </button>
+
+                  {isMobile && showSupportDashboard && (
+                    <button
+                      type="button"
+                      className="settings-menu-item"
+                      onClick={() => {
+                        navigate("/SupportDashboard");
+                        setShowSettingsMenu(false);
+                      }}
+                    >
+                      Support Dashboard
+                    </button>
+                  )}
+                  {isMobile && showSuperAdminPanel && (
+                    <button
+                      type="button"
+                      className="settings-menu-item"
+                      onClick={() => {
+                        navigate("/JobPortalAdmin");
+                        setShowSettingsMenu(false);
+                      }}
+                    >
+                      Admin Dashboard
+                    </button>
+                  )}
+                  {isMobile && showJobPortal && (
+                    <button
+                      type="button"
+                      className="settings-menu-item"
+                      onClick={() => {
+                        navigate("/JobPortal");
+                        setShowSettingsMenu(false);
+                      }}
+                    >
+                      Job Portal
+                    </button>
+                  )}
+                  {isMobile && (
+                    <button
+                      type="button"
+                      className="settings-menu-item settings-menu-item--danger"
+                      disabled={isLoggingOut}
+                      onClick={() => {
+                        setShowSettingsMenu(false);
+                        setShowLogoutModal(true);
+                      }}
+                    >
+                      {isLoggingOut ? "Logging out…" : "Logout"}
+                    </button>
+                  )}
                 </div>
               )}
             </div>
 
             <div className="footer_left">
               <button
+                type="button"
                 className="logout_button ripple_effect"
                 onClick={() => setShowLogoutModal(true)}
                 disabled={isLoggingOut}

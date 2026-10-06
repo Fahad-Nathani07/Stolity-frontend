@@ -12,6 +12,7 @@ import {
   streamDownloadResponse,
   isDownloadCancelledError,
   DISK_STREAM_THRESHOLD_BYTES,
+  mergeAbortSignals,
 } from "./downloadWithProgress";
 import { queueActivityStatus } from "./activityReport";
 
@@ -226,33 +227,65 @@ export async function downloadFolderNoZip({
 
       const entry = files[idx];
       let fetched = null;
+      let lastWriteErr = null;
+      let completed = false;
       try {
-        fetched = await fetchEntry(entry);
-        const eventId = fetched?.activityEventId || entry?.activityEventId;
-        if (eventId) {
-          queueActivityStatus({
-            apiUrl,
-            token,
-            eventId,
-            status: "STARTED",
-          });
+        for (let attempt = 1; attempt <= MAX_FILE_RETRIES; attempt += 1) {
+          if (signal?.aborted) {
+            throw new DOMException("Aborted", "AbortError");
+          }
+          fetched = null;
+          try {
+            fetched = await fetchEntry(entry);
+            const eventId = fetched?.activityEventId || entry?.activityEventId;
+            if (eventId && attempt === 1) {
+              queueActivityStatus({
+                apiUrl,
+                token,
+                eventId,
+                status: "STARTED",
+              });
+            }
+            await writeEntryToFolder({
+              response: fetched.response,
+              folderHandle,
+              relativePath: entry.relativePath,
+              onBytes: trackBytes,
+              signal,
+            });
+            if (eventId) {
+              queueActivityStatus({
+                apiUrl,
+                token,
+                eventId,
+                status: "COMPLETED",
+              });
+            }
+            completed = true;
+            break;
+          } catch (err) {
+            if (fetched?.releaseLargeSlot) {
+              try {
+                fetched.releaseLargeSlot();
+              } catch (_) {}
+            }
+            if (isDownloadCancelledError(err) || err?.name === "AbortError") {
+              throw err;
+            }
+            lastWriteErr = err;
+            console.warn(
+              `[download] Folder entry failed (attempt ${attempt}/${MAX_FILE_RETRIES}) ${entry.relativePath}:`,
+              err?.message || err
+            );
+            if (attempt < MAX_FILE_RETRIES) {
+              await delay(2000 * attempt);
+            }
+          }
         }
-        await writeEntryToFolder({
-          response: fetched.response,
-          folderHandle,
-          relativePath: entry.relativePath,
-          onBytes: trackBytes,
-          signal,
-        });
-        if (eventId) {
-          queueActivityStatus({
-            apiUrl,
-            token,
-            eventId,
-            status: "COMPLETED",
-          });
+        if (!completed) {
+          throw lastWriteErr || new Error(`Failed to download ${entry.relativePath}`);
         }
-        if (isLargeFile(entry.size || fetched.sizeBytes)) {
+        if (isLargeFile(entry.size || fetched?.sizeBytes)) {
           await delay(LARGE_FILE_GAP_MS);
         }
       } catch (err) {
@@ -324,6 +357,8 @@ export async function downloadFolderNoZip({
 
 /**
  * Multi-folder: one directory pick per cycle, each folder saved with structure.
+ * @param {AbortSignal} [signal] batch cancel
+ * @param {Record<string, AbortSignal>} [signalsByPath] per-folder row ✕
  */
 export async function downloadMultipleFoldersToDirectory({
   apiUrl,
@@ -331,6 +366,7 @@ export async function downloadMultipleFoldersToDirectory({
   folderPaths = [],
   shared,
   signal,
+  signalsByPath = null,
   onFolderProgress,
   dirHandle: existingDirHandle = null,
 }) {
@@ -360,6 +396,13 @@ export async function downloadMultipleFoldersToDirectory({
       continue;
     }
 
+    const fileSignal = signalsByPath?.[folderPath] || null;
+    if (fileSignal?.aborted && !signal?.aborted) {
+      results.push({ folderPath, success: false, cancelled: true });
+      continue;
+    }
+
+    const combinedSignal = mergeAbortSignals(signal, fileSignal);
     const saveAsFolderName = uniqueDirName(baseName(folderPath), usedNames);
     try {
       const outcome = await downloadFolderNoZip({
@@ -367,7 +410,7 @@ export async function downloadMultipleFoldersToDirectory({
         token,
         filePath: folderPath,
         shared,
-        signal,
+        signal: combinedSignal,
         dirHandle,
         saveAsFolderName,
         onProgress: (percent, loaded, total) =>
@@ -382,7 +425,9 @@ export async function downloadMultipleFoldersToDirectory({
     } catch (err) {
       if (isDownloadCancelledError(err) || err?.name === "AbortError") {
         results.push({ folderPath, success: false, cancelled: true });
-        break;
+        // Cancel all → stop. Per-folder ✕ → continue with remaining folders.
+        if (signal?.aborted) break;
+        continue;
       }
       results.push({
         folderPath,

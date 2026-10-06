@@ -14,6 +14,11 @@ import {
   getZipSuccessMessage,
   isZipUnzipCancelled,
 } from "../utils/zipUnzipRequest";
+import { SHOW_ZIP_UNZIP_ACTIONS } from "../utils/featureFlags";
+import {
+  isExternalFileDrag,
+  getDroppedFilesFromEvent,
+} from "../utils/externalFileDrop";
 import { uploadFolderViaMultipart } from "../utils/uploadFolderViaMultipart";
 import {
   uploadOneFileDirect,
@@ -664,6 +669,10 @@ const handleDragLeaveFolder = (e) => {
 // ────────────────────────────────────────────────
 const handleDragOver = (e) => {
   e.preventDefault();
+  if (isExternalFileDrag(e, { isInternalDrag: Boolean(draggedItem) })) {
+    e.dataTransfer.dropEffect = "copy";
+    return;
+  }
   e.dataTransfer.dropEffect = "move";
 };
 
@@ -713,6 +722,12 @@ const handleDragOver = (e) => {
 const handleDrop = (e) => {
   e.preventDefault();
   e.stopPropagation();
+
+  // OS files dropped on a folder row → open upload modal (do not treat as move).
+  if (handleExternalUploadDrop(e)) {
+    setHoveredFolderName(null);
+    return;
+  }
 
   if (!hoveredFolderName) {
     console.warn("[] No folder was hovered when drop occurred");
@@ -1268,19 +1283,36 @@ function debounce(fn, delay) {
       ...keys2.map((fileName) => ({ fileName, isFolder: true })),
     ];
 
-    // One shared controller for the whole batch so Cancel / ✕ aborts remaining
-    // files even after the first few have already finished.
+    // Per-file AbortController so row ✕ cancels only that file.
+    // Batch controller is for "Cancel all" and cascades to each file.
     const batchAbortController = new AbortController();
     items.forEach((item, i) => {
       const downloadId = Date.now() + Math.random() + i;
+      const fileAbortController = new AbortController();
+      batchAbortController.signal.addEventListener(
+        "abort",
+        () => {
+          try {
+            fileAbortController.abort();
+          } catch (_) {}
+        },
+        { once: true }
+      );
       addDownload(
         downloadId,
         item.fileName,
-        batchAbortController,
-        item.isFolder
+        fileAbortController,
+        item.isFolder,
+        {
+          batchAbortController,
+          sizeInBytes:
+            estimateDownloadBytes(
+              filedata?.find?.((f) => f.fileName === item.fileName)
+            ) || 0,
+        }
       );
       item.downloadId = downloadId;
-      item.abortController = batchAbortController;
+      item.abortController = fileAbortController;
     });
 
     const fileItems = items.filter((item) => !item.isFolder);
@@ -1344,13 +1376,21 @@ function debounce(fn, delay) {
         fileItems.length <= NATIVE_BROWSER_DOWNLOAD_MAX_FILES
       ) {
         for (const item of fileItems) {
+          if (batchSignal.aborted) break;
+          if (item.abortController?.signal?.aborted) {
+            cancelled += 1;
+            scheduleDownloadRemoval(removeDownload, item.downloadId, {
+              delayMs: 0,
+            });
+            continue;
+          }
           try {
             await downloadFileNativeBrowser({
               apiUrl,
               token,
               filePath: item.fileName,
               shared,
-              signal: batchSignal,
+              signal: item.abortController?.signal || batchSignal,
               onProgress: (percent) => {
                 updateDownloadProgress(item.downloadId, percent);
               },
@@ -1376,6 +1416,12 @@ function debounce(fn, delay) {
             filePaths: fileItems.map((item) => item.fileName),
             shared,
             signal: batchSignal,
+            signalsByPath: Object.fromEntries(
+              fileItems.map((item) => [
+                item.fileName,
+                item.abortController.signal,
+              ])
+            ),
             dirHandle: sharedDirHandle,
             estimatedBytesByPath: Object.fromEntries(
               fileItems.map((item) => [
@@ -1438,6 +1484,12 @@ function debounce(fn, delay) {
             folderPaths: folderItems.map((item) => item.fileName),
             shared,
             signal: batchSignal,
+            signalsByPath: Object.fromEntries(
+              folderItems.map((item) => [
+                item.fileName,
+                item.abortController.signal,
+              ])
+            ),
             dirHandle: sharedDirHandle,
             onFolderProgress: (folderPath, percent) => {
               const item = itemByPath[folderPath];
@@ -3067,7 +3119,9 @@ const handleConfirmDownload = async () => {
     let succeeded = false;
     let handedToBrowser = false;
 
-    addDownload(downloadId, fileName, abortController, isFolder);
+    addDownload(downloadId, fileName, abortController, isFolder, {
+      sizeInBytes: estimateDownloadBytes(selectedFile) || 0,
+    });
     setDownloadpopup(false);
     isSetLoading(true);
     setProgress(0);
@@ -3354,16 +3408,6 @@ const handleConfirmDownload = async () => {
     endZipping();
   }
 }
-
-  const customTruncateFileName = (name, maxLength) => {
-    if (name.length > maxLength) {
-      return `${name.substring(0, maxLength - 9)} of the ${name.substring(
-        maxLength - 6,
-        maxLength
-      )}...`;
-    }
-    return name;
-  };
 
   const getLastSegment = (text) => {
     // Check if the text contains a slash
@@ -4506,6 +4550,57 @@ useEffect(()=>{
   //Drag to move
   const [draggedItem, setDraggedItem] = useState(null);
 
+  /** OS file drop on the listing → open upload modal and seed the Files tab. */
+  const handleExternalUploadDrop = useCallback(
+    (e) => {
+      if (!isExternalFileDrag(e, { isInternalDrag: Boolean(draggedItem) })) {
+        return false;
+      }
+      e.preventDefault();
+      e.stopPropagation();
+      const dropped = getDroppedFilesFromEvent(e);
+      if (!dropped.length) {
+        showToast(
+          "info",
+          "To upload a folder, open Upload and use the Upload Folder tab."
+        );
+        return true;
+      }
+      setOpenFileUploadModal(true);
+      onDrop(dropped);
+      return true;
+    },
+    [draggedItem, onDrop]
+  );
+
+  const handleExternalUploadDragOver = useCallback(
+    (e) => {
+      if (!isExternalFileDrag(e, { isInternalDrag: Boolean(draggedItem) })) {
+        return;
+      }
+      e.preventDefault();
+      e.stopPropagation();
+      e.dataTransfer.dropEffect = "copy";
+    },
+    [draggedItem]
+  );
+
+  // Keep browser from opening the dropped file as a navigation.
+  useEffect(() => {
+    const onWindowDragOver = (e) => {
+      if (isExternalFileDrag(e)) e.preventDefault();
+    };
+    const onWindowDrop = (e) => {
+      if (isExternalFileDrag(e)) e.preventDefault();
+    };
+    window.addEventListener("dragover", onWindowDragOver);
+    window.addEventListener("drop", onWindowDrop);
+    return () => {
+      window.removeEventListener("dragover", onWindowDragOver);
+      window.removeEventListener("drop", onWindowDrop);
+    };
+  }, []);
+
    // Function called when dragging starts
   const handleDragStart = (e, file) => {
     setDraggedItem(file); // Keep track of the currently dragged item
@@ -5260,6 +5355,8 @@ useEffect(()=>{
                   <button
                     type="button"
                     className="files-app-header__support"
+                    title="Support"
+                    aria-label="Support"
                     onClick={() => navigate("/SupportTickets")}
                   >
                     <FiLifeBuoy aria-hidden="true" />
@@ -5294,7 +5391,11 @@ useEffect(()=>{
           </div>
         </nav>
         {/* partial */}
-        <div className="main-panel files-page">
+        <div
+          className="main-panel files-page"
+          onDragOver={handleExternalUploadDragOver}
+          onDrop={handleExternalUploadDrop}
+        >
           <div className="content-wrapper">
             <div className={filesTableBoxClassName} ref={filesTableBoxRef}>
               <div className="filerbar_row" ref={filesFilterBarRef}>
@@ -5367,9 +5468,16 @@ useEffect(()=>{
                                 aria-hidden
                               />
                               <span className="sort-filter-label">
-                                {selectedFileTypes.length > 0
-                                  ? `File Type (${selectedFileTypes.length})`
-                                  : "File Type"}
+                                <span className="sort-filter-label--full">
+                                  {selectedFileTypes.length > 0
+                                    ? `File Type (${selectedFileTypes.length})`
+                                    : "File Type"}
+                                </span>
+                                <span className="sort-filter-label--short" aria-hidden="true">
+                                  {selectedFileTypes.length > 0
+                                    ? `Type (${selectedFileTypes.length})`
+                                    : "Type"}
+                                </span>
                               </span>
                               {!isPremium && (
                                 <img
@@ -5922,7 +6030,7 @@ useEffect(()=>{
               textClassName="file-name filename_link"
               style={{ cursor: "pointer" }}
             >
-              {getTextAfterLastSlash(customTruncateFileName(file.fileName, 55))}
+              {getTextAfterLastSlash(file.fileName)}
             </TruncatedTooltip>
             <span
               className="file-path"
@@ -6191,7 +6299,7 @@ useEffect(()=>{
 
               
 
-              {file.fileName.includes(".zip") ? (
+              {SHOW_ZIP_UNZIP_ACTIONS && (file.fileName.includes(".zip") ? (
                 <a
                   className={`dropdown-item dropdown-item-custom ${
                     file?.isShared || file?.fileName === "blackbox"
@@ -6275,7 +6383,7 @@ useEffect(()=>{
                     <img src={svgCrown} alt="" style={{ height: "20px" }}  />
                     </span>}
                 </a>
-              )}
+              ))}
 
                 {file.isFolder === false && (
                 <a
@@ -6329,7 +6437,7 @@ useEffect(()=>{
                 />
                 Download
               </a>
-              {/* )} */}
+              {/* ))} */}
 
           <a
           className={`dropdown-item dropdown-item-custom ${
@@ -7002,7 +7110,7 @@ useEffect(()=>{
   </a>
 )}
 
-                                        {file.fileName.includes(".zip") ? (
+                                        {SHOW_ZIP_UNZIP_ACTIONS && (file.fileName.includes(".zip") ? (
                                         <a
                                           className={`dropdown-item dropdown-item-custom ${file?.isShared
                                               ? "disabled blur-effect"
@@ -7080,7 +7188,7 @@ useEffect(()=>{
             <img src={svgCrown} alt="" style={{ height: "20px" }}  />
             </span>}
                                         </a>
-                                      )}
+                                      ))}
 
                                   {file.isFolder === false && (
                                     <a
@@ -7155,7 +7263,7 @@ useEffect(()=>{
                                       />
                                       Zip
                                     </a>
-                                  )} */}
+                                  ))} */}
 
                                   {/* {file.isFolder === false && ( */}
                                   <a
@@ -7569,19 +7677,22 @@ useEffect(()=>{
                 <Tab>
                   <div className="my-tab-item">
                     <i className="mdi mdi-file-document-box-multiple-outline"></i>
-                    <span>Files</span>
+                    <span className="tab-label-full">Files</span>
+                    <span className="tab-label-short">Files</span>
                   </div>
                 </Tab>
                 <Tab>
                   <div className="my-tab-item">
                     <i className="mdi mdi-folder-multiple-outline"></i>
-                    <span>Upload Folder</span>
+                    <span className="tab-label-full">Upload Folder</span>
+                    <span className="tab-label-short">Upload</span>
                   </div>
                 </Tab>
                 <Tab>
                   <div className="my-tab-item">
                     <i className="mdi mdi-folder-multiple-outline"></i>
-                    <span>Folder</span>
+                    <span className="tab-label-full">Folder</span>
+                    <span className="tab-label-short">Folder</span>
                   </div>
                 </Tab>
               </TabList>

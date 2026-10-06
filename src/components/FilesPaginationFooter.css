@@ -46,20 +46,13 @@
   flex: 0 0 auto !important;
 }
 
+/* ===== Desktop bar ===== */
 .fp-bar {
   display: flex;
   align-items: center;
   justify-content: space-between;
   gap: 16px;
   width: 100%;
-  flex-wrap: wrap;
-}
-
-.fp-left,
-.fp-right {
-  display: flex;
-  align-items: center;
-  gap: 14px;
 }
 
 .fp-size {
@@ -67,6 +60,7 @@
   align-items: center;
   gap: 10px;
   margin: 0;
+  flex-shrink: 0;
 }
 
 .fp-size-label {
@@ -74,6 +68,10 @@
   font-weight: 500;
   color: #64748b;
   white-space: nowrap;
+}
+
+.fp-size-trigger-prefix {
+  display: none;
 }
 
 .fp-size-control {
@@ -89,7 +87,7 @@
   overflow: visible;
   transition:
     border-color 0.15s ease,
-    box-shadow 0.15s ease,
+    box-shadow 0.18s ease,
     background-color 0.15s ease;
 }
 
@@ -275,6 +273,8 @@
   color: #475569;
   white-space: nowrap;
   font-variant-numeric: tabular-nums;
+  margin-left: auto;
+  margin-right: 4px;
 }
 
 .fp-nav {
@@ -284,7 +284,8 @@
   padding: 4px;
   border-radius: 100px;
   background: #ffffff;
-    border: 1px solid #e7e7e7;
+  border: 1px solid #e7e7e7;
+  flex-shrink: 0;
 }
 
 .fp-btn {
@@ -340,28 +341,182 @@
   color: #94a3b8;
 }
 
-@media (max-width: 640px) {
+/* ===== Mobile / tablet redesign (matches bottom SideNav ≤991) ===== */
+@media (max-width: 991px) {
   .files-pagination-footer {
-    padding: 12px 14px;
+    padding: 8px 12px 10px;
+    min-height: 0;
+    z-index: 40;
+    background: #ffffff;
+    border-top: 1px solid #e8edf2;
+    box-shadow: 0 -4px 16px rgba(15, 23, 42, 0.06);
   }
 
   .fp-bar {
-    flex-direction: column;
-    align-items: stretch;
+    display: grid;
+    grid-template-columns: 1fr auto;
+    grid-template-areas:
+      "nav nav"
+      "range size";
+    gap: 6px 10px;
+    align-items: center;
   }
 
-  .fp-left,
-  .fp-right {
-    justify-content: space-between;
-    width: 100%;
-  }
-
+  /* Primary: page controls — full width, centered */
   .fp-nav {
-    margin-left: auto;
+    grid-area: nav;
+    width: 100%;
+    justify-content: space-between;
+    gap: 0;
+    padding: 2px;
+    border-radius: 10px;
+    border: 1px solid #e8edf2;
+    background: #f8fafc;
+  }
+
+  .fp-btn {
+    width: 30px;
+    height: 30px;
+    border-radius: 8px;
+    color: #0f172a;
+  }
+
+  .fp-btn:hover:not(:disabled) {
+    background: #ffffff;
+    color: #e5660f;
+    box-shadow: 0 1px 3px rgba(15, 23, 42, 0.08);
+  }
+
+  .fp-btn:disabled {
+    opacity: 0.28;
+  }
+
+  .fp-icon {
+    width: 15px;
+    height: 15px;
+  }
+
+  .fp-page-pill {
+    flex: 1 1 auto;
+    min-width: 0;
+    justify-content: center;
+    padding: 0 4px;
+    gap: 4px;
+  }
+
+  .fp-page-num {
+    font-size: 12px;
+    font-weight: 700;
+    color: #0f172a;
+  }
+
+  .fp-page-of {
+    font-size: 11px;
+    font-weight: 500;
+    color: #64748b;
+  }
+
+  /* Secondary meta row */
+  .fp-range {
+    grid-area: range;
+    margin: 0;
+    font-size: 11px;
+    font-weight: 600;
+    color: #64748b;
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  .fp-size {
+    grid-area: size;
+    justify-self: end;
+    gap: 0;
+  }
+
+  .fp-size-label {
+    display: none;
+  }
+
+  .fp-size-trigger-prefix {
+    display: inline;
+    font-size: 11px;
+    font-weight: 600;
+    color: #64748b;
+  }
+
+  .fp-size-control {
+    height: 28px;
+    min-width: 0;
+    border-radius: 8px;
+    background: #f8fafc;
+    border-color: #e8edf2 !important;
+    box-shadow: none;
+  }
+
+  .fp-size-control:hover,
+  .fp-size-control.is-open,
+  .fp-size-control:focus-within {
+    background: #fff7ed;
+    border-color: #fdba74 !important;
+    box-shadow: none;
+  }
+
+  .fp-size-trigger {
+    min-width: 0;
+    gap: 4px;
+    padding: 0 8px;
+    font-size: 11px;
   }
 
   .fp-size-menu {
     left: auto;
     right: 0;
+    min-width: 160px;
+  }
+}
+
+@media (max-width: 400px) {
+  .files-pagination-footer {
+    padding: 6px 10px 8px;
+  }
+
+  .fp-bar {
+    gap: 6px;
+  }
+
+  .fp-btn {
+    width: 28px;
+    height: 28px;
+  }
+
+  .fp-btn--edge {
+    display: none;
+  }
+
+  .fp-icon {
+    width: 14px;
+    height: 14px;
+  }
+
+  .fp-page-num {
+    font-size: 12px;
+  }
+
+  .fp-page-of {
+    font-size: 11px;
+  }
+
+  .fp-range {
+    font-size: 10px;
+  }
+
+  .fp-size-control {
+    height: 26px;
+  }
+
+  .fp-size-trigger {
+    padding: 0 7px;
+    font-size: 10px;
   }
 }

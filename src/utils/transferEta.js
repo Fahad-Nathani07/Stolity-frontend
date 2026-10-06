@@ -33,18 +33,31 @@ export function isDownloadOnlyBatch(items = []) {
 
 export function computeOverallProgress(items = []) {
   if (!items.length) return 0;
-  const hasValidSizes = items.some((u) => Number(u.sizeInBytes) > 0);
-  if (hasValidSizes) {
-    const totalSize = items.reduce((acc, u) => acc + (Number(u.sizeInBytes) || 0), 0);
-    if (!totalSize) return 0;
+  const knownSizes = items
+    .map((u) => Number(u.sizeInBytes) || 0)
+    .filter((n) => n > 0);
+  if (!knownSizes.length) {
     return (
-      items.reduce(
-        (acc, u) => acc + (Number(u.sizeInBytes) || 0) * (Number(u.progress) || 0),
-        0
-      ) / totalSize
+      items.reduce((acc, u) => acc + (Number(u.progress) || 0), 0) /
+      items.length
     );
   }
-  return items.reduce((acc, u) => acc + (Number(u.progress) || 0), 0) / items.length;
+  // Unknown sizes (e.g. some folders) share the average of known file sizes
+  // so they still move overall progress instead of counting as 0 bytes.
+  const avgKnown =
+    knownSizes.reduce((acc, n) => acc + n, 0) / knownSizes.length;
+  const weights = items.map((u) => {
+    const s = Number(u.sizeInBytes) || 0;
+    return s > 0 ? s : avgKnown;
+  });
+  const totalSize = weights.reduce((acc, n) => acc + n, 0);
+  if (!totalSize) return 0;
+  return (
+    items.reduce(
+      (acc, u, i) => acc + weights[i] * (Number(u.progress) || 0),
+      0
+    ) / totalSize
+  );
 }
 
 /**

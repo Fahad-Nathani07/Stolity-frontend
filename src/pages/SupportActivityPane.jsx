@@ -9,14 +9,13 @@ import {
   FiActivity,
   FiArchive,
   FiPackage,
-  FiChevronLeft,
-  FiChevronRight,
 } from "react-icons/fi";
 import { showToast } from "../components/ToastProvider";
 import {
   SupportMultiFilterSelect,
   markPaneScrolling,
 } from "../components/SupportFilterSelect";
+import FilesPaginationFooter from "../components/FilesPaginationFooter";
 
 const ACTION_OPTIONS = [
   { id: "UPLOAD", label: "Upload" },
@@ -36,7 +35,7 @@ const ACTION_OPTIONS = [
   { id: "LOGOUT", label: "Logout" },
 ];
 
-const LOGS_PAGE_SIZE = 100;
+const DEFAULT_LOGS_PAGE_SIZE = 50;
 
 const STATUS_OPTIONS = [
   { id: "REQUESTED", label: "Requested" },
@@ -151,6 +150,7 @@ export default function SupportActivityPane({
   const [logsLoading, setLogsLoading] = useState(false);
   const [error, setError] = useState("");
   const [page, setPage] = useState(1);
+  const [pageSize, setPageSize] = useState(DEFAULT_LOGS_PAGE_SIZE);
   const [cursor, setCursor] = useState(null);
   const [cursorStack, setCursorStack] = useState([]);
   const [nextCursor, setNextCursor] = useState(null);
@@ -227,7 +227,7 @@ export default function SupportActivityPane({
         const params = {
           from: fromDate,
           to: toDate,
-          limit: LOGS_PAGE_SIZE,
+          limit: pageSize,
           ...(requestCursor ? { cursor: requestCursor } : {}),
           ...(selectedUserId ? { userId: selectedUserId } : {}),
           ...(actionFilter.length ? { action: actionFilter.join(",") } : {}),
@@ -261,6 +261,7 @@ export default function SupportActivityPane({
       selectedUserId,
       actionFilter,
       statusFilter,
+      pageSize,
     ]
   );
 
@@ -308,9 +309,6 @@ export default function SupportActivityPane({
   const totals = summary?.totals || {};
   const eventBreakdown = buildEventBreakdown(totals);
   const displayPage = activePage;
-  const fromRow =
-    events.length === 0 ? 0 : (displayPage - 1) * LOGS_PAGE_SIZE + 1;
-  const toRow = (displayPage - 1) * LOGS_PAGE_SIZE + events.length;
   const busy = loading || logsLoading;
 
   const goPrev = () => {
@@ -327,6 +325,103 @@ export default function SupportActivityPane({
     setCursor(nextCursor);
     setPage((p) => p + 1);
   };
+
+  const jumpToPage = async (target) => {
+    if (!detailsOpen || !apiUrl || !authHeaders?.Authorization || busy) return;
+    const goal = Math.max(1, Number(target) || 1);
+    if (goal === displayPage) return;
+
+    if (goal === 1) {
+      setPage(1);
+      setCursor(null);
+      setCursorStack([]);
+      return;
+    }
+
+    setLogsLoading(true);
+    setError("");
+    try {
+      let cur = null;
+      const stack = [];
+      let pageNum = 1;
+      let eventsPage = [];
+      let more = false;
+      let nxt = null;
+
+      while (pageNum <= goal) {
+        const params = {
+          from: fromDate,
+          to: toDate,
+          limit: pageSize,
+          ...(cur ? { cursor: cur } : {}),
+          ...(selectedUserId ? { userId: selectedUserId } : {}),
+          ...(actionFilter.length ? { action: actionFilter.join(",") } : {}),
+          ...(statusFilter.length ? { status: statusFilter.join(",") } : {}),
+        };
+        const logsRes = await axios.get(`${apiUrl}support/activity/logs`, {
+          headers: authHeaders,
+          params,
+        });
+        const data = logsRes.data || {};
+        eventsPage = Array.isArray(data.events) ? data.events : [];
+        more = Boolean(data.hasMore && data.nextCursor);
+        nxt = data.nextCursor || null;
+
+        if (pageNum === goal || !more || !nxt) {
+          setEvents(eventsPage);
+          setPage(pageNum);
+          setCursor(cur);
+          setCursorStack(stack);
+          setHasMore(more);
+          setNextCursor(nxt);
+          break;
+        }
+        stack.push(cur);
+        cur = nxt;
+        pageNum += 1;
+      }
+    } catch (err) {
+      const msg =
+        err?.response?.data?.message ||
+        err?.message ||
+        "Failed to load activity logs";
+      setError(msg);
+      showToast(msg, "error");
+    } finally {
+      setLogsLoading(false);
+    }
+  };
+
+  const handlePageChange = (nextPage) => {
+    if (!detailsOpen || busy) return;
+    if (nextPage === displayPage) return;
+    if (nextPage === displayPage + 1) {
+      goNext();
+      return;
+    }
+    if (nextPage === displayPage - 1) {
+      goPrev();
+      return;
+    }
+    void jumpToPage(nextPage);
+  };
+
+  const handlePageSizeChange = (size) => {
+    const next = Number(size) || DEFAULT_LOGS_PAGE_SIZE;
+    if (next === pageSize) return;
+    setPageSize(next);
+    setPage(1);
+    setCursor(null);
+    setCursorStack([]);
+    setNextCursor(null);
+    setHasMore(false);
+  };
+
+  const loadedThrough = (displayPage - 1) * pageSize + events.length;
+  const totalEntries = Math.max(
+    loadedThrough,
+    hasMore ? loadedThrough + 1 : loadedThrough
+  );
 
   const openDetails = () => {
     setPage(1);
@@ -503,7 +598,9 @@ export default function SupportActivityPane({
               {!detailsOpen
                 ? "not loaded"
                 : events.length
-                  ? `${fromRow}–${toRow}`
+                  ? `${(displayPage - 1) * pageSize + 1}–${
+                      (displayPage - 1) * pageSize + events.length
+                    }`
                   : "0"}
             </span>
           </div>
@@ -645,38 +742,13 @@ export default function SupportActivityPane({
             )}
 
             {detailsOpen && (
-            <div className="ssd-activity-pager">
-              <span className="ssd-activity-pager-range">
-                {events.length
-                  ? `Showing ${fromRow}–${toRow} · ${LOGS_PAGE_SIZE}/page`
-                  : "No rows"}
-              </span>
-              <div className="ssd-activity-pager-nav">
-                <button
-                  type="button"
-                  className="ssd-btn ssd-btn-ghost ssd-btn-xs"
-                  disabled={busy || displayPage <= 1}
-                  onClick={goPrev}
-                  aria-label="Previous page"
-                >
-                  <FiChevronLeft />
-                  Prev
-                </button>
-                <span className="ssd-activity-pager-page">
-                  Page {displayPage}
-                </span>
-                <button
-                  type="button"
-                  className="ssd-btn ssd-btn-ghost ssd-btn-xs"
-                  disabled={busy || !hasMore || !nextCursor}
-                  onClick={goNext}
-                  aria-label="Next page"
-                >
-                  Next
-                  <FiChevronRight />
-                </button>
-              </div>
-            </div>
+              <FilesPaginationFooter
+                totalEntries={totalEntries}
+                currentPage={displayPage}
+                itemsPerPage={pageSize}
+                onPageChange={handlePageChange}
+                onItemsPerPageChange={handlePageSizeChange}
+              />
             )}
 
             <p className="ssd-activity-note" title="Native browser downloads stay Requested — the app cannot confirm the browser finished saving.">

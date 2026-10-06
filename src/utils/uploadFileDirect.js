@@ -5,6 +5,11 @@ import { queueActivityStatus, queueDeleteActivityEvent } from "./activityReport"
 export const DIRECT_PUT_MAX_BYTES = 100 * 1024 * 1024;
 /** Larger parts = fewer presign API calls (each call used to hit Firestore via verifyJWT). */
 export const DIRECT_PART_SIZE = 100 * 1024 * 1024;
+/**
+ * Proxy /upload-part goes through Express (raw limit 64mb) + ALB/nginx.
+ * Must stay under that — 100MB direct parts cause 413 on CORS fallback.
+ */
+export const PROXY_PART_SIZE = 32 * 1024 * 1024;
 /** How many part URLs to request per /presign-upload-parts call (server max 40). */
 export const PRESIGN_PARTS_BATCH = 20;
 export const DIRECT_UPLOAD_GAP_MS = 500;
@@ -887,7 +892,11 @@ export async function uploadOneFileDirect({
       onMeta({ needsNewController: true, mode: "proxy-fallback" });
     }
     checkRemoved();
-    return uploadViaProxyMultipart(sharedArgs);
+    return uploadViaProxyMultipart({
+      ...sharedArgs,
+      // Keep under Express raw 64mb / typical proxy body limits.
+      partSize: PROXY_PART_SIZE,
+    });
   };
 
   // Always try direct first (PUT <100MB, multipart direct ≥100MB).

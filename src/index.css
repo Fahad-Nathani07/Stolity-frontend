@@ -130,7 +130,7 @@ input[type="button"],
   box-shadow: 0 8px 20px rgba(196, 35, 28, 0.22);
 }
 
-.btn_login:hover,
+.btn_login:hover:not(:disabled),
 .get-start-btn:hover,
 .btn-primary:not(.btn-outline-primary):not(.dropdown-toggle):hover,
 .btn__upload__file_modal:hover,
@@ -144,7 +144,7 @@ input[type="button"],
   box-shadow: 0 10px 24px rgba(196, 35, 28, 0.3) !important;
 }
 
-.btn_login:active,
+.btn_login:active:not(:disabled),
 .get-start-btn:active,
 .btn-primary:not(.btn-outline-primary):not(.dropdown-toggle):active,
 .btn__upload__file_modal:active,
@@ -154,6 +154,25 @@ input[type="button"],
 .ft-custom-ext-add:active {
   transform: translateY(0);
   filter: brightness(0.94);
+}
+
+/* Signup / Login — clear disabled CTA look (terms unchecked, invalid form, etc.) */
+.btn_login:disabled,
+.btn_login[disabled],
+.btn_login:disabled:hover,
+.btn_login[disabled]:hover,
+.btn_login:disabled:active,
+.btn_login[disabled]:active {
+  background: #e5e7eb !important;
+  background-color: #e5e7eb !important;
+  border-color: #e5e7eb !important;
+  color: #9ca3af !important;
+  box-shadow: none !important;
+  transform: none !important;
+  filter: none !important;
+  cursor: not-allowed !important;
+  opacity: 1 !important;
+  pointer-events: none;
 }
 
 .get-start-btn::before {
@@ -181,11 +200,35 @@ input[type="button"],
 }
 
 /* Google / secondary login buttons */
-.stolity-google-btn-wrap:hover .stolity-google-btn,
-.stolity-google-btn:hover {
+.stolity-google-btn-wrap:hover:not(.is-disabled) .stolity-google-btn,
+.stolity-google-btn-wrap:not(.is-disabled) .stolity-google-btn:hover {
   border-color: #f0b48a !important;
   box-shadow: 0 6px 16px rgba(120, 90, 60, 0.1);
   transform: translateY(-1px);
+}
+
+.stolity-google-btn-wrap.is-disabled {
+  cursor: not-allowed;
+}
+
+.stolity-google-btn-wrap.is-disabled .stolity-google-btn {
+  background: #f3f4f6 !important;
+  border-color: #e5e7eb !important;
+  color: #9ca3af !important;
+  box-shadow: none !important;
+  transform: none !important;
+  opacity: 1 !important;
+  cursor: not-allowed !important;
+  filter: grayscale(0.35);
+}
+
+.stolity-google-btn-wrap.is-disabled .stolity-google-btn__icon {
+  opacity: 0.55;
+}
+
+.stolity-google-btn-wrap.is-disabled .stolity-google-btn-block {
+  background: transparent;
+  cursor: not-allowed;
 }
 
 .login-back-btn:hover {

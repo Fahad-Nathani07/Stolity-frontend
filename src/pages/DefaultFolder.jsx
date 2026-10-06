@@ -12,6 +12,7 @@ import {
   getZipSuccessMessage,
   isZipUnzipCancelled,
 } from "../utils/zipUnzipRequest";
+import { SHOW_ZIP_UNZIP_ACTIONS } from "../utils/featureFlags";
 import { uploadFolderViaMultipart } from "../utils/uploadFolderViaMultipart";
 import UploadBatchLimitModal from "../components/UploadBatchLimitModal";
 import { useUploadBatchLimitGate } from "../hooks/useUploadBatchLimitGate";
@@ -38,6 +39,7 @@ import { useDownloadActions } from "./DownloadContext";
 import {
   streamDownloadResponse,
   ensureDownloadWritable,
+  estimateDownloadBytes,
   isDownloadCancelledError,
   scheduleDownloadRemoval,
   NATIVE_BROWSER_DOWNLOAD_TOAST,
@@ -1574,7 +1576,9 @@ const DefaultFolder = () => {
     let succeeded = false;
     let handedToBrowser = false;
 
-    addDownload(downloadId, fileName, abortController, isFolder);
+    addDownload(downloadId, fileName, abortController, isFolder, {
+      sizeInBytes: estimateDownloadBytes(selectedFile) || 0,
+    });
     setDownloadpopup(false);
 
     isSetLoading(true);
@@ -3891,7 +3895,7 @@ const DefaultFolder = () => {
                                           </a>
                                         )}
 
-                                        {file.fileName.includes(".zip") ? (
+                                        {SHOW_ZIP_UNZIP_ACTIONS && (file.fileName.includes(".zip") ? (
                                           <a
                                             className={`dropdown-item dropdown-item-custom ${
                                               file?.isShared
@@ -3945,7 +3949,7 @@ const DefaultFolder = () => {
                                             />
                                             Zip
                                           </a>
-                                        )}
+                                        ))}
 
                                         {/* {file.isFolder === false && ( */}
                                         <a
@@ -3975,7 +3979,7 @@ const DefaultFolder = () => {
                                           />
                                           Download
                                         </a>
-                                        {/* )} */}
+                                        {/* ))} */}
 
                                         <a
                                           className={`dropdown-item dropdown-item-custom ${
@@ -4366,7 +4370,7 @@ const DefaultFolder = () => {
                                       </a>
                                     )}
 
-                                    {file.fileName.includes(".zip") ? (
+                                    {SHOW_ZIP_UNZIP_ACTIONS && (file.fileName.includes(".zip") ? (
                                       <a
                                         className={`dropdown-item dropdown-item-custom ${
                                           file?.isShared
@@ -4420,7 +4424,7 @@ const DefaultFolder = () => {
                                         />
                                         Zip
                                       </a>
-                                    )}
+                                    ))}
                                     {/* {file.isFolder === false && ( */}
                                     <a
                                       className={`dropdown-item dropdown-item-custom ${
@@ -4448,7 +4452,7 @@ const DefaultFolder = () => {
                                       />
                                       Download
                                     </a>
-                                    {/* )} */}
+                                    {/* ))} */}
                                     <a
                                       className={`dropdown-item dropdown-item-custom ${
                                         file?.isShared
@@ -5156,19 +5160,22 @@ const DefaultFolder = () => {
                 <Tab>
                   <div className="my-tab-item">
                     <i className="mdi mdi-file-document-box-multiple-outline"></i>
-                    <span>Files</span>
+                    <span className="tab-label-full">Files</span>
+                    <span className="tab-label-short">Files</span>
                   </div>
                 </Tab>
                 <Tab>
                   <div className="my-tab-item">
                     <i className="mdi mdi-folder-multiple-outline"></i>
-                    <span>Upload Folder</span>
+                    <span className="tab-label-full">Upload Folder</span>
+                    <span className="tab-label-short">Upload</span>
                   </div>
                 </Tab>
                 <Tab>
                   <div className="my-tab-item">
                     <i className="mdi mdi-folder-multiple-outline"></i>
-                    <span>Folder</span>
+                    <span className="tab-label-full">Folder</span>
+                    <span className="tab-label-short">Folder</span>
                   </div>
                 </Tab>
               </TabList>

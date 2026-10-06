@@ -172,6 +172,110 @@
     0 10px 20px rgba(255, 154, 46, 0.42);
 }
 
+/* Mobile app header — Files + NestedPage (shared; menu toggle unused) */
+@media screen and (max-width: 767px) {
+  .files-layout .files-navbar__shell,
+  .files-layout .files-navbar .navbar-menu-wrapper.files-navbar__shell {
+    padding: 0 16px !important;
+  }
+
+  .files-layout .files-app-header {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    min-height: 56px;
+  }
+
+  .files-layout .files-app-header__titles {
+    flex: 1;
+    min-width: 0;
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px;
+    margin: 0;
+    padding: 0;
+  }
+
+  .files-layout .files-app-header__title {
+    flex: 1;
+    min-width: 0;
+    font-size: 18px !important;
+    font-weight: 700;
+    letter-spacing: -0.02em;
+    line-height: 1.2;
+    text-align: left;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .files-layout .files-app-header__end {
+    gap: 8px;
+    flex-shrink: 0;
+  }
+
+  .files-layout .files-app-header__welcome,
+  .files-layout .files-nav-welcome {
+    display: none;
+  }
+
+  .files-layout .files-app-header__support {
+    height: 34px;
+    padding: 0 11px;
+    gap: 6px;
+    border-radius: 9px;
+    font-size: 0.75rem;
+  }
+
+  .files-layout .files-app-header__support svg {
+    width: 15px;
+    height: 15px;
+  }
+
+  .files-layout .files-app-header__profile {
+    width: 36px;
+    height: 36px;
+  }
+}
+
+@media screen and (max-width: 420px) {
+  .files-layout .files-navbar__shell,
+  .files-layout .files-navbar .navbar-menu-wrapper.files-navbar__shell {
+    padding: 0 14px !important;
+  }
+
+  .files-layout .files-app-header {
+    gap: 8px;
+    min-height: 52px;
+  }
+
+  .files-layout .files-app-header__title {
+    font-size: 16px !important;
+  }
+
+  /* Icon-only Support — keeps tap target, frees space for title */
+  .files-layout .files-app-header__support {
+    width: 34px;
+    height: 34px;
+    padding: 0;
+    gap: 0;
+    font-size: 0;
+    line-height: 0;
+  }
+
+  .files-layout .files-app-header__support svg {
+    width: 16px;
+    height: 16px;
+  }
+
+  .files-layout .files-app-header__profile {
+    width: 34px;
+    height: 34px;
+  }
+}
+
 .page_title-support-btn {
   margin-left: 0;
   display: inline-flex;
@@ -266,15 +370,17 @@
   flex: 0 1 auto;
   width: 168px;
   min-width: 140px;
-  max-width: 220px;
+  max-width: 240px;
 }
 
 .files-toolbar__sort {
   width: 150px;
 }
 
+/* Extra width so "File Type" + crown (non-premium) doesn't truncate */
 .files-toolbar__filetype {
-  width: 150px;
+  width: 190px;
+  min-width: 170px;
 }
 
 .files-toolbar__filetype.is-active .filter_dropdown .rs-dropdown-toggle,
@@ -459,6 +565,10 @@
   color: #1e293b;
 }
 
+.files-toolbar__filters .sort-filter-label--short {
+  display: none;
+}
+
 .files-toolbar__filters .sort-filter-crown {
   height: 16px;
   width: auto;
@@ -546,7 +656,8 @@
   }
 
   .files-toolbar__filetype {
-    width: 172px;
+    width: 190px;
+    min-width: 170px;
   }
 }
 
@@ -574,6 +685,7 @@
     font-size: 24px;
   }
 
+  /* Favourites / Recycle / etc. Files + Nested override via .files-layout @ 767 */
   .files-toolbar {
     justify-content: flex-start;
   }
@@ -603,12 +715,613 @@
   }
 }
 
-/* Sticky filter bar + table header — Files, NestedPage, Favourites, RecycleBin */
+/* Mobile filter bar — Files + NestedPage
+   Order: actions → Sort/Type (full width) → search */
+@media screen and (max-width: 767px) {
+  .files-layout .files-page > .content-wrapper {
+    padding-top: 0;
+    padding-left: 16px;
+    padding-right: 16px;
+  }
+
+  .files-layout .filerbar_row,
+  .files-layout .files-page.stolity-list-sticky .filerbar_row {
+    /* Stick to top of content-wrapper scrollport (navbar is outside it) */
+    position: sticky !important;
+    top: 0 !important;
+    z-index: 45;
+    display: flex;
+    flex-direction: column;
+    align-items: stretch;
+    gap: 10px;
+    width: 100%;
+    margin: 0 0 8px !important;
+    padding: 8px 0 10px !important;
+    border: none;
+    border-bottom: 1px solid #e8edf2;
+    border-radius: 0;
+    background: #ffffff !important;
+    box-shadow: 0 8px 16px rgba(255, 255, 255, 0.95);
+    backdrop-filter: none;
+    -webkit-backdrop-filter: none;
+  }
+
+  .files-layout .show_entries_row {
+    order: 3;
+    width: 100%;
+    min-width: 0;
+  }
+
+  .files-layout .file-search-bar {
+    --fsb-height: 40px;
+    width: 100%;
+    max-width: none;
+    min-width: 0;
+    border-radius: 12px;
+    box-shadow: none;
+  }
+
+  .files-layout .file-search-bar__input {
+    font-size: 14px;
+  }
+
+  .files-layout .files-toolbar {
+    order: 1;
+    display: flex;
+    flex-direction: column;
+    flex-wrap: nowrap !important;
+    align-items: stretch;
+    gap: 8px;
+    width: 100%;
+    min-width: 0;
+  }
+
+  .files-layout .files-toolbar__view {
+    display: none !important;
+  }
+
+  /* Row 1 — Create / URL / Upload */
+  .files-layout .files-toolbar__actions {
+    order: 1;
+    display: flex;
+    flex: 0 0 auto;
+    width: 100% !important;
+    gap: 8px;
+    padding: 0;
+    margin: 0;
+    justify-content: flex-end;
+  }
+
+  .files-layout .files-toolbar__actions .download-btn,
+  .files-layout .files-toolbar__actions .download-btn2,
+  .files-layout .files-toolbar__actions .btn__upload__file_modal {
+    width: 38px !important;
+    height: 38px !important;
+    min-width: 38px !important;
+  }
+
+  .files-layout .files-toolbar__actions .download-btn img,
+  .files-layout .files-toolbar__actions .download-btn2 img,
+  .files-layout .files-toolbar__actions .btn__upload__file_modal img {
+    width: 16px !important;
+    height: 16px !important;
+  }
+
+  /* Row 2 — Sort + File Type share full width */
+  .files-layout .files-toolbar__main {
+    order: 2;
+    display: flex;
+    align-items: center;
+    flex: 0 0 auto;
+    width: 100% !important;
+    min-width: 0;
+    gap: 8px;
+    justify-content: stretch;
+  }
+
+  .files-layout .files-toolbar__filters {
+    display: flex;
+    flex: 1 1 auto;
+    align-items: center;
+    gap: 8px;
+    width: 100% !important;
+    min-width: 0;
+    padding: 0 !important;
+    flex-wrap: nowrap !important;
+  }
+
+  .files-layout .files-toolbar__sort,
+  .files-layout .files-toolbar__filetype {
+    flex: 1 1 0;
+    width: 50% !important;
+    min-width: 0;
+    max-width: none;
+  }
+
+  .files-layout .files-toolbar__filters .filter_dropdown,
+  .files-layout .files-toolbar__filters .rs-dropdown,
+  .files-layout .files-toolbar__filters .sort-by-dropdown {
+    width: 100%;
+  }
+
+  .files-layout .files-toolbar__filters .filter_dropdown .rs-dropdown-toggle,
+  .files-layout .files-toolbar__filters .filter_dropdown .rs-dropdown-toggle.rs-btn,
+  .files-layout .files-toolbar__filters .sort-by-trigger {
+    width: 100% !important;
+    height: 38px !important;
+    min-height: 38px !important;
+    font-size: 13px !important;
+    padding: 0 28px 0 10px !important;
+    justify-content: flex-start;
+    border-radius: 10px;
+    gap: 6px;
+  }
+
+  .files-layout .files-toolbar__filters .sort-by-trigger-icon {
+    width: 22px;
+    height: 22px;
+    border-radius: 7px;
+  }
+
+  .files-layout .files-toolbar__filters .sort-by-trigger-icon svg,
+  .files-layout .files-toolbar__filters .sort-filter-lucide {
+    width: 14px !important;
+    height: 14px !important;
+  }
+
+  .files-layout .files-toolbar__filters .sort-by-chevron,
+  .files-layout .files-toolbar__filters .filetype-chevron {
+    right: 8px;
+    margin-left: 0;
+    flex-shrink: 0;
+  }
+
+  .files-layout .files-toolbar__filters .sort-by-label,
+  .files-layout .files-toolbar__filters .sort-filter-label {
+    flex: 1 1 auto;
+    min-width: 0;
+    font-size: 13px !important;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  /* Short labels in the shared 50/50 filter row */
+  .files-layout .sort-by-label--full,
+  .files-layout .sort-filter-label--full {
+    display: none !important;
+  }
+
+  .files-layout .sort-by-label--short,
+  .files-layout .sort-filter-label--short {
+    display: inline !important;
+  }
+
+  .files-layout .files-toolbar__filters .sort-filter-span {
+    width: 100%;
+    min-width: 0;
+    gap: 6px;
+  }
+
+  .files-layout .files-toolbar__filters .sort-filter-crown {
+    display: none;
+  }
+
+  .files-layout .files-toolbar__filters .sort-by-trigger-crown {
+    display: none;
+  }
+
+  /* Portaled File Type popup — full-width sheet under the filter row */
+  .ft-filter-popup {
+    left: auto !important;
+    right: auto !important;
+    border-radius: 16px !important;
+    padding: 14px 12px 12px !important;
+    max-height: min(420px, 70dvh) !important;
+  }
+
+  .ft-filter-popup-header {
+    padding: 0 4px 10px;
+  }
+
+  .ft-filter-popup-title {
+    font-size: 14px;
+  }
+
+  .ft-filter-popup-subtitle {
+    font-size: 11px;
+  }
+
+  .ft-custom-ext-card {
+    margin: 0 0 10px;
+    padding: 12px;
+  }
+
+  .ft-filter-popup-list {
+    max-height: none;
+    flex: 1 1 auto;
+    min-height: 0;
+  }
+
+  .ft-filter-type-item {
+    padding: 10px 12px;
+    margin-bottom: 5px;
+  }
+
+  .ft-filter-popup-footer {
+    gap: 8px;
+    padding-top: 10px;
+  }
+
+  .ft-filter-btn-cancel,
+  .ft-filter-btn-apply {
+    height: 40px;
+    font-size: 13px;
+  }
+}
+
+@media screen and (max-width: 420px) {
+  .files-layout .files-page > .content-wrapper {
+    padding-top: 0;
+    padding-left: 14px;
+    padding-right: 14px;
+  }
+
+  .files-layout .files-toolbar__actions .download-btn,
+  .files-layout .files-toolbar__actions .download-btn2,
+  .files-layout .files-toolbar__actions .btn__upload__file_modal {
+    width: 36px !important;
+    height: 36px !important;
+    min-width: 36px !important;
+  }
+
+  .files-layout .files-toolbar__filters .filter_dropdown .rs-dropdown-toggle,
+  .files-layout .files-toolbar__filters .filter_dropdown .rs-dropdown-toggle.rs-btn,
+  .files-layout .files-toolbar__filters .sort-by-trigger {
+    height: 36px !important;
+    min-height: 36px !important;
+    padding: 0 26px 0 8px !important;
+    font-size: 12px !important;
+  }
+
+  .files-layout .files-toolbar__filters .sort-by-label,
+  .files-layout .files-toolbar__filters .sort-filter-label {
+    font-size: 12px !important;
+  }
+}
+
+/* Mobile list — thead hidden; compact name + action rows (Files + NestedPage) */
+@media screen and (max-width: 767px) {
+  .files-layout .files-page #listViewContent {
+    margin: 0 !important;
+    overflow: visible;
+  }
+
+  .files-layout .files-page #filestable {
+    display: block;
+    border-collapse: separate;
+    border-spacing: 0;
+    background: #ffffff;
+    min-width: 0 !important;
+    width: 100%;
+    max-width: 100%;
+    border-radius: 10px;
+    border: 1px solid #eef2f6;
+    overflow: hidden;
+    margin-bottom: 8px;
+  }
+
+  .files-layout .files-page #filestable thead {
+    display: none !important;
+  }
+
+  .files-layout .files-page #filestable tbody {
+    display: block;
+    background: transparent;
+    border: none;
+    border-radius: 0;
+    overflow: visible;
+    margin: 0;
+    width: 100%;
+    max-width: 100%;
+  }
+
+  .files-layout .files-page #filestable tbody tr {
+    display: flex;
+    flex-wrap: nowrap;
+    align-items: center;
+    gap: 6px;
+    width: 100%;
+    max-width: 100%;
+    box-sizing: border-box;
+    padding: 0 8px;
+    min-height: 52px;
+    margin: 0;
+    background: #ffffff;
+    border: none;
+    border-bottom: 1px solid #f1f5f9;
+    box-shadow: none;
+    /* visible so open action menus aren't clipped before fixed positioning */
+    overflow: visible;
+  }
+
+  .files-layout .files-page #filestable tbody tr:has(.dropdown.show) {
+    position: relative;
+    z-index: 90;
+  }
+
+  .files-layout .files-page #filestable tbody:last-child tr:last-child {
+    border-bottom: none;
+  }
+
+  .files-layout .files-page #filestable tbody tr:active {
+    background: #fff8f0;
+  }
+
+  .files-layout .files-page #filestable tbody td {
+    border: none !important;
+    padding: 8px 0 !important;
+    background: transparent !important;
+    vertical-align: middle;
+    box-sizing: border-box;
+  }
+
+  .files-layout .files-page #filestable tbody td.files-col-check,
+  .files-layout .files-page #filestable tbody td:has(> input[type="checkbox"]) {
+    flex: 0 0 22px;
+    width: 22px;
+    min-width: 22px;
+    max-width: 22px;
+    padding: 0 !important;
+    order: 1;
+  }
+
+  .files-layout .files-page #filestable tbody td.files-col-name,
+  .files-layout .files-page #filestable tbody td:has(.file-item),
+  .files-layout .files-page #filestable tbody td:has(img[alt="file icon"]) {
+    flex: 1 1 0% !important;
+    width: auto !important;
+    min-width: 0 !important;
+    max-width: 100%;
+    display: flex !important;
+    align-items: center !important;
+    height: auto !important;
+    gap: 8px !important;
+    padding: 0 !important;
+    overflow: hidden !important;
+    order: 2;
+  }
+
+  .files-layout .files-page #filestable tbody td.files-col-name img,
+  .files-layout .files-page #filestable tbody td:has(.file-item) img,
+  .files-layout .files-page #filestable tbody td img[alt="file icon"] {
+    width: 28px !important;
+    height: 28px !important;
+    flex-shrink: 0;
+  }
+
+  .files-layout .files-page #filestable .filename_link {
+    flex-shrink: 0;
+  }
+
+  .files-layout .files-page #filestable .file-item {
+    flex: 1 1 0%;
+    min-width: 0 !important;
+    max-width: 100%;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 1px;
+    padding: 0;
+    overflow: hidden;
+  }
+
+  .files-layout .files-page #filestable .file-name,
+  .files-layout .files-page #filestable .file-name.filename_link {
+    display: block;
+    max-width: 100%;
+    font-size: 13px;
+    font-weight: 500;
+    line-height: 1.3;
+    color: #0f172a;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .files-layout .files-page #filestable .file-path {
+    max-width: 100%;
+    font-size: 11px;
+    line-height: 1.25;
+    color: #94a3b8;
+    text-align: left;
+  }
+
+  /* Size / date out of the flex row entirely */
+  .files-layout .files-page #filestable tbody td.files-col-size,
+  .files-layout .files-page #filestable tbody td.files-col-date,
+  .files-layout .files-page #filestable tbody td.fileSizeTL,
+  .files-layout .files-page #filestable tbody td.fileSizeTD {
+    display: none !important;
+    width: 0 !important;
+    min-width: 0 !important;
+    max-width: 0 !important;
+    padding: 0 !important;
+    margin: 0 !important;
+    border: none !important;
+    overflow: hidden !important;
+  }
+
+  /* Action — pinned to the right, never shrinks / never drops off-screen */
+  .files-layout .files-page #filestable tbody td.files-col-action,
+  .files-layout .files-page #filestable tbody td:has(> .dropdown),
+  .files-layout .files-page #filestable tbody td:has(.dropdown-toggle) {
+    flex: 0 0 36px !important;
+    width: 36px !important;
+    min-width: 36px !important;
+    max-width: 36px !important;
+    margin-left: auto !important;
+    margin-right: 0 !important;
+    padding: 0 !important;
+    display: flex !important;
+    align-items: center;
+    justify-content: flex-end;
+    order: 9;
+    overflow: visible !important;
+  }
+
+  .files-layout .files-page #filestable tbody td.files-col-action .dropdown,
+  .files-layout .files-page #filestable tbody td:has(> .dropdown) > .dropdown {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 36px;
+    height: 36px;
+    margin: 0;
+  }
+
+  .files-layout .files-page #filestable tbody td.files-col-action .dropdown-toggle,
+  .files-layout .files-page #filestable tbody td:has(.dropdown-toggle) .dropdown-toggle {
+    display: inline-flex !important;
+    align-items: center;
+    justify-content: center;
+    width: 36px !important;
+    height: 36px !important;
+    min-width: 36px !important;
+    min-height: 36px !important;
+    padding: 0 !important;
+    margin: 0 !important;
+    flex-shrink: 0;
+  }
+
+  .files-layout .files-page #filestable tbody td.files-col-action .dropdown-toggle svg,
+  .files-layout .files-page #filestable tbody td:has(.dropdown-toggle) .dropdown-toggle svg {
+    width: 20px;
+    height: 20px;
+    flex-shrink: 0;
+  }
+}
+
+/* Extra-narrow phones — keep action visible, tighten name */
+@media screen and (max-width: 400px) {
+  .files-layout .files-page #filestable tbody tr {
+    gap: 4px;
+    padding: 0 6px;
+  }
+
+  .files-layout .files-page #filestable tbody td.files-col-name,
+  .files-layout .files-page #filestable tbody td:has(.file-item),
+  .files-layout .files-page #filestable tbody td:has(img[alt="file icon"]) {
+    gap: 6px !important;
+  }
+
+  .files-layout .files-page #filestable tbody td.files-col-name img,
+  .files-layout .files-page #filestable tbody td:has(.file-item) img,
+  .files-layout .files-page #filestable tbody td img[alt="file icon"] {
+    width: 24px !important;
+    height: 24px !important;
+  }
+
+  .files-layout .files-page #filestable tbody td.files-col-action,
+  .files-layout .files-page #filestable tbody td:has(> .dropdown),
+  .files-layout .files-page #filestable tbody td:has(.dropdown-toggle) {
+    flex: 0 0 34px !important;
+    width: 34px !important;
+    min-width: 34px !important;
+    max-width: 34px !important;
+  }
+}
+
+/* Tablet / narrow desktop (769–1100)
+   overflow-x on #listViewContent breaks position:sticky on thead (header
+   jumps into the middle of rows). Keep thead in normal flow here. */
+@media screen and (min-width: 768px) and (max-width: 1100px) {
+  .files-layout .files-page #listViewContent {
+    overflow: visible !important;
+  }
+
+  .files-layout .files-page #filestable {
+    min-width: 0 !important;
+    width: 100%;
+    table-layout: fixed;
+  }
+
+  .files-layout .stolity-list-sticky #filestable thead th {
+    position: static !important;
+    top: auto !important;
+    z-index: auto !important;
+    white-space: nowrap;
+    vertical-align: middle;
+    background-color: #fff6eb;
+  }
+
+  .files-layout .files-page #filestable thead th {
+    padding-left: 8px !important;
+    padding-right: 8px !important;
+    font-size: 13px;
+  }
+
+  .files-layout .files-page #filestable thead th .column-name-new {
+    display: inline-flex !important;
+    align-items: center;
+    gap: 4px;
+    white-space: nowrap;
+    flex-wrap: nowrap;
+    max-width: 100%;
+  }
+
+  .files-layout .files-page #filestable thead th .column-name-new img {
+    flex-shrink: 0;
+    width: 14px;
+    height: 14px;
+  }
+
+  .files-layout .files-page #filestable .files-col-check,
+  .files-layout .files-page #filestable th:first-child,
+  .files-layout .files-page #filestable td:first-child:has(> input[type="checkbox"]) {
+    width: 40px !important;
+  }
+
+  .files-layout .files-page #filestable .files-col-name,
+  .files-layout .files-page #filestable tbody td:has(.file-item) {
+    width: auto;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  .files-layout .files-page #filestable .files-col-size,
+  .files-layout .files-page #filestable .files-col-date,
+  .files-layout .files-page #filestable td.fileSizeTL,
+  .files-layout .files-page #filestable td.fileSizeTD {
+    width: 110px;
+    overflow: hidden;
+  }
+
+  .files-layout .files-page #filestable .files-col-action,
+  .files-layout .files-page #filestable tbody td:last-child {
+    width: 52px !important;
+  }
+
+  .files-layout .files-page #filestable .file-name {
+    max-width: 100%;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+}
+
+/* Sticky filter bar + table header — Files, NestedPage, Favourites, RecycleBin
+   Scrollport is .content-wrapper (below fixed navbar), so inset must be 0 —
+   a positive inset leaves a gap where list rows peek through while scrolling. */
 .stolity-list-sticky {
-  --files-sticky-top-inset: 8px;
+  --files-sticky-top-inset: 0px;
   --files-filter-bar-height: 64px;
   --files-selection-height: 0px;
   transition: none;
+}
+
+.files-layout .files-navbar.fixed-top {
+  z-index: 1050;
+  background: #ffffff;
 }
 
 .stolity-list-sticky.has-bulk-selection {
@@ -625,7 +1338,16 @@
 
 @media (max-width: 767px) {
   .stolity-list-sticky {
-    --files-sticky-top-inset: -5px;
+    --files-sticky-top-inset: 0px;
+  }
+
+  /* Prevent sticky thead from jumping into the middle of rows */
+  .files-layout .stolity-list-sticky #filestable thead,
+  .files-layout .stolity-list-sticky #filestable thead th {
+    display: none !important;
+    position: static !important;
+    top: auto !important;
+    box-shadow: none !important;
   }
 }
 
@@ -640,12 +1362,12 @@
   border: none;
   border-bottom: 1px solid rgb(255 230 199);
   align-items: start;
-  background: rgba(255, 255, 255, 0.94);
-  backdrop-filter: blur(10px);
-  -webkit-backdrop-filter: blur(10px);
+  background: #ffffff;
+  backdrop-filter: none;
+  -webkit-backdrop-filter: none;
   padding-top: 8px !important;
   padding-bottom: 10px !important;
-  /* box-shadow: 0 8px 20px rgba(15, 23, 42, 0.04); */
+  box-shadow: 0 6px 12px rgba(255, 255, 255, 0.9);
 }
 
 .stolity-list-sticky #filestable thead th {

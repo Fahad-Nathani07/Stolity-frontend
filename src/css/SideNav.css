@@ -1,0 +1,233 @@
+/* Settings gear — match active nav icon when on settings-linked pages */
+.settings-gear-btn {
+  background: none;
+  border-radius: 25px;
+  transition: background 0.2s ease;
+}
+
+.settings-gear-btn.is-active {
+  background: linear-gradient(90deg, #e5660f 0%, #c4231c 100%) !important;
+}
+
+.settings-gear-btn.is-active img {
+  filter: brightness(0) invert(1);
+}
+
+/* SideNav — bottom bar while theme hides the left rail (≤991px) */
+
+@media screen and (max-width: 991px) {
+  body.sidenav-mobile {
+    --sidenav-mobile-height: 60px;
+    --sidenav-mobile-offset: calc(
+      var(--sidenav-mobile-height) + env(safe-area-inset-bottom, 0px)
+    );
+    padding-bottom: var(--sidenav-mobile-offset);
+  }
+
+  body.sidenav-mobile .page-body-wrapper,
+  body.sidenav-mobile .main-panel {
+    width: 100% !important;
+  }
+
+  /*
+    Files pages use height: 100vh panels — body padding alone won't lift the
+    pagination footer above the fixed bottom nav. Shrink the shell instead.
+  */
+  body.sidenav-mobile:has(.files-pagination-footer) {
+    padding-bottom: 0;
+  }
+
+  body.sidenav-mobile .page-body-wrapper:has(> .main-panel > .files-pagination-footer) {
+    height: calc(100vh - var(--sidenav-mobile-offset)) !important;
+    height: calc(100dvh - var(--sidenav-mobile-offset)) !important;
+    max-height: calc(100vh - var(--sidenav-mobile-offset)) !important;
+    max-height: calc(100dvh - var(--sidenav-mobile-offset)) !important;
+  }
+
+  body.sidenav-mobile .main-panel:has(> .files-pagination-footer) {
+    height: 100% !important;
+    max-height: 100% !important;
+  }
+
+  /* Override theme off-canvas (left: -244px) */
+  .sidebar.sidebar-offcanvas.sidebar--mobile,
+  .sidebar.sidebar--mobile {
+    position: fixed !important;
+    left: 0 !important;
+    right: 0 !important;
+    bottom: 0 !important;
+    top: auto !important;
+    width: 100% !important;
+    max-height: none !important;
+    height: auto !important;
+    min-height: 0 !important;
+    z-index: 1100;
+    padding: 0;
+    overflow: visible !important;
+    background: #ffffff;
+    border-top: 1px solid #e8edf2;
+    box-shadow: 0 -4px 20px rgba(15, 23, 42, 0.06);
+    transition: none;
+  }
+
+  .sidebar--mobile .sidebar-brand-wrapper {
+    display: none !important;
+  }
+
+  .sidebar--mobile .left_navigation_row {
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    justify-content: space-between;
+    gap: 4px;
+    height: auto;
+    min-height: var(--sidenav-mobile-height);
+    padding: 6px 8px calc(6px + env(safe-area-inset-bottom, 0px));
+    box-sizing: border-box;
+  }
+
+  .sidebar--mobile .nav {
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    justify-content: space-around;
+    flex: 1 1 auto;
+    min-width: 0;
+    margin: 0;
+    padding: 0 !important;
+    overflow: visible !important;
+    gap: 2px;
+  }
+
+  .sidebar--mobile .nav .nav-item {
+    margin: 0 !important;
+    flex: 1 1 0;
+    min-width: 0;
+  }
+
+  .sidebar--mobile .nav .nav-item .nav-link {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 100%;
+    min-height: 44px;
+    padding: 6px 4px !important;
+    border-radius: 12px;
+  }
+
+  .sidebar--mobile .nav .nav-item .nav-link .menu-icon {
+    margin: 0 !important;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .sidebar--mobile .nav .nav-item.active > .nav-link {
+    background: #fff7ed;
+  }
+
+  /* Extra destinations live under Settings on mobile */
+  .sidebar--mobile .sidebar-nav-item--secondary {
+    display: none !important;
+  }
+
+  .sidebar--mobile .left_navigation_row > div:last-child {
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    flex: 0 0 auto;
+    gap: 0;
+  }
+
+  .sidebar--mobile .sidebar-settings-wrapper {
+    position: relative;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .sidebar--mobile .settings-gear-btn {
+    width: 44px !important;
+    height: 44px !important;
+    border-radius: 12px;
+  }
+
+  .sidebar--mobile .settings-gear-btn.is-open {
+    background: #fff7ed !important;
+  }
+
+  .sidebar--mobile .settings-gear-btn.is-active {
+    background: linear-gradient(90deg, #e5660f 0%, #c4231c 100%) !important;
+  }
+
+  .sidebar--mobile .settings-gear-btn.is-active img {
+    filter: brightness(0) invert(1);
+  }
+
+  .sidebar--mobile .footer_left {
+    display: none !important;
+  }
+
+  /* Settings menu opens upward */
+  .sidebar--mobile .settings-dropdown-menu {
+    position: absolute !important;
+    left: auto !important;
+    right: 0 !important;
+    top: auto !important;
+    bottom: calc(100% + 10px) !important;
+    transform: none !important;
+    min-width: 220px;
+    max-width: min(280px, calc(100vw - 24px));
+    z-index: 1200;
+    animation: sidenav-settings-up 0.18s ease;
+  }
+
+  .sidebar--mobile .settings-menu-item {
+    width: 100%;
+    background: none;
+    border: none;
+    padding: 13px 20px;
+    font-size: 15px;
+    color: #222;
+    cursor: pointer;
+    text-align: left;
+    font-weight: 500;
+    letter-spacing: -0.03em;
+  }
+
+  .sidebar--mobile .settings-menu-item:active,
+  .sidebar--mobile .settings-menu-item:hover {
+    color: #e5660f;
+    background: #fffaf5;
+  }
+
+  .sidebar--mobile .settings-menu-item--danger {
+    color: #b91c1c;
+    border-top: 1px solid #f1f5f9;
+  }
+
+  .sidebar--mobile .settings-menu-item--danger:active,
+  .sidebar--mobile .settings-menu-item--danger:hover {
+    color: #991b1b;
+    background: #fef2f2;
+  }
+
+  .sidebar--mobile-backdrop {
+    position: fixed;
+    inset: 0;
+    z-index: 1090;
+    background: rgba(15, 23, 42, 0.2);
+    border: none;
+    padding: 0;
+    margin: 0;
+  }
+}
+
+@keyframes sidenav-settings-up {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}

@@ -1,0 +1,485 @@
+/* User Profile — mobile / tablet responsive */
+
+.user-profile-page > .content-wrapper {
+  padding: 18px 20px 28px !important;
+  background: #f8fafc;
+}
+
+.user-profile-page .CircularProgress_bar {
+  flex-shrink: 0;
+}
+
+/* ===== ≤991: stack promo + table ===== */
+@media screen and (max-width: 991px) {
+  .user-profile-page .profile_row {
+    flex-direction: column;
+    gap: 16px;
+  }
+
+  .user-profile-page .profile_stolity_app,
+  .user-profile-page .profile_table_box {
+    width: 100% !important;
+  }
+
+  .user-profile-page .profile_stolity_app {
+    padding: 24px 20px;
+    background-size: cover;
+  }
+
+  .user-profile-page .profile_stolity_app h5 {
+    font-size: 24px;
+    line-height: 1.25;
+  }
+
+  .user-profile-page .profile_stolity_app_bottom {
+    margin-top: 12px;
+    flex-wrap: wrap;
+    gap: 16px;
+    align-items: center;
+  }
+
+  .user-profile-page .profile_stolity_app_bottom .img_responsive {
+    max-width: 140px;
+    height: auto;
+  }
+}
+
+/* ===== ≤767: phone layout ===== */
+@media screen and (max-width: 767px) {
+  .files-layout--mobile.user-profile-layout .main-panel.user-profile-page {
+    padding-top: var(--files-nav-height, 56px);
+  }
+
+  .user-profile-page > .content-wrapper {
+    padding: 12px 14px calc(20px + var(--sidenav-mobile-offset, 0px)) !important;
+  }
+
+  .user-profile-page .row > [class*="col-"] {
+    padding-left: 0;
+    padding-right: 0;
+  }
+
+  .user-profile-page .row > [class*="col-"].mt-2 {
+    margin-top: 10px !important;
+  }
+
+  .user-profile-page .profile_box {
+    padding: 16px;
+    border-radius: 14px;
+  }
+
+  .user-profile-page .profile_row {
+    flex-direction: column;
+    align-items: center;
+    text-align: center;
+    gap: 16px;
+  }
+
+  .user-profile-page .img_profile {
+    width: 112px;
+    height: 112px;
+  }
+
+  .user-profile-page .profile_text {
+    width: 100%;
+  }
+
+  .user-profile-page .profile_text h5 {
+    font-size: 18px;
+  }
+
+  .user-profile-page .profile_text h6 {
+    font-size: 14px;
+    margin-top: 6px;
+    margin-bottom: 10px;
+  }
+
+  .user-profile-page .profile_text p {
+    font-size: 13px;
+    word-break: break-word;
+  }
+
+  .user-profile-page .delete_edit_div {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 10px;
+    margin-top: 4px;
+  }
+
+  .user-profile-page .btn__edit__profile,
+  .user-profile-page .btn__delete__profile {
+    width: 100%;
+    margin-top: 0;
+    padding: 11px 16px;
+    font-size: 13px;
+  }
+
+  .user-profile-page .CircularProgress_bar {
+    padding-left: 0 !important;
+    width: 100%;
+    display: flex;
+    justify-content: center;
+  }
+
+  .user-profile-page .storage_text {
+    width: 100%;
+    text-align: left;
+  }
+
+  .user-profile-page .storage_text h5 {
+    font-size: 14px;
+  }
+
+  .user-profile-page .storage_text h4 {
+    font-size: 18px;
+    margin-top: 8px;
+  }
+
+  .user-profile-page .storage_remaining {
+    margin-top: 18px;
+  }
+
+  .user-profile-page .percent_text {
+    font-size: 24px;
+  }
+
+  .user-profile-page .profile_table_box {
+    padding: 16px 14px 12px;
+    margin-top: 12px;
+  }
+
+  .user-profile-page .profile_table_title_row h5 {
+    font-size: 16px;
+    margin: 0;
+  }
+
+  .user-profile-page .recent_table_box .table-responsive {
+    margin-top: 12px;
+    border-radius: 12px;
+  }
+
+  .user-profile-page .recent_table_box .table {
+    margin-bottom: 0;
+    min-width: 520px;
+  }
+
+  .user-profile-page .recent_table_box th,
+  .user-profile-page .recent_table_box td {
+    font-size: 12px;
+    padding: 10px 8px;
+    white-space: nowrap;
+  }
+
+  .user-profile-page .filename_row {
+    max-width: 180px;
+  }
+
+  .user-profile-page .filename_link {
+    display: inline-block;
+    max-width: 130px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    vertical-align: middle;
+  }
+
+  .user-profile-page .profile_stolity_app {
+    padding: 20px 16px;
+    margin-top: 12px;
+  }
+
+  .user-profile-page .profile_stolity_app h5 {
+    font-size: 20px;
+    line-height: 1.3;
+  }
+
+  .user-profile-page .btn_app_download {
+    font-size: 14px;
+    padding: 9px 18px;
+    text-align: center;
+  }
+
+  .user-profile-page .footer {
+    padding: 12px 8px;
+    font-size: 12px;
+  }
+
+  /* Delete confirm overlays above bottom nav */
+  body.sidenav-mobile .rename_popup_wrapper {
+    padding: 12px;
+    padding-bottom: calc(12px + var(--sidenav-mobile-offset, 0px));
+    align-items: flex-end;
+    box-sizing: border-box;
+  }
+
+  body.sidenav-mobile .rename_popup_wrapper .rename_modal {
+    width: 100% !important;
+    max-width: 100%;
+    box-sizing: border-box;
+  }
+}
+
+@media screen and (max-width: 420px) {
+  .user-profile-page .img_profile {
+    width: 96px;
+    height: 96px;
+  }
+
+  .user-profile-page .profile_stolity_app h5 {
+    font-size: 18px;
+  }
+}
+
+/* ===== Edit Profile modal (Ant) — mobile: fit viewport, no scrollbar ===== */
+@media screen and (max-width: 767px) {
+  .edit-profile-modal-wrap.ant-modal-wrap {
+    z-index: 1200 !important;
+    overflow: hidden !important;
+    padding: 12px !important;
+    padding-bottom: calc(12px + var(--sidenav-mobile-offset, 0px)) !important;
+    box-sizing: border-box;
+  }
+
+  .ant-modal-root:has(.edit-profile-modal-wrap) .ant-modal-mask {
+    z-index: 1190 !important;
+  }
+
+  .edit-profile-modal-wrap .ant-modal {
+    max-width: calc(100vw - 24px) !important;
+    width: calc(100vw - 24px) !important;
+    margin: 0 auto !important;
+    padding-bottom: 0 !important;
+    top: 0 !important;
+    max-height: calc(100dvh - 24px - var(--sidenav-mobile-offset, 0px));
+  }
+
+  .edit-profile-modal-wrap .ant-modal-content {
+    border-radius: 16px !important;
+    overflow: hidden !important;
+    max-height: calc(100dvh - 24px - var(--sidenav-mobile-offset, 0px));
+    display: flex;
+    flex-direction: column;
+  }
+
+  /* No visible scrollbar on the dialog shell */
+  .edit-profile-modal-wrap .ant-modal-body {
+    overflow: hidden !important;
+    max-height: none !important;
+    padding: 0 !important;
+    flex: 1 1 auto;
+    min-height: 0;
+    display: flex;
+    flex-direction: column;
+  }
+
+  .edit-profile-modal-wrap .ant-modal-close {
+    top: 10px !important;
+    right: 8px !important;
+  }
+
+  .edit-profile-modal-wrap .ant-modal-close-x {
+    width: 32px !important;
+    height: 32px !important;
+    line-height: 32px !important;
+  }
+
+  .edit-profile-modal {
+    display: flex;
+    flex-direction: column;
+    flex: 1 1 auto;
+    min-height: 0;
+    padding: 16px 14px 14px !important;
+    max-width: 100% !important;
+    overflow: hidden;
+    max-height: 100%;
+  }
+
+  .edit-profile-header {
+    padding-right: 26px;
+    margin-bottom: 0;
+  }
+
+  .edit-profile-header h4 {
+    font-size: 1.125rem !important;
+    margin-bottom: 2px !important;
+  }
+
+  .edit-profile-header p {
+    display: none; /* frees vertical space; tabs explain the sections */
+  }
+
+  .edit-profile-tabs {
+    width: 100%;
+    max-width: 100% !important;
+    margin: 0 0 12px !important;
+  }
+
+  .edit-profile-tab {
+    font-size: 13px !important;
+    padding: 8px 6px 10px !important;
+  }
+
+  .edit-profile-section-copy {
+    font-size: 12px;
+    margin: -2px 0 10px;
+  }
+
+  .edit-profile-modal .avatar-section {
+    margin-bottom: 12px;
+    padding: 10px 10px 12px;
+    border-radius: 12px;
+  }
+
+  .edit-profile-modal .avatar-section h6 {
+    margin-bottom: 8px !important;
+    font-size: 11px !important;
+  }
+
+  .edit-profile-modal .avatar-list {
+    gap: 8px;
+    justify-content: center;
+    flex-wrap: wrap;
+    overflow: visible;
+    min-height: 0;
+    margin-top: 6px;
+  }
+
+  .edit-profile-modal .avatar-btn {
+    width: 52px;
+    height: 52px;
+  }
+
+  .edit-profile-modal .profile-section {
+    margin-bottom: 4px;
+  }
+
+  .edit-profile-modal .profile-section > h5 {
+    margin-bottom: 8px;
+    font-size: 11px;
+  }
+
+  .edit-profile-modal .edit-profile-fields-row {
+    margin-left: -6px;
+    margin-right: -6px;
+  }
+
+  .edit-profile-modal .edit-profile-fields-row > [class*="col-"] {
+    padding-left: 6px;
+    padding-right: 6px;
+  }
+
+  .edit-profile-modal .form-group {
+    margin-bottom: 10px;
+  }
+
+  .edit-profile-modal .form-label {
+    font-size: 11px;
+    margin-bottom: 4px;
+  }
+
+  .edit-profile-modal .form-group input[type="text"],
+  .edit-profile-modal .form-group input[type="tel"],
+  .edit-profile-modal .form-group input[type="email"],
+  .edit-profile-modal .form-group input[type="password"],
+  .edit-profile-modal .form-group input:not([type]),
+  .edit-profile-modal .form-control {
+    font-size: 16px !important; /* avoid iOS zoom */
+    padding: 10px 12px !important;
+  }
+
+  .edit-profile-modal .password-requirements {
+    font-size: 0.75rem !important;
+    padding: 4px 8px !important;
+  }
+
+  /* Side-by-side actions — shorter modal, no vertical stack */
+  .edit-profile-modal .button-group,
+  .edit-profile-modal .edit-profile-actions {
+    display: flex;
+    flex-direction: row;
+    align-items: stretch;
+    gap: 8px;
+    margin-top: 8px !important;
+    padding: 0;
+    position: static;
+  }
+
+  .edit-profile-modal .btn-save,
+  .edit-profile-modal .btn-cancel {
+    flex: 1 1 0;
+    min-width: 0 !important;
+    width: auto;
+    padding: 11px 12px;
+    font-size: 13px;
+  }
+
+  /*
+    Panel can scroll only when Password content is tall — scrollbar hidden.
+    Personal tab is compacted to fit without scrolling.
+  */
+  .edit-profile-modal .edit-profile-panel {
+    flex: 1 1 auto;
+    min-height: 0;
+    overflow-x: hidden;
+    overflow-y: auto;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: none;
+    -ms-overflow-style: none;
+  }
+
+  .edit-profile-modal .edit-profile-panel::-webkit-scrollbar {
+    display: none;
+    width: 0;
+    height: 0;
+  }
+
+  .edit-profile-modal > .edit-profile-actions {
+    flex-shrink: 0;
+  }
+
+  .edit-profile-modal .google-otp-card {
+    gap: 10px;
+    padding: 12px !important;
+  }
+
+  .edit-profile-modal .google-otp-primary,
+  .edit-profile-modal .google-otp-ghost {
+    width: 100%;
+  }
+
+  .edit-profile-modal .google-otp-inputs {
+    gap: 5px;
+  }
+
+  .edit-profile-modal .google-otp-digit {
+    width: 36px !important;
+    height: 42px !important;
+    font-size: 16px !important;
+    border-radius: 10px !important;
+  }
+
+  .edit-profile-modal .google-otp-actions,
+  .edit-profile-modal .google-otp-fields {
+    grid-template-columns: 1fr !important;
+  }
+
+  .edit-profile-modal .google-otp-step-label {
+    display: none;
+  }
+}
+
+@media screen and (max-width: 420px) {
+  .edit-profile-modal {
+    padding: 14px 12px 12px !important;
+  }
+
+  .edit-profile-modal .avatar-btn {
+    width: 48px;
+    height: 48px;
+  }
+
+  .edit-profile-modal .google-otp-digit {
+    width: 32px !important;
+    height: 38px !important;
+  }
+}

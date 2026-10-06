@@ -1,0 +1,236 @@
+/* Upload modal — Files / NestedPage / Favourites / DefaultFolder */
+
+.file_upload_modal_style .tab-label-short {
+  display: none;
+}
+
+/* ===== Mobile / tablet ===== */
+@media screen and (max-width: 991px) {
+  .rs-modal.file_upload_modal_style,
+  .file_upload_modal_style.pdf_modal_style.rs-modal-sm,
+  .file_upload_modal_style.rs-modal-sm {
+    width: calc(100vw - 28px) !important;
+    max-width: 420px !important;
+    margin: 0 auto !important;
+  }
+
+  .file_upload_modal_style .rs-modal-dialog {
+    width: 100% !important;
+    max-width: 100% !important;
+    margin: 12px auto !important;
+    padding-bottom: calc(12px + var(--sidenav-mobile-offset, 0px));
+  }
+
+  .file_upload_modal_style.pdf_modal_style .rs-modal-content,
+  .file_upload_modal_style .rs-modal-content {
+    width: 100% !important;
+    max-height: calc(
+      100dvh - 24px - var(--sidenav-mobile-offset, 0px)
+    ) !important;
+    overflow: hidden !important;
+    display: flex !important;
+    flex-direction: column !important;
+    border-radius: 16px !important;
+    box-sizing: border-box;
+  }
+
+  .file_upload_modal_style.pdf_modal_style .rs-modal-body,
+  .file_upload_modal_style .rs-modal-body {
+    flex: 1 1 auto !important;
+    min-height: 0 !important;
+    width: 100% !important;
+    max-height: none !important;
+    margin: 0 !important;
+    padding: 14px 14px 16px !important;
+    overflow: hidden auto !important;
+    -webkit-overflow-scrolling: touch;
+    box-sizing: border-box;
+  }
+
+  /* Tabs — equal columns, short labels, no overlap */
+  .file_upload_modal_style .my-tab-list {
+    display: flex !important;
+    width: 100%;
+    padding: 0 !important;
+    margin: 0 0 12px !important;
+    border-bottom: 1px solid #eee;
+    gap: 0;
+  }
+
+  .file_upload_modal_style .my-tab-list > .react-tabs__tab {
+    flex: 1 1 0 !important;
+    min-width: 0 !important;
+    margin: 0 !important;
+    padding: 0 !important;
+  }
+
+  .file_upload_modal_style .my-tab-item {
+    width: 100%;
+    min-width: 0;
+    justify-content: center;
+    gap: 0;
+    padding: 10px 4px !important;
+    font-size: 12px !important;
+    font-weight: 600;
+    line-height: 1.2;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  .file_upload_modal_style .my-tab-item i {
+    display: none !important;
+  }
+
+  .file_upload_modal_style .tab-label-full {
+    display: none !important;
+  }
+
+  .file_upload_modal_style .tab-label-short {
+    display: inline !important;
+  }
+
+  .file_upload_modal_style .react-tabs__tab--selected .my-tab-item::after {
+    left: 12%;
+    width: 76%;
+  }
+
+  /* Dropzone / hero graphic */
+  .file_upload_modal_style .fileupload {
+    height: 150px !important;
+    max-height: 150px;
+    padding: 12px 8px !important;
+    margin: 0 auto 8px;
+    border-radius: 14px;
+  }
+
+  .file_upload_modal_style .upload-icon {
+    width: 44px !important;
+    height: 44px !important;
+  }
+
+  .file_upload_modal_style .filesize-warning-div {
+    gap: 12px;
+    margin-top: 4px;
+  }
+
+  .file_upload_modal_style .filesize-warning-span {
+    font-size: 12px;
+    padding: 5px 10px;
+    max-width: 100%;
+  }
+
+  .file_upload_modal_style .visibility-label {
+    font-size: 13px;
+    margin-bottom: 4px;
+  }
+
+  .file_upload_modal_style .radio_checkbox_list {
+    gap: 16px;
+    flex-wrap: wrap;
+    margin-top: 8px !important;
+  }
+
+  .file_upload_modal_style .radio_checkbox_list label {
+    font-size: 13px;
+  }
+
+  .file_upload_modal_style .btn_group {
+    display: flex;
+    gap: 10px;
+    margin-top: 14px !important;
+    width: 100%;
+  }
+
+  .file_upload_modal_style .btn_group .btn_width_same,
+  .file_upload_modal_style .btn_group .btn-cancel,
+  .file_upload_modal_style .btn_group .btn-upload {
+    flex: 1 1 0;
+    min-width: 0;
+    width: auto !important;
+    padding: 11px 12px;
+    font-size: 13px;
+    border-radius: 999px;
+  }
+
+  /* Create-folder tab */
+  .file_upload_modal_style .create-folder-card {
+    width: 100% !important;
+    max-width: 100% !important;
+    padding: 8px 0 !important;
+    box-sizing: border-box;
+  }
+
+  .file_upload_modal_style .folder-title {
+    font-size: 16px !important;
+  }
+
+  .file_upload_modal_style .folder-input {
+    width: 100% !important;
+    box-sizing: border-box;
+  }
+
+  /* Upload-folder panel inside modal */
+  .file_upload_modal_style .upload-folder-panel {
+    max-width: 100%;
+  }
+
+  .file_upload_modal_style .upload-folder-panel__title {
+    font-size: 16px;
+    margin-bottom: 12px;
+  }
+
+  .file_upload_modal_style .upload-folder-panel__dropzone {
+    padding: 20px 14px;
+    margin-bottom: 12px;
+  }
+
+  .file_upload_modal_style .upload-folder-panel__drop-icon {
+    font-size: 34px;
+  }
+
+  .file_upload_modal_style .upload-folder-panel__drop-text {
+    font-size: 14px;
+  }
+
+  .file_upload_modal_style .upload-folder-panel__drop-sub {
+    font-size: 12px;
+  }
+}
+
+@media screen and (max-width: 420px) {
+  .rs-modal.file_upload_modal_style,
+  .file_upload_modal_style.pdf_modal_style.rs-modal-sm,
+  .file_upload_modal_style.rs-modal-sm {
+    width: calc(100vw - 20px) !important;
+  }
+
+  .file_upload_modal_style .rs-modal-body {
+    padding: 12px 12px 14px !important;
+  }
+
+  .file_upload_modal_style .my-tab-item {
+    font-size: 11px !important;
+    padding: 9px 2px !important;
+  }
+
+  .file_upload_modal_style .fileupload {
+    height: 130px !important;
+    max-height: 130px;
+  }
+
+  .file_upload_modal_style .upload-icon {
+    width: 40px !important;
+    height: 40px !important;
+  }
+
+  .file_upload_modal_style .btn_group {
+    gap: 8px;
+  }
+
+  .file_upload_modal_style .btn_group .btn-cancel,
+  .file_upload_modal_style .btn_group .btn-upload {
+    padding: 10px 10px;
+    font-size: 12px;
+  }
+}
