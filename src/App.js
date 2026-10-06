@@ -152,11 +152,10 @@ const {
           }`}
           data-value="1"
           style={{
-            position: "fixed",      // ✅ important
-            // inset: 0,               // ✅ full screen
-            // width: "100vw",
-            // height: "100vh",
-            zIndex: 99999,          // ✅ higher than sidebar/header/footer
+            position: "fixed",
+            left: "50%",
+            top: "50%",
+            zIndex: 100000, // above mobile SideNav (1100) + chrome
             display: "flex",
             alignItems: "center",
             justifyContent: "center",
@@ -167,7 +166,7 @@ const {
               #E5660F 240deg,
               #E5252A 360deg
             )`,
-            pointerEvents: spanExpanded ? "all" : "none", // optional
+            pointerEvents: spanExpanded ? "all" : "none",
           }}
         >
         <div className="logo__load" style={{width:"100px", height:"100px"}}>

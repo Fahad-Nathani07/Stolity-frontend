@@ -68,6 +68,9 @@ export default function CustomFileModal({
   previewFile,
 }) {
   const [folderWindowStart, setFolderWindowStart] = useState(0);
+  const [isNarrowPreview, setIsNarrowPreview] = useState(
+    () => typeof window !== "undefined" && window.innerWidth <= 991
+  );
   const [hoveredFolder, setHoveredFolder] = useState(null);
   const [isRenaming, setIsRenaming] = useState(false);
   const [renameInput, setRenameInput] = useState(fileName || "");
@@ -103,6 +106,18 @@ useEffect(()=>{
   setIsRenameMode(false);
   setImageZoom(1);
 },[modalFile, onClose])
+
+useEffect(() => {
+  if (typeof window === "undefined") return undefined;
+  const mq = window.matchMedia("(max-width: 991px)");
+  const sync = () => {
+    setIsNarrowPreview(mq.matches);
+    setFolderWindowStart(0);
+  };
+  sync();
+  mq.addEventListener("change", sync);
+  return () => mq.removeEventListener("change", sync);
+}, []);
 
 useEffect(() => {
   setImageZoom(1);
@@ -742,7 +757,7 @@ const handleMove = async (selectedOption) => {
   // Paste all the usestates and useeffects above this
   if (!show) return null;
 
-  // Logic for visible folder window/paging
+  // Desktop carousel shows 3; mobile uses a horizontal chip scroller
   const FOLDERS_VISIBLE = 3;
   const isImagePreview =
     !isProgressVisible &&
@@ -776,6 +791,16 @@ const handleMove = async (selectedOption) => {
     if (folderWindowStart > 0) {
       setFolderWindowStart(folderWindowStart - 1);
     }
+  };
+  const handleQuickMove = (folder) => {
+    handleMove(folder);
+    if (!modalFile) {
+      onClose?.();
+    }
+  };
+  const folderChipLabel = (folder) => {
+    const fullLabel = folder.label.replace(/</g, "/");
+    return fullLabel.split("/").filter(Boolean).pop() || fullLabel;
   };
 
   return createPortal(
@@ -985,73 +1010,109 @@ const handleMove = async (selectedOption) => {
             className="cfm-footer-row"
             onClick={(e) => e.stopPropagation()}
           >
-            <div className="cfm-move-pill">
-              <div className="cfm-move-label">Move file to:</div>
-              <div className="cfm-folder-row">
-                <button
-                  type="button"
-                  className="cfm-folder-arrow"
-                  onClick={handlePrevFolders}
-                  disabled={folderWindowStart === 0}
-                  aria-label="Previous folders"
-                >
-                  <IoChevronBack />
-                </button>
-
-                <div className="cfm-folder-list">
-                  {visibleFolders.map((folder) => {
-                    const fullLabel = folder.label.replace(/</g, "/");
-                    const lastSegment =
-                      fullLabel.split("/").filter((s) => !!s).pop() || fullLabel;
-                    const isHovered = hoveredFolder === folder.value;
-
-                    return (
-                      <label
-                        key={folder.value}
-                        className={`cfm-folder-opt ${
-                          selectedFolder === folder.value ? "cfm-folder-opt--on" : ""
-                        }`}
-                        onMouseEnter={() => setHoveredFolder(folder.value)}
-                        onMouseLeave={() => setHoveredFolder(null)}
-                      >
-                        <span className="cfm-folder-dot">
-                          {selectedFolder === folder.value && (
-                            <span className="cfm-folder-dot-inner" />
-                          )}
-                        </span>
-                        <input
-                          type="radio"
-                          name="folder"
-                          value={folder.value}
-                          checked={selectedFolder === folder.value}
-                          onChange={() => {
-                            handleMove(folder);
-                            if (!modalFile) {
-                              onClose?.();
-                            }
-                          }}
-                          style={{ display: "none" }}
-                        />
-                        <span className="cfm-folder-name">{lastSegment}</span>
-                        {isHovered && (
-                          <div className="cfm-folder-tip">{fullLabel}</div>
-                        )}
-                      </label>
-                    );
-                  })}
-                </div>
-                <button
-                  type="button"
-                  className="cfm-folder-arrow"
-                  onClick={handleNextFolders}
-                  disabled={
-                    folderWindowStart + FOLDERS_VISIBLE >= folderOptions.length
-                  }
-                  aria-label="Next folders"
-                >
-                  <IoChevronForward />
-                </button>
+            <div
+              className={`cfm-move-pill${
+                isNarrowPreview ? " cfm-move-pill--chips" : ""
+              }`}
+            >
+              <div className="cfm-move-label">
+                {isNarrowPreview ? "Move to" : "Move file to:"}
               </div>
+              {isNarrowPreview ? (
+                <div
+                  className="cfm-folder-scroll"
+                  role="listbox"
+                  aria-label="Move file to folder"
+                >
+                  {validFolders.length === 0 ? (
+                    <span className="cfm-folder-empty">No folders yet</span>
+                  ) : (
+                    validFolders.map((folder) => {
+                      const fullLabel = folder.label.replace(/</g, "/");
+                      const label = folderChipLabel(folder);
+                      const isOn = selectedFolder === folder.value;
+                      return (
+                        <button
+                          key={folder.value}
+                          type="button"
+                          role="option"
+                          aria-selected={isOn}
+                          title={fullLabel}
+                          className={`cfm-folder-chip${
+                            isOn ? " cfm-folder-chip--on" : ""
+                          }`}
+                          onClick={() => handleQuickMove(folder)}
+                        >
+                          {label}
+                        </button>
+                      );
+                    })
+                  )}
+                </div>
+              ) : (
+                <div className="cfm-folder-row">
+                  <button
+                    type="button"
+                    className="cfm-folder-arrow"
+                    onClick={handlePrevFolders}
+                    disabled={folderWindowStart === 0}
+                    aria-label="Previous folders"
+                  >
+                    <IoChevronBack />
+                  </button>
+
+                  <div className="cfm-folder-list">
+                    {visibleFolders.map((folder) => {
+                      const fullLabel = folder.label.replace(/</g, "/");
+                      const lastSegment = folderChipLabel(folder);
+                      const isHovered = hoveredFolder === folder.value;
+
+                      return (
+                        <label
+                          key={folder.value}
+                          className={`cfm-folder-opt ${
+                            selectedFolder === folder.value
+                              ? "cfm-folder-opt--on"
+                              : ""
+                          }`}
+                          title={fullLabel}
+                          onMouseEnter={() => setHoveredFolder(folder.value)}
+                          onMouseLeave={() => setHoveredFolder(null)}
+                        >
+                          <span className="cfm-folder-dot">
+                            {selectedFolder === folder.value && (
+                              <span className="cfm-folder-dot-inner" />
+                            )}
+                          </span>
+                          <input
+                            type="radio"
+                            name="folder"
+                            value={folder.value}
+                            checked={selectedFolder === folder.value}
+                            onChange={() => handleQuickMove(folder)}
+                            style={{ display: "none" }}
+                          />
+                          <span className="cfm-folder-name">{lastSegment}</span>
+                          {isHovered && (
+                            <div className="cfm-folder-tip">{fullLabel}</div>
+                          )}
+                        </label>
+                      );
+                    })}
+                  </div>
+                  <button
+                    type="button"
+                    className="cfm-folder-arrow"
+                    onClick={handleNextFolders}
+                    disabled={
+                      folderWindowStart + FOLDERS_VISIBLE >= validFolders.length
+                    }
+                    aria-label="Next folders"
+                  >
+                    <IoChevronForward />
+                  </button>
+                </div>
+              )}
             </div>
 
             <button

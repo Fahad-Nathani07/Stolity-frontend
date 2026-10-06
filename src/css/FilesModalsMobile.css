@@ -265,46 +265,74 @@
 
 /* ── Image / video preview (CustomFileModal) ── */
 @media screen and (max-width: 991px) {
-  .custom-file-modal {
-    height: 100dvh;
-    height: 100vh;
-  }
-
   .custom-file-modal-overlay {
     /* Stay above bottom nav; preview is immersive */
     z-index: 4000;
   }
 
+  .custom-file-modal {
+    width: 100vw;
+    height: 100dvh;
+    height: 100vh;
+    max-height: 100dvh;
+    max-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+  }
+
   .cfm-close {
     top: max(10px, env(safe-area-inset-top, 0px));
-    right: 12px;
-    width: 38px;
-    height: 38px;
+    right: 10px;
+    width: 40px;
+    height: 40px;
     font-size: 20px;
   }
 
   .cfm-top {
     top: max(10px, env(safe-area-inset-top, 0px));
-    left: 12px;
+    left: 10px;
     right: 56px;
     max-width: none;
-  }
-
-  .cfm-filename {
-    max-width: min(42vw, 180px);
-    font-size: 13px;
+    gap: 6px;
   }
 
   .cfm-title-pill {
+    flex: 1 1 auto;
+    min-width: 0;
     padding: 5px 12px 5px 8px;
   }
 
+  .cfm-filename {
+    flex: 1 1 auto;
+    min-width: 0;
+    max-width: none;
+    font-size: 13px;
+  }
+
+  .cfm-acl-badge {
+    height: 30px;
+    padding: 0 10px;
+    font-size: 10px;
+    letter-spacing: 0.04em;
+  }
+
+  .cfm-edit-btn {
+    width: 28px;
+    height: 28px;
+    font-size: 16px;
+  }
+
+  /* Stage grows; footer docks — kills the empty gap under the image */
   .cfm-stage {
-    --cfm-video-inset-x: 48px;
-    --cfm-video-inset-y: 24px;
-    margin: 52px 8px 0;
-    height: calc(100dvh - 200px);
-    height: calc(100vh - 200px);
+    --cfm-video-inset-x: 44px;
+    --cfm-video-inset-y: 20px;
+    flex: 1 1 auto;
+    min-height: 0;
+    height: auto !important;
+    max-height: none !important;
+    margin: 54px 8px 0;
+    border-radius: 14px;
   }
 
   .cfm-nav {
@@ -314,29 +342,166 @@
   }
 
   .cfm-nav--prev {
-    left: 6px;
+    left: 4px;
   }
 
   .cfm-nav--next {
-    right: 6px;
+    right: 4px;
+  }
+
+  .cfm-image-outer {
+    width: 100%;
+    height: 100% !important;
+    max-height: 100% !important;
+    margin: 0 auto;
+  }
+
+  .cfm-image-viewport {
+    height: 100%;
+    max-height: none;
+    margin: 0;
+  }
+
+  .cfm-image-stage {
+    padding: 8px;
+  }
+
+  .cfm-pdf-frame,
+  .cfm-doc-wrap {
+    width: min(96%, 1000px);
+    height: min(100%, 70vh);
+  }
+
+  .cfm-footer {
+    flex: 0 0 auto;
+    width: 100%;
+    padding: 8px 12px max(12px, env(safe-area-inset-bottom, 0px));
+    gap: 0;
+    box-sizing: border-box;
+  }
+
+  .cfm-footer-row {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px;
+    width: 100%;
+  }
+
+  .cfm-move-pill,
+  .cfm-move-pill--chips {
+    flex: 1 1 100%;
+    width: 100%;
+    min-width: 0;
+    max-width: 100%;
+    flex-direction: row;
+    align-items: center;
+    border-radius: 16px;
+    padding: 8px 10px;
+    gap: 10px;
+    box-sizing: border-box;
+  }
+
+  .cfm-move-pill--chips .cfm-move-label {
+    text-align: left;
+    font-size: 12px;
+    font-weight: 600;
+    color: rgba(255, 255, 255, 0.65);
+    flex-shrink: 0;
+    border-right: 1px solid rgba(255, 255, 255, 0.12);
+    padding-right: 10px;
+    white-space: nowrap;
+  }
+
+  .cfm-folder-scroll {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex: 1 1 auto;
+    min-width: 0;
+    overflow-x: auto;
+    overflow-y: hidden;
+    -webkit-overflow-scrolling: touch;
+    scroll-snap-type: x proximity;
+    padding: 2px 2px 2px 0;
+    mask-image: linear-gradient(
+      to right,
+      #000 0%,
+      #000 calc(100% - 18px),
+      transparent 100%
+    );
+    -webkit-mask-image: linear-gradient(
+      to right,
+      #000 0%,
+      #000 calc(100% - 18px),
+      transparent 100%
+    );
+    scrollbar-width: none;
+  }
+
+  .cfm-folder-scroll::-webkit-scrollbar {
+    display: none;
+  }
+
+  .cfm-folder-chip {
+    flex: 0 0 auto;
+    max-width: min(168px, 55vw);
+    padding: 8px 14px;
+    border-radius: 999px;
+    border: 1px solid rgba(255, 255, 255, 0.14);
+    background: rgba(255, 255, 255, 0.08);
+    color: rgba(255, 255, 255, 0.92);
+    font-size: 13px;
+    font-weight: 600;
+    line-height: 1.2;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    scroll-snap-align: start;
+    cursor: pointer;
+    transition: background 0.15s ease, border-color 0.15s ease, color 0.15s ease;
+  }
+
+  .cfm-folder-chip:active {
+    transform: scale(0.98);
+  }
+
+  .cfm-folder-chip--on {
+    background: rgba(229, 102, 15, 0.22);
+    border-color: rgba(229, 102, 15, 0.55);
+    color: #ffc895;
+  }
+
+  .cfm-folder-empty {
+    font-size: 12px;
+    color: rgba(255, 255, 255, 0.5);
+    padding: 6px 4px;
+    white-space: nowrap;
+  }
+
+  .cfm-folder-tip {
+    display: none;
+  }
+
+  .cfm-icon-btn {
+    width: 46px;
+    height: 46px;
+  }
+
+  .cfm-icon-btn img {
+    height: 24px;
   }
 
   .cfm-toolbar {
     gap: 0;
-    padding: 2px 4px;
-    max-width: calc(100vw - 24px);
-    overflow-x: auto;
-    -webkit-overflow-scrolling: touch;
-    scrollbar-width: none;
-  }
-
-  .cfm-toolbar::-webkit-scrollbar {
-    display: none;
+    padding: 2px 6px;
+    margin-left: auto;
   }
 
   .cfm-tool-btn {
-    width: 38px;
-    height: 38px;
+    width: 42px;
+    height: 42px;
     font-size: 18px;
     flex-shrink: 0;
   }
@@ -346,41 +511,23 @@
     height: 20px;
   }
 
-  .cfm-image-outer {
-    height: calc(100% - 72px);
-    max-height: calc(100% - 72px);
-    margin: 4px auto 8px;
-  }
-
-  .cfm-footer {
-    padding: 8px 10px max(10px, env(safe-area-inset-bottom, 0px));
-  }
-
-  .cfm-footer-row {
-    flex-wrap: wrap;
-    justify-content: center;
-    gap: 8px;
-  }
-
-  .cfm-move-pill {
-    width: 100%;
-    min-width: 0;
-    max-width: 100%;
-    flex-direction: column;
-    align-items: stretch;
-    border-radius: 16px;
-    padding: 10px 12px;
-    gap: 8px;
-  }
-
-  .cfm-move-label {
-    text-align: center;
-    font-size: 13px;
-  }
-
-  .cfm-folder-opt {
+  .cfm-top--rename {
+    left: 10px;
+    right: 10px;
     max-width: none;
-    font-size: 13px;
+  }
+
+  .cfm-rename-form {
+    gap: 8px;
+  }
+
+  .cfm-rename-field {
+    flex: 1 1 100%;
+  }
+
+  .cfm-rename-actions {
+    width: 100%;
+    justify-content: flex-end;
   }
 }
 
@@ -395,12 +542,23 @@
     font-size: 0.8125rem;
   }
 
-  .cfm-filename {
-    max-width: 34vw;
+  .cfm-stage {
+    margin: 52px 6px 0;
   }
 
-  .cfm-stage {
-    height: calc(100dvh - 180px);
-    height: calc(100vh - 180px);
+  .cfm-move-pill--chips {
+    padding: 8px;
+    gap: 8px;
+  }
+
+  .cfm-move-pill--chips .cfm-move-label {
+    font-size: 11px;
+    padding-right: 8px;
+  }
+
+  .cfm-folder-chip {
+    max-width: min(148px, 52vw);
+    padding: 8px 12px;
+    font-size: 12px;
   }
 }

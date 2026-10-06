@@ -33997,16 +33997,19 @@ th.dropdown-processed button {
 }
 
 .expanded {
-  width: 200%;
-  padding-bottom: 200%;
-  height: auto;
+  /* Portrait phones are taller than wide — % of width left top/bottom gaps.
+     vmax uses the larger viewport side so the circle always covers the screen
+     (including mobile bottom SideNav). */
+  width: 250vmax;
+  height: 250vmax;
+  padding-bottom: 0;
 }
 
 .animate_logo_loader {
   background: var(--Base-Gradient-Gradient-1, linear-gradient(90deg, rgba(228, 98, 30, 0.89) 0%, #D2364C 25%, #A72669 50%, #6A2C72 75%, #232C64 100%));
   transition-delay: 0.25s;
   opacity: 1;
-  z-index: 2;
+  z-index: 100000;
 }
 
 .logo__load {
