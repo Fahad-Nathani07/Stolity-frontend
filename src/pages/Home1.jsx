@@ -91,7 +91,7 @@ const Home1 = () => {
     setMenuOpen(false);
     if (to.includes("#")) {
       const [pathPart, hashPart] = to.split("#");
-      const targetPath = pathPart || "/Home1";
+      const targetPath = pathPart || "/";
       const hash = hashPart || "";
       if (location.pathname === targetPath) {
         scrollToHash(hash);
@@ -176,14 +176,14 @@ const Home1 = () => {
 
   const navLinks = [
     { label: "Industries", to: "/Industries" },
-    { label: "Pricing", to: "/Home1#pricing" },
+    { label: "Pricing", to: "/#pricing" },
   ];
 
   return (
     <div className="home1-page">
       <header className={menuOpen ? "h1-header is-menu-open" : "h1-header"}>
         <div className="h1-header-inner">
-          <a href="/Home1" onClick={go("/Home1")} className="h1-logo-link">
+          <a href="/" onClick={go("/")} className="h1-logo-link">
             <img src={LogoImg} alt="Stolity" className="h1-logo" />
           </a>
 
