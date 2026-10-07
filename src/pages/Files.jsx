@@ -7937,7 +7937,7 @@ useEffect(()=>{
       display: "flex",
       alignItems: "center",
       justifyContent: "center",
-      zIndex: 1500,
+      zIndex: 2100,
     }}
     onClick={() => setShowPrivateWarning(false)}
   >
