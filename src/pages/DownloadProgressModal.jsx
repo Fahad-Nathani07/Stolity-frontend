@@ -5,6 +5,8 @@ import DraggableFloatShell from "../components/DraggableFloatShell";
 import {
   buildSoftEtaLabel,
   computeOverallProgress,
+  countCompletedTransfers,
+  getDisplayOverallProgress,
   getTransferDisplayName,
   isDownloadOnlyBatch,
   DOWNLOAD_OPERATION,
@@ -69,9 +71,7 @@ const DownloadProgressModal = () => {
   const fileCount = downloadArray.length;
   const overallProgress = computeOverallProgress(downloadArray);
   const showEta = isDownloadOnlyBatch(downloadArray);
-  const completedCount = downloadArray.filter(
-    (d) => Math.round(d.progress) >= 100
-  ).length;
+  const completedCount = countCompletedTransfers(downloadArray);
 
   useEffect(() => {
     if (!showEta || downloadArray.length === 0) {
@@ -102,7 +102,7 @@ const DownloadProgressModal = () => {
 
   useEffect(() => {
     if (fileCount === 0) return undefined;
-    if (overallProgress >= 100) {
+    if (fileCount > 0 && completedCount >= fileCount) {
       const timeout = setTimeout(() => {
         setDownloadsMap({});
         initialDownloadsCountRef.current = 0;
@@ -112,11 +112,14 @@ const DownloadProgressModal = () => {
       return () => clearTimeout(timeout);
     }
     return undefined;
-  }, [overallProgress, fileCount]);
+  }, [completedCount, fileCount]);
 
   if (Object.keys(downloadsMap).length === 0) return null;
 
-  const percentShown = Math.min(100, Math.max(0, overallProgress));
+  const percentShown = getDisplayOverallProgress(overallProgress, {
+    completedCount,
+    totalCount: fileCount,
+  });
   const hasIncomplete = downloadArray.some((d) => Math.round(d.progress) < 100);
 
   const handleCancelAll = () => {

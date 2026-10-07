@@ -60,6 +60,27 @@ export function computeOverallProgress(items = []) {
   );
 }
 
+/** Count items whose per-file progress has reached 100%. */
+export function countCompletedTransfers(items = []) {
+  return items.filter((u) => Math.round(Number(u.progress) || 0) >= 100).length;
+}
+
+/**
+ * UI percent for batch modals — show 100% only when every file is done (e.g. 960/960).
+ */
+export function getDisplayOverallProgress(
+  overallProgress,
+  { completedCount, totalCount } = {}
+) {
+  const raw = Math.min(100, Math.max(0, Number(overallProgress) || 0));
+  const total = Number(totalCount) || 0;
+  const completed = Number(completedCount) || 0;
+  if (total > 0 && completed >= total) {
+    return Math.round(raw);
+  }
+  return Math.min(99, Math.floor(raw));
+}
+
 /**
  * Soft label for remaining milliseconds.
  * @returns {string} e.g. "a few seconds", "45 sec", "2 min", "1 hr"

@@ -1,5 +1,11 @@
 /* Upload modal — Files / NestedPage / Favourites / DefaultFolder */
 
+/* Above files-navbar (1050) + mobile sidenav (~1200) */
+.rs-modal-wrapper:has(.file_upload_modal_style),
+.rs-modal-backdrop:has(+ .rs-modal-wrapper .file_upload_modal_style) {
+  z-index: 2100 !important;
+}
+
 .file_upload_modal_style .tab-label-short {
   display: none;
 }

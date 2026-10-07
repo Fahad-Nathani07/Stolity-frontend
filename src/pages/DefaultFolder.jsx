@@ -5118,6 +5118,7 @@ const DefaultFolder = () => {
         open={openFileUploadModal}
         onClose={handleCloseFileUploadModal}
         className="pdf_modal_style file_upload_modal_style"
+        zIndex={2100}
         style={{
           display: "flex",
           alignItems: "center",

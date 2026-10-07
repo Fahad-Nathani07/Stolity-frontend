@@ -7,6 +7,8 @@ import DraggableFloatShell from "../components/DraggableFloatShell";
 import {
   buildSoftEtaLabel,
   computeOverallProgress,
+  countCompletedTransfers,
+  getDisplayOverallProgress,
   getTransferDisplayName,
   isUploadOnlyBatch,
   resolveTransferOperation,
@@ -147,8 +149,11 @@ const UploadProgressModal = () => {
 
   if (Object.keys(uploadsMap).length === 0) return null;
 
-  const completedCount = uploadArray.filter((u) => Math.round(u.progress) >= 100).length;
-  const percentShown = Math.min(100, Math.max(0, overallProgress));
+  const completedCount = countCompletedTransfers(uploadArray);
+  const percentShown = getDisplayOverallProgress(overallProgress, {
+    completedCount,
+    totalCount: uploadArray.length,
+  });
   const incompleteUploads = uploadArray.filter((u) => Math.round(u.progress) < 100);
   const hasIncomplete = incompleteUploads.length > 0;
   // Pause-all only pauses the active file; header follows that one item
