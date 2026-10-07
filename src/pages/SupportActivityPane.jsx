@@ -42,8 +42,10 @@ const STATUS_OPTIONS = [
   { id: "STARTED", label: "Started" },
   { id: "COMPLETED", label: "Completed" },
   { id: "SUCCESS", label: "Success" },
+  { id: "PARTIAL", label: "Partial" },
   { id: "FAILED", label: "Failed" },
   { id: "CANCELLED", label: "Cancelled" },
+  { id: "ABANDONED", label: "Abandoned" },
 ];
 
 function todayKey() {
@@ -91,10 +93,44 @@ function formatLabel(value) {
 function statusPillClass(status) {
   const s = String(status || "").toUpperCase();
   if (s === "COMPLETED" || s === "SUCCESS") return "ssd-pill-success";
+  if (s === "PARTIAL") return "ssd-pill-warn";
   if (s === "FAILED") return "ssd-pill-danger";
-  if (s === "CANCELLED") return "ssd-pill-muted";
+  if (s === "CANCELLED" || s === "ABANDONED") return "ssd-pill-muted";
   if (s === "REQUESTED" || s === "STARTED") return "ssd-pill-warn";
   return "ssd-pill-muted";
+}
+
+function formatBatchPathCell(ev) {
+  const isBatch = String(ev.kind || "") === "batch" || Number(ev.fileCount) > 1;
+  if (!isBatch) {
+    return {
+      title: ev.path || "",
+      primary: ev.fileName || ev.path || "—",
+      secondary: null,
+      failed: null,
+    };
+  }
+  const count = Number(ev.fileCount) || 0;
+  const ok = ev.successCount != null ? Number(ev.successCount) : null;
+  const fail = ev.failCount != null ? Number(ev.failCount) : null;
+  const primary =
+    count > 0
+      ? `${count} files${ok != null ? ` · ${ok} ok` : ""}${
+          fail != null && fail > 0 ? ` · ${fail} failed` : ""
+        }`
+      : ev.fileName || "Batch";
+  const apis = Array.isArray(ev.apis) && ev.apis.length ? ev.apis.join(", ") : null;
+  const failed =
+    Array.isArray(ev.failedPaths) && ev.failedPaths.length
+      ? ev.failedPaths.slice(0, 8).join(", ") +
+        (ev.failedPaths.length > 8 ? "…" : "")
+      : null;
+  return {
+    title: failed || primary,
+    primary,
+    secondary: apis ? `APIs: ${apis}` : null,
+    failed,
+  };
 }
 
 function buildEventBreakdown(totals) {
@@ -712,16 +748,33 @@ export default function SupportActivityPane({
                     </tr>
                   </thead>
                   <tbody>
-                    {events.map((ev) => (
+                    {events.map((ev) => {
+                      const pathCell = formatBatchPathCell(ev);
+                      return (
                       <tr key={ev.id}>
                         <td>{formatWhen(ev.timestamp)}</td>
                         <td className="ssd-mono">{ev.email || ev.userId}</td>
-                        <td>{formatLabel(ev.action)}</td>
-                        <td title={ev.path || ""}>
-                          {ev.fileName || ev.path || "—"}
+                        <td>
+                          {formatLabel(ev.action)}
+                          {String(ev.kind || "") === "batch" && (
+                            <div className="ssd-muted ssd-tiny">Batch</div>
+                          )}
+                        </td>
+                        <td title={pathCell.title}>
+                          {pathCell.primary}
                           {ev.sourcePath && ev.destinationPath && (
                             <div className="ssd-muted ssd-tiny">
                               {ev.sourcePath} → {ev.destinationPath}
+                            </div>
+                          )}
+                          {pathCell.secondary && (
+                            <div className="ssd-muted ssd-tiny">
+                              {pathCell.secondary}
+                            </div>
+                          )}
+                          {pathCell.failed && (
+                            <div className="ssd-muted ssd-tiny">
+                              Failed: {pathCell.failed}
                             </div>
                           )}
                         </td>
@@ -735,7 +788,8 @@ export default function SupportActivityPane({
                         </td>
                         <td>{formatLabel(ev.source)}</td>
                       </tr>
-                    ))}
+                      );
+                    })}
                   </tbody>
                 </table>
               </div>

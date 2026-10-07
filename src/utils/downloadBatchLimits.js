@@ -137,7 +137,8 @@ export async function resolveDownloadSelectionForGate({
     });
     return {
       source: "folder",
-      canZipAndDownload: true,
+      // v1: zip/unzip hidden from users — keep Continue / Cancel only
+      canZipAndDownload: false,
       folderPath,
       count: stats.count,
       totalBytes: stats.totalBytes,

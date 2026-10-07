@@ -158,6 +158,17 @@ function markDirectOk() {
 
 // ---------- Direct APIs ----------
 
+function withBatchId(payload, batchId) {
+  if (!batchId) return payload;
+  return { ...payload, batchId };
+}
+
+function authHeadersWithBatch(token, batchId) {
+  const headers = authHeaders(token);
+  if (batchId) headers["x-activity-batch-id"] = String(batchId);
+  return headers;
+}
+
 export async function presignPutObject({
   apiUrl,
   token,
@@ -167,20 +178,24 @@ export async function presignPutObject({
   visibility = "private",
   fileSize,
   shared,
+  batchId,
 }) {
   const url = buildAwsUrl(apiUrl, "presign-put-object");
   const basename = String(fileName || "").replace(/^.*[\\/]/, "");
-  const payload = {
-    fileName: basename,
-    visibility: normalizeVisibility(visibility),
-    fileType: fileType || undefined,
-    fileSize: fileSize != null ? fileSize : undefined,
-  };
+  const payload = withBatchId(
+    {
+      fileName: basename,
+      visibility: normalizeVisibility(visibility),
+      fileType: fileType || undefined,
+      fileSize: fileSize != null ? fileSize : undefined,
+    },
+    batchId
+  );
   const adjusted = adjustFolderPath(folderPath, shared);
   if (adjusted) payload.folderPath = adjusted;
 
   const resp = await axios.post(url, payload, {
-    headers: authHeaders(token),
+    headers: authHeadersWithBatch(token, batchId),
     params: sharedParams(shared),
   });
   return resp.data;
@@ -194,19 +209,23 @@ export async function startMultipartUploadDirect({
   fileType,
   visibility = "private",
   shared,
+  batchId,
 }) {
   const url = buildAwsUrl(apiUrl, "start-multipart-upload-direct");
   const basename = String(fileName || "").replace(/^.*[\\/]/, "");
-  const payload = {
-    fileName: basename,
-    visibility: normalizeVisibility(visibility),
-    fileType: fileType || undefined,
-  };
+  const payload = withBatchId(
+    {
+      fileName: basename,
+      visibility: normalizeVisibility(visibility),
+      fileType: fileType || undefined,
+    },
+    batchId
+  );
   const adjusted = adjustFolderPath(folderPath, shared);
   if (adjusted) payload.folderPath = adjusted;
 
   const resp = await axios.post(url, payload, {
-    headers: authHeaders(token),
+    headers: authHeadersWithBatch(token, batchId),
     params: sharedParams(shared),
   });
   return resp.data;
@@ -239,13 +258,14 @@ export async function completeMultipartUploadDirect({
   uploadId,
   parts,
   shared,
+  batchId,
 }) {
   const url = buildAwsUrl(apiUrl, "complete-multipart-upload-direct");
   const resp = await axios.post(
     url,
-    { key, uploadId, parts },
+    withBatchId({ key, uploadId, parts }, batchId),
     {
-      headers: authHeaders(token),
+      headers: authHeadersWithBatch(token, batchId),
       params: sharedParams(shared),
     }
   );
@@ -362,13 +382,14 @@ async function completeMultipartUploadProxy({
   uploadId,
   parts,
   shared,
+  batchId,
 }) {
   const url = buildAwsUrl(apiUrl, "complete-multipart-upload");
   const resp = await axios.post(
     url,
-    { key, uploadId, parts },
+    withBatchId({ key, uploadId, parts }, batchId),
     {
-      headers: authHeaders(token),
+      headers: authHeadersWithBatch(token, batchId),
       params: sharedParams(shared),
     }
   );
@@ -441,6 +462,7 @@ async function uploadViaProxyMultipart({
   checkRemoved,
   handlePauseOrCancel,
   partSize,
+  batchId,
 }) {
   checkRemoved();
   const startResp = await startMultipartUploadProxy({
@@ -515,6 +537,7 @@ async function uploadViaProxyMultipart({
       uploadId,
       parts: partsArray,
       shared,
+      batchId,
     });
     if (onProgress) onProgress(100);
     return "success";
@@ -544,6 +567,7 @@ async function uploadViaDirectSpaces({
   checkRemoved,
   handlePauseOrCancel,
   partSize,
+  batchId,
 }) {
   const totalSize = file?.size || 0;
 
@@ -559,6 +583,7 @@ async function uploadViaDirectSpaces({
       visibility,
       fileSize: totalSize,
       shared,
+      batchId,
     });
 
     const key = start.key;
@@ -595,7 +620,7 @@ async function uploadViaDirectSpaces({
           },
         });
         if (onProgress) onProgress(100);
-        if (start.activityEventId) {
+        if (!batchId && start.activityEventId) {
           queueActivityStatus({
             apiUrl,
             token,
@@ -613,7 +638,7 @@ async function uploadViaDirectSpaces({
         if (isCanceledError(err)) {
           const action = await handlePauseOrCancel(err);
           if (action === "retry") continue;
-          if (start?.activityEventId) {
+          if (!batchId && start?.activityEventId) {
             queueDeleteActivityEvent({
               apiUrl,
               token,
@@ -624,7 +649,7 @@ async function uploadViaDirectSpaces({
         }
 
         // CORS / network → will fall back to proxy; drop the direct REQUESTED event.
-        if (start?.activityEventId) {
+        if (!batchId && start?.activityEventId) {
           queueDeleteActivityEvent({
             apiUrl,
             token,
@@ -646,6 +671,7 @@ async function uploadViaDirectSpaces({
     fileType: file.type || undefined,
     visibility,
     shared,
+    batchId,
   });
 
   const key = startResp.key || startResp.data?.key;
@@ -786,6 +812,7 @@ async function uploadViaDirectSpaces({
       uploadId,
       parts: partsArray,
       shared,
+      batchId,
     });
     if (onProgress) onProgress(100);
     return "success";
@@ -823,6 +850,7 @@ export async function uploadOneFileDirect({
   shouldAbort,
   waitIfPaused,
   partSize = DIRECT_PART_SIZE,
+  batchId,
 }) {
   const basename = String(fileName || file?.name || "").replace(/^.*[\\/]/, "");
 
@@ -883,6 +911,7 @@ export async function uploadOneFileDirect({
     checkRemoved,
     handlePauseOrCancel,
     partSize,
+    batchId,
   };
 
   const runProxyFallback = async (reason) => {
@@ -917,7 +946,7 @@ export async function uploadOneFileDirect({
 
     // CORS / Spaces / network → proxy multipart
     if (shouldFallbackToProxy(err)) {
-      if (err?.activityEventId) {
+      if (!batchId && err?.activityEventId) {
         queueDeleteActivityEvent({
           apiUrl,
           token,

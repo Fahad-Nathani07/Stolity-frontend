@@ -21,6 +21,11 @@ import {
   abortMultipartUploadDirect,
   DIRECT_UPLOAD_GAP_MS,
 } from "../utils/uploadFileDirect";
+import {
+  startActivityBatch,
+  finishActivityBatch,
+  resolveBatchStatus,
+} from "../utils/activityBatch";
 import UploadBatchLimitModal from "../components/UploadBatchLimitModal";
 import DownloadBatchLimitModal from "../components/DownloadBatchLimitModal";
 import { useUploadBatchLimitGate } from "../hooks/useUploadBatchLimitGate";
@@ -3461,6 +3466,23 @@ const Favourites = () => {
       });
 
       const results = [];
+      let batchCanceled = false;
+      const estimatedUploadBytes = uploadEntries.reduce(
+        (acc, e) => acc + (Number(e.file?.size) || 0),
+        0
+      );
+      const activityBatchId =
+        uploadEntries.length >= 2
+          ? await startActivityBatch({
+              apiUrl,
+              token,
+              action: "UPLOAD",
+              fileCount: uploadEntries.length,
+              estimatedBytes: estimatedUploadBytes || undefined,
+              source: "multi-upload",
+              apis: ["presign-put-object", "complete-multipart-upload-direct"],
+            })
+          : null;
       for (let i = 0; i < uploadEntries.length; i++) {
         const { file, uploadUiId, sanitizedName, controller } = uploadEntries[i];
 
@@ -3505,6 +3527,7 @@ const Favourites = () => {
               fileName: basename,
               folderPath: cleanPath || undefined,
               visibility: pubpri,
+              batchId: activityBatchId || undefined,
               getSignal: () => getUpload?.(uploadUiId)?.controller?.signal,
               onProgress: (pct) => updateUploadProgress(uploadUiId, pct),
               onMeta: ({ key, uploadId, mode, needsNewController }) => {
@@ -3581,6 +3604,47 @@ const Favourites = () => {
       const anyCanceled = results.some(
         (r) => r.status === "fulfilled" && r.value === "canceled"
       );
+
+      if (activityBatchId) {
+        const successCount = results.filter(
+          (r) => r.status === "fulfilled" && r.value === "success"
+        ).length;
+        const cancelCount = results.filter(
+          (r) => r.status === "fulfilled" && r.value === "canceled"
+        ).length;
+        const failCount = results.filter((r) => r.status === "rejected").length;
+        let sizeBytes = 0;
+        results.forEach((r, idx) => {
+          if (r.status === "fulfilled" && r.value === "success") {
+            sizeBytes += Number(uploadEntries[idx]?.file?.size) || 0;
+          }
+        });
+        const failedPaths = results
+          .map((r, idx) =>
+            r.status === "rejected"
+              ? uploadEntries[idx]?.sanitizedName || `file-${idx}`
+              : null
+          )
+          .filter(Boolean)
+          .slice(0, 50);
+        finishActivityBatch({
+          apiUrl,
+          token,
+          batchId: activityBatchId,
+          status: resolveBatchStatus({
+            fileCount: uploadEntries.length,
+            successCount,
+            failCount,
+            cancelCount,
+            cancelled: batchCanceled || allCanceled,
+          }),
+          successCount,
+          failCount: failCount + cancelCount,
+          sizeBytes,
+          failedPaths,
+          apis: ["presign-put-object", "complete-multipart-upload-direct"],
+        });
+      }
 
       if (anySucceeded && !anyFailed && !anyCanceled) {
         showToast("success", "Files uploaded successfully!");

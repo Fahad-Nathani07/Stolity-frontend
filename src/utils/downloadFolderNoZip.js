@@ -1,23 +1,30 @@
 /**
- * No-zip folder download: list entries from API, then stream each file into a
- * user-picked directory (same File System Access approach as file downloads).
- * Preserves nested folder structure. Multi-folder shares one picker per cycle.
+ * No-zip folder download:
+ * 1) Slim list from download-folder-entries (paths + sizes + relativePath only)
+ * 2) Per file: same as multi-download (/download-file-url → stream/Range)
+ * 3) Write under one picked folder, keeping nested structure
+ * 4) 2+ files: one activity batch (start + finish), not per-file /status
  */
 
 import {
   ensureSaveDirectory,
-  fetchFolderEntryResponse,
+  downloadFilePresigned,
 } from "./downloadFilePresigned";
 import {
-  streamDownloadResponse,
   isDownloadCancelledError,
   DISK_STREAM_THRESHOLD_BYTES,
   mergeAbortSignals,
 } from "./downloadWithProgress";
-import { queueActivityStatus } from "./activityReport";
+import {
+  startActivityBatch,
+  finishActivityBatch,
+  resolveBatchStatus,
+} from "./activityBatch";
 
 const ENTRY_CONCURRENCY = 1;
-const MAX_FILE_RETRIES = 3;
+/** Gap after every file (align with multi-download). */
+const FILE_GAP_MS = 700;
+/** Extra pause after large files. */
 const LARGE_FILE_GAP_MS = 1500;
 
 function delay(ms) {
@@ -55,7 +62,8 @@ function uniqueDirName(desired, used) {
   return next;
 }
 
-async function getNestedFileHandle(rootDirHandle, relativePath) {
+/** Resolve parent directory handle + leaf file name for a nested relative path. */
+async function resolveNestedSaveTarget(rootDirHandle, relativePath) {
   const parts = String(relativePath || "")
     .replace(/\\/g, "/")
     .split("/")
@@ -63,38 +71,12 @@ async function getNestedFileHandle(rootDirHandle, relativePath) {
   if (!parts.length) {
     throw new Error("Invalid file path in folder download");
   }
-  const fileName = parts.pop();
+  const saveAsName = parts.pop();
   let dir = rootDirHandle;
   for (const part of parts) {
     dir = await dir.getDirectoryHandle(part, { create: true });
   }
-  return dir.getFileHandle(fileName, { create: true });
-}
-
-async function writeEntryToFolder({
-  response,
-  folderHandle,
-  relativePath,
-  onBytes,
-  signal,
-}) {
-  const fileHandle = await getNestedFileHandle(folderHandle, relativePath);
-  const writable = await fileHandle.createWritable({ keepExistingData: false });
-  let lastLoaded = 0;
-  await streamDownloadResponse({
-    response,
-    fileName: baseName(relativePath),
-    isFolder: false,
-    writable,
-    fileHandle,
-    signal,
-    onProgress: (_percent, loaded) => {
-      if (typeof onBytes !== "function") return;
-      const n = Math.max(0, (loaded || 0) - lastLoaded);
-      lastLoaded = loaded || 0;
-      if (n > 0) onBytes(n);
-    },
-  });
+  return { dirHandle: dir, saveAsName };
 }
 
 /**
@@ -182,152 +164,118 @@ export async function downloadFolderNoZip({
     }
   };
 
-  const trackBytes = (n) => {
-    progressState.loaded += n;
-    report();
-  };
-
-  const fetchEntry = async (entry) => {
-    let lastErr;
-    for (let attempt = 1; attempt <= MAX_FILE_RETRIES; attempt += 1) {
-      if (signal?.aborted) {
-        throw new DOMException("Aborted", "AbortError");
-      }
-      try {
-        return await fetchFolderEntryResponse({
+  const activityBatchId =
+    files.length >= 2
+      ? await startActivityBatch({
           apiUrl,
           token,
-          entry,
-          shared,
-          signal,
-        });
-      } catch (err) {
-        if (isDownloadCancelledError(err) || err?.name === "AbortError") {
-          throw err;
-        }
-        lastErr = err;
-        if (attempt < MAX_FILE_RETRIES) {
-          await delay(800 * attempt);
-        }
-      }
-    }
-    throw lastErr || new Error(`Failed to download ${entry.relativePath}`);
-  };
+          action: "DOWNLOAD",
+          fileCount: files.length,
+          estimatedBytes: totalBytes || undefined,
+          source: "folder-download",
+          apis: ["download-folder-entries", "download-file-url"],
+        })
+      : null;
 
   const failures = [];
+  let successCount = 0;
+  let successBytes = 0;
   let nextIndex = 0;
+  let aborted = false;
 
-  const worker = async () => {
-    while (true) {
-      if (signal?.aborted) {
-        throw new DOMException("Aborted", "AbortError");
-      }
-      const idx = nextIndex++;
-      if (idx >= files.length) return;
+  try {
+    const worker = async () => {
+      while (true) {
+        if (signal?.aborted) {
+          aborted = true;
+          throw new DOMException("Aborted", "AbortError");
+        }
+        const idx = nextIndex++;
+        if (idx >= files.length) return;
 
-      const entry = files[idx];
-      let fetched = null;
-      let lastWriteErr = null;
-      let completed = false;
-      try {
-        for (let attempt = 1; attempt <= MAX_FILE_RETRIES; attempt += 1) {
-          if (signal?.aborted) {
-            throw new DOMException("Aborted", "AbortError");
-          }
-          fetched = null;
-          try {
-            fetched = await fetchEntry(entry);
-            const eventId = fetched?.activityEventId || entry?.activityEventId;
-            if (eventId && attempt === 1) {
-              queueActivityStatus({
-                apiUrl,
-                token,
-                eventId,
-                status: "STARTED",
-              });
-            }
-            await writeEntryToFolder({
-              response: fetched.response,
-              folderHandle,
-              relativePath: entry.relativePath,
-              onBytes: trackBytes,
-              signal,
-            });
-            if (eventId) {
-              queueActivityStatus({
-                apiUrl,
-                token,
-                eventId,
-                status: "COMPLETED",
-              });
-            }
-            completed = true;
-            break;
-          } catch (err) {
-            if (fetched?.releaseLargeSlot) {
-              try {
-                fetched.releaseLargeSlot();
-              } catch (_) {}
-            }
-            if (isDownloadCancelledError(err) || err?.name === "AbortError") {
-              throw err;
-            }
-            lastWriteErr = err;
-            console.warn(
-              `[download] Folder entry failed (attempt ${attempt}/${MAX_FILE_RETRIES}) ${entry.relativePath}:`,
-              err?.message || err
-            );
-            if (attempt < MAX_FILE_RETRIES) {
-              await delay(2000 * attempt);
-            }
-          }
-        }
-        if (!completed) {
-          throw lastWriteErr || new Error(`Failed to download ${entry.relativePath}`);
-        }
-        if (isLargeFile(entry.size || fetched?.sizeBytes)) {
-          await delay(LARGE_FILE_GAP_MS);
-        }
-      } catch (err) {
-        if (isDownloadCancelledError(err) || err?.name === "AbortError") {
-          const eventId = fetched?.activityEventId || entry?.activityEventId;
-          if (eventId) {
-            queueActivityStatus({
-              apiUrl,
-              token,
-              eventId,
-              status: "CANCELLED",
-              errorMessage: err?.message,
-            });
-          }
-          throw err;
-        }
-        const eventId = fetched?.activityEventId || entry?.activityEventId;
-        if (eventId) {
-          queueActivityStatus({
+        const entry = files[idx];
+        const entryPath = entry.filePath || entry.relativePath;
+        const entrySize = Number(entry.size) || 0;
+        const fileBaseLoaded = progressState.loaded;
+
+        try {
+          const { dirHandle, saveAsName } = await resolveNestedSaveTarget(
+            folderHandle,
+            entry.relativePath || entryPath
+          );
+
+          await downloadFilePresigned({
             apiUrl,
             token,
-            eventId,
-            status: "FAILED",
-            errorMessage: err?.message,
+            filePath: entryPath,
+            shared,
+            signal,
+            dirHandle,
+            saveAsName,
+            estimatedBytes: entrySize || null,
+            batchId: activityBatchId || undefined,
+            onProgress: (percent, loaded) => {
+              if (typeof loaded === "number" && loaded >= 0) {
+                progressState.loaded = fileBaseLoaded + loaded;
+              } else if (entrySize > 0) {
+                progressState.loaded =
+                  fileBaseLoaded +
+                  Math.round((entrySize * (Number(percent) || 0)) / 100);
+              }
+              report();
+            },
           });
-        }
-        console.error("Folder file download failed:", entry.relativePath, err);
-        failures.push({
-          relativePath: entry.relativePath,
-          error: err?.message || String(err),
-        });
-        trackBytes(Number(entry.size) || 0);
-      } finally {
-        if (typeof fetched?.releaseLargeSlot === "function") {
-          fetched.releaseLargeSlot();
+
+          successCount += 1;
+          successBytes += entrySize || 0;
+          progressState.loaded = fileBaseLoaded + (entrySize || 0);
+          report();
+        } catch (err) {
+          if (isDownloadCancelledError(err) || err?.name === "AbortError") {
+            aborted = true;
+            throw err;
+          }
+          console.error("Folder file download failed:", entry.relativePath, err);
+          failures.push({
+            relativePath: entry.relativePath || entryPath,
+            error: err?.message || String(err),
+          });
+          progressState.loaded = fileBaseLoaded + (entrySize || 0);
+          report();
+        } finally {
+          const gapMs = isLargeFile(entrySize) ? LARGE_FILE_GAP_MS : FILE_GAP_MS;
+          if (!signal?.aborted) {
+            await delay(gapMs);
+          }
         }
       }
-    }
-  };
+    };
 
-  const pool = Math.min(ENTRY_CONCURRENCY, files.length);
-  await Promise.all(Array.from({ length: pool }, () => worker()));
+    const pool = Math.min(ENTRY_CONCURRENCY, files.length);
+    await Promise.all(Array.from({ length: pool }, () => worker()));
+  } finally {
+    if (activityBatchId) {
+      const failCount = failures.length;
+      const remaining = files.length - successCount - failCount;
+      finishActivityBatch({
+        apiUrl,
+        token,
+        batchId: activityBatchId,
+        status: resolveBatchStatus({
+          fileCount: files.length,
+          successCount,
+          failCount,
+          cancelCount: aborted ? remaining : 0,
+          cancelled: aborted || signal?.aborted,
+        }),
+        successCount,
+        failCount: failCount + (aborted ? remaining : 0),
+        sizeBytes: successBytes,
+        failedPaths: failures.map((f) => f.relativePath).slice(0, 50),
+        apis: ["download-folder-entries", "download-file-url"],
+      });
+    }
+  }
 
   if (typeof onProgress === "function") {
     onProgress(100, progressState.loaded, totalBytes || null);

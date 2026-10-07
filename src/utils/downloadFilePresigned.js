@@ -8,10 +8,19 @@ import {
   mergeAbortSignals,
 } from "./downloadWithProgress";
 import { queueActivityStatus } from "./activityReport";
+import {
+  startActivityBatch,
+  finishActivityBatch,
+  resolveBatchStatus,
+} from "./activityBatch";
 
-/** Small files: a few at once. Large files: only 1 (fetch + save). */
-const MULTI_DOWNLOAD_CONCURRENCY = 3;
+/** One file at a time (avoids /download-file-url + /status rate limits). */
+const MULTI_DOWNLOAD_CONCURRENCY = 1;
 const LARGE_DOWNLOAD_CONCURRENCY = 1;
+/** Gap after every multi-file download (KB bursts were hitting /status 429). */
+const FILE_GAP_MS = 700;
+/** Extra pause after large files. */
+const LARGE_FILE_GAP_MS = 1500;
 /** Fresh signed URL + stream open attempts (per full-file try). */
 const DIRECT_FETCH_MAX_ATTEMPTS = 3;
 /** Full Direct Stream tries (covers mid-stream net::ERR_* after long transfers). */
@@ -91,14 +100,19 @@ async function requestDownloadFileUrl({
   filePath,
   shared,
   signal,
+  batchId,
 }) {
   const params = new URLSearchParams({
     filePath: String(filePath || ""),
   });
   if (shared) params.set("shared", shared);
+  if (batchId) params.set("batchId", String(batchId));
+
+  const headers = { Authorization: `Bearer ${token}` };
+  if (batchId) headers["x-activity-batch-id"] = String(batchId);
 
   const res = await fetch(`${apiUrl}download-file-url?${params.toString()}`, {
-    headers: { Authorization: `Bearer ${token}` },
+    headers,
     signal,
   });
 
@@ -225,6 +239,7 @@ async function requestDownloadFileUrlWithRetry({
   filePath,
   shared,
   signal,
+  batchId,
 }) {
   let lastErr;
   for (let attempt = 1; attempt <= FILE_DOWNLOAD_MAX_ATTEMPTS; attempt += 1) {
@@ -238,6 +253,7 @@ async function requestDownloadFileUrlWithRetry({
         filePath,
         shared,
         signal,
+        batchId,
       });
     } catch (err) {
       if (isAbortLike(err)) throw err;
@@ -524,6 +540,7 @@ async function fetchFileResponse({
   shared,
   signal,
   estimatedBytes = null,
+  batchId,
 }) {
   let heldLargeSlot = false;
   const ensureLargeSlot = async (sizeBytes) => {
@@ -545,6 +562,7 @@ async function fetchFileResponse({
         filePath,
         shared,
         signal,
+        batchId,
       });
     } catch (err) {
       if (isAbortLike(err)) throw err;
@@ -580,6 +598,7 @@ async function fetchFileResponse({
               filePath,
               shared,
               signal,
+              batchId,
             });
             name = meta.fileName || baseFileName(filePath);
             sizeBytes = Number(meta.size) || Number(estimatedBytes) || sizeBytes;
@@ -739,6 +758,7 @@ export async function downloadFilePresigned({
   estimatedBytes = null,
   dirHandle: existingDirHandle = null,
   saveAsName = null,
+  batchId,
 }) {
   if (signal?.aborted) {
     throw new DOMException("Aborted", "AbortError");
@@ -791,12 +811,13 @@ export async function downloadFilePresigned({
             filePath,
             shared,
             signal,
+            batchId,
           });
           const sizeBytes =
             Number(meta.size) || Number(estimatedBytes) || 0;
           const name =
             saveAsName || meta.fileName || baseFileName(filePath);
-          const eventId = meta.activityEventId || null;
+          const eventId = batchId ? null : meta.activityEventId || null;
           lastEventId = eventId || lastEventId;
 
           if (shouldUseRangeDownload(sizeBytes) && meta.url) {
@@ -824,6 +845,7 @@ export async function downloadFilePresigned({
                     filePath,
                     shared,
                     signal,
+                    batchId,
                   });
                   return fresh.url;
                 },
@@ -873,6 +895,7 @@ export async function downloadFilePresigned({
         shared,
         signal,
         estimatedBytes,
+        batchId,
       });
       // fetchFileResponse owns its own large slot — track for release on failure.
       if (fetched.heldLargeSlot) {
@@ -880,7 +903,7 @@ export async function downloadFilePresigned({
         fetched.heldLargeSlot = false;
       }
 
-      const eventId = fetched.activityEventId || null;
+      const eventId = batchId ? null : fetched.activityEventId || null;
       lastEventId = eventId || lastEventId;
       if (eventId && attempt === 1) {
         queueActivityStatus({
@@ -1010,81 +1033,141 @@ export async function downloadMultipleFilesToDirectory({
     const fromMap = estimatedBytesByPath?.[filePath];
     return Number(fromMap) || 0;
   });
+  const estimatedTotal = estimates.reduce((a, b) => a + (Number(b) || 0), 0);
+
+  const activityBatchId =
+    paths.length >= 2
+      ? await startActivityBatch({
+          apiUrl,
+          token,
+          action: "DOWNLOAD",
+          fileCount: paths.length,
+          estimatedBytes: estimatedTotal || undefined,
+          source: "multi-download",
+          apis: ["download-file-url"],
+        })
+      : null;
+
   // Any large/unknown file → one worker only (no overlapping GB streams).
   const serialize =
     estimates.some((n) => isLargeFile(n)) || !estimatedBytesByPath;
   let nextIndex = 0;
   let cancelledBatch = false;
 
-  const worker = async () => {
-    while (true) {
-      if (signal?.aborted || cancelledBatch) break;
-      const i = nextIndex++;
-      if (i >= paths.length) return;
+  try {
+    const worker = async () => {
+      while (true) {
+        if (signal?.aborted || cancelledBatch) break;
+        const i = nextIndex++;
+        if (i >= paths.length) return;
 
-      const filePath = paths[i];
-      const saveAsName = saveNames[i];
-      const estimatedBytes = estimates[i] || null;
-      const fileSignal = signalsByPath?.[filePath] || null;
+        const filePath = paths[i];
+        const saveAsName = saveNames[i];
+        const estimatedBytes = estimates[i] || null;
+        const fileSignal = signalsByPath?.[filePath] || null;
 
-      // Already cancelled via row ✕ before we reached this file — skip, keep going.
-      if (fileSignal?.aborted && !signal?.aborted) {
-        results[i] = { filePath, success: false, cancelled: true };
-        continue;
-      }
-
-      const combinedSignal = mergeAbortSignals(signal, fileSignal);
-
-      try {
-        await downloadFilePresigned({
-          apiUrl,
-          token,
-          filePath,
-          shared,
-          signal: combinedSignal,
-          dirHandle,
-          saveAsName,
-          estimatedBytes,
-          onProgress: (percent) => onFileProgress?.(filePath, percent),
-        });
-        results[i] = { filePath, success: true, cancelled: false, saveAsName };
-        // Let Chrome release FS / network staging before the next large file.
-        if (isLargeFile(estimatedBytes)) {
-          await delay(1500);
-        }
-      } catch (err) {
-        if (isDownloadCancelledError(err)) {
+        // Already cancelled via row ✕ before we reached this file — skip, keep going.
+        if (fileSignal?.aborted && !signal?.aborted) {
           results[i] = { filePath, success: false, cancelled: true };
-          // Cancel all (batch signal) → stop remaining. Per-file ✕ → continue.
-          if (signal?.aborted) {
-            cancelledBatch = true;
-            return;
-          }
           continue;
         }
+
+        const combinedSignal = mergeAbortSignals(signal, fileSignal);
+
+        try {
+          await downloadFilePresigned({
+            apiUrl,
+            token,
+            filePath,
+            shared,
+            signal: combinedSignal,
+            dirHandle,
+            saveAsName,
+            estimatedBytes,
+            batchId: activityBatchId || undefined,
+            onProgress: (percent) => onFileProgress?.(filePath, percent),
+          });
+          results[i] = {
+            filePath,
+            success: true,
+            cancelled: false,
+            saveAsName,
+            sizeBytes: Number(estimatedBytes) || 0,
+          };
+        } catch (err) {
+          if (isDownloadCancelledError(err)) {
+            results[i] = { filePath, success: false, cancelled: true };
+            // Cancel all (batch signal) → stop remaining. Per-file ✕ → continue.
+            if (signal?.aborted) {
+              cancelledBatch = true;
+              return;
+            }
+          } else {
+            results[i] = {
+              filePath,
+              success: false,
+              cancelled: false,
+              error: err,
+            };
+          }
+        } finally {
+          // Always space files — small KB multi-select was bursting /status past 300/min.
+          if (!signal?.aborted && !cancelledBatch) {
+            const gapMs = isLargeFile(estimatedBytes)
+              ? LARGE_FILE_GAP_MS
+              : FILE_GAP_MS;
+            await delay(gapMs);
+          }
+        }
+      }
+    };
+
+    const pool = Math.min(
+      serialize ? 1 : MULTI_DOWNLOAD_CONCURRENCY,
+      paths.length
+    );
+    await Promise.all(Array.from({ length: pool }, () => worker()));
+  } finally {
+    for (let i = 0; i < paths.length; i += 1) {
+      if (results[i] == null) {
         results[i] = {
-          filePath,
+          filePath: paths[i],
           success: false,
-          cancelled: false,
-          error: err,
+          cancelled: Boolean(signal?.aborted || cancelledBatch),
         };
       }
     }
-  };
 
-  const pool = Math.min(
-    serialize ? 1 : MULTI_DOWNLOAD_CONCURRENCY,
-    paths.length
-  );
-  await Promise.all(Array.from({ length: pool }, () => worker()));
-
-  for (let i = 0; i < paths.length; i += 1) {
-    if (results[i] == null) {
-      results[i] = {
-        filePath: paths[i],
-        success: false,
-        cancelled: Boolean(signal?.aborted || cancelledBatch),
-      };
+    if (activityBatchId) {
+      const successCount = results.filter((r) => r?.success).length;
+      const cancelCount = results.filter((r) => r?.cancelled).length;
+      const failCount = results.filter(
+        (r) => r && !r.success && !r.cancelled
+      ).length;
+      const sizeBytes = results
+        .filter((r) => r?.success)
+        .reduce((a, r) => a + (Number(r.sizeBytes) || 0), 0);
+      const failedPaths = results
+        .filter((r) => r && !r.success && !r.cancelled)
+        .map((r) => r.filePath)
+        .slice(0, 50);
+      finishActivityBatch({
+        apiUrl,
+        token,
+        batchId: activityBatchId,
+        status: resolveBatchStatus({
+          fileCount: paths.length,
+          successCount,
+          failCount,
+          cancelCount,
+          cancelled: Boolean(signal?.aborted || cancelledBatch),
+        }),
+        successCount,
+        failCount: failCount + cancelCount,
+        sizeBytes,
+        failedPaths,
+        apis: ["download-file-url"],
+      });
     }
   }
 
