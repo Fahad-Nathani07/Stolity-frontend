@@ -17,6 +17,7 @@ import { uploadFolderViaMultipart } from "../utils/uploadFolderViaMultipart";
 import UploadBatchLimitModal from "../components/UploadBatchLimitModal";
 import { useUploadBatchLimitGate } from "../hooks/useUploadBatchLimitGate";
 import { useZippingProgressModal } from "../hooks/useZippingProgressModal";
+import { assertFolderNavAllowed } from "../utils/transferFolderLock";
 import {
   UPLOAD_BATCH_CANCEL,
   UPLOAD_BATCH_ZIP_INSTEAD,
@@ -895,6 +896,7 @@ const DefaultFolder = () => {
     const isFolder = file.fileType === "Folder" || file.isFolder === true;
 
     if (isFolder) {
+      if (!assertFolderNavAllowed(file.fileName, showToast)) return;
       console.log("It's a folder.");
       dispatch(
         setFolderPath({
@@ -2825,15 +2827,8 @@ const DefaultFolder = () => {
 
   const moveDraggedFile = async (filename) => {
     if (filename.isFolder === true) {
-      console.log(
-        "Shrey move folder console logg",
-        [filename.fileName],
-        [targetFolder]
-      );
       try {
-        const uploadId = Date.now() + Math.random(); // Ensures a unique uploadId for each file
-        addUpload(uploadId, "Moving " + filename.fileName);
-        const res = await axios.post(
+        await axios.post(
           `${apiUrl}move-folder`,
           {
             sourceFolders: [filename.fileName],
@@ -2844,52 +2839,31 @@ const DefaultFolder = () => {
               Authorization: `Bearer ${token}`,
               "Content-Type": "application/json",
             },
-            onUploadProgress: (progressEvent) => {
-              const progress = Math.round(
-                (progressEvent.loaded * 100) / progressEvent.total
-              );
-              updateUploadProgress(uploadId, progress);
-            },
           }
         );
-        removeUpload(uploadId);
-        setDragPop(false);
-        getFileData(currentPage);
-        console.log("Response is", res.data);
         showToast("success", "Folder Moved Successfully!");
       } catch (error) {
         showToast("error", "Failed to move folder!");
         console.error("Error moving file:", error);
+        throw error;
       }
     } else {
-      const uploadId = Date.now() + Math.random(); // Ensures a unique uploadId for each file
       const movingFile = filename.fileName;
-      addUpload(uploadId, "Moving " + movingFile);
       try {
-        const res = await axios.post(
+        await axios.post(
           `${apiUrl}move-file`,
           {
             sourceFolder: "",
             destinationFolder: targetFolder,
-            keys: [filename.fileName], // Handle each file (segment) separately
+            keys: [filename.fileName],
           },
           {
             headers: {
               Authorization: `Bearer ${token}`,
               "Content-Type": "application/json",
             },
-            onUploadProgress: (progressEvent) => {
-              const progress = Math.round(
-                (progressEvent.loaded * 100) / progressEvent.total
-              );
-              updateUploadProgress(uploadId, progress);
-            },
           }
         );
-        setDragPop(false);
-        removeUpload(uploadId);
-        getFileData(currentPage);
-        console.log(`"${movingFile}" moved successfully:`, res.data);
         showToast("success", `"${movingFile}" Moved Successfully!`);
       } catch (error) {
         console.error(`Error moving file "${movingFile}":`, error);
@@ -2897,6 +2871,7 @@ const DefaultFolder = () => {
           "error",
           `Failed to move file "${movingFile}". Please try again.`
         );
+        throw error;
       }
     }
   };
@@ -2904,11 +2879,8 @@ const DefaultFolder = () => {
   //Move multiple files
   const moveMultipleDrag = async (arr, folname) => {
     try {
-      const uploadId = Date.now() + Math.random();
-      addUpload(uploadId, "Moving Files..");
-      console.log("File to move is", arr);
       for (const key of arr) {
-        const res = await axios.post(
+        await axios.post(
           `${apiUrl}move-file`,
           {
             sourceFolder: "",
@@ -2920,79 +2892,89 @@ const DefaultFolder = () => {
               Authorization: `Bearer ${token}`,
               "Content-Type": "application/json",
             },
-            onUploadProgress: (progressEvent) => {
-              // Simulating progress for folder move
-              const progress = Math.round(
-                (progressEvent.loaded * 100) / progressEvent.total
-              );
-              updateUploadProgress(uploadId, progress);
-            },
           }
         );
-        clearFileSelection();
-        console.log(res);
-        setDragPop(false);
-        removeUpload(uploadId);
-        getFileData(currentPage);
-        showToast("success", "Files Moved Successfully!");
       }
+      clearFileSelection();
+      showToast("success", "Files Moved Successfully!");
     } catch (error) {
       console.error(error);
+      throw error;
     }
   };
 
   //Move multiple folders
   const moveMultipleDrag2 = async (arr, folname) => {
-    console.log("moveMultipleDrag2 : ", arr);
     try {
-      if (arr && arr.length > 0) {
-        // Check if any folder is shared
-        const sharedFolders = arr.filter(
-          (folder) => folder.isShared === true || folder.isShared === "true"
-        );
+      if (!arr || arr.length === 0) return;
 
-        if (sharedFolders.length > 0) {
-          const sharedNames = sharedFolders
-            .map((f) => f.fileName || f.name)
-            .join(", ");
-          showToast("error", `Cannot move shared folder(s): ${sharedNames}`);
-          return;
-        }
+      const sharedFolders = arr.filter(
+        (folder) => folder.isShared === true || folder.isShared === "true"
+      );
 
-        const movingFolders = arr.map((f) => f.fileName || f.name).join(", ");
-        const uploadId = Date.now();
-        addUpload(uploadId, "Moving " + movingFolders);
-
-        const folderMoveRes = await axios.post(
-          `${apiUrl}move-folder`,
-          {
-            sourceFolders: arr.map((f) => f.filePath || f.path),
-            destinationFolder: folname,
-          },
-          {
-            headers: {
-              Authorization: `Bearer ${token}`,
-              "Content-Type": "application/json",
-            },
-            onUploadProgress: (progressEvent) => {
-              const progress = Math.round(
-                (progressEvent.loaded * 100) / progressEvent.total
-              );
-              updateUploadProgress(uploadId, progress);
-            },
-          }
-        );
-
-        clearFileSelection();
-        setDragPop(false);
-        removeUpload(uploadId);
-        getFileData(currentPage);
-        console.log("Folders moved successfully:", folderMoveRes.data);
-        showToast("success", "Folders Moved Successfully!");
+      if (sharedFolders.length > 0) {
+        const sharedNames = sharedFolders
+          .map((f) => f.fileName || f.name)
+          .join(", ");
+        showToast("error", `Cannot move shared folder(s): ${sharedNames}`);
+        return;
       }
+
+      await axios.post(
+        `${apiUrl}move-folder`,
+        {
+          sourceFolders: arr.map((f) => f.filePath || f.path),
+          destinationFolder: folname,
+        },
+        {
+          headers: {
+            Authorization: `Bearer ${token}`,
+            "Content-Type": "application/json",
+          },
+        }
+      );
+
+      clearFileSelection();
+      showToast("success", "Folders Moved Successfully!");
     } catch (error) {
       console.error(error);
       showToast("error", "Failed to move folders. Please try again.");
+      throw error;
+    }
+  };
+
+  const handleDragMoveConfirm = async () => {
+    setDragPop(false);
+    const dragKeys = getFileSelectionKeys();
+    const dragKeys2 = getFolderSelectionKeys();
+    const dragLabel =
+      dragFile?.fileName ||
+      (dragKeys.length + dragKeys2.length > 1
+        ? `${dragKeys.length + dragKeys2.length} items`
+        : dragKeys[0] || dragKeys2[0] || "items");
+    const sourcePaths = [
+      ...(dragFile?.isFolder ? [dragFile.fileName] : dragFile?.fileName ? [""] : []),
+      ...dragKeys2.map((f) =>
+        typeof f === "string" ? f : f?.filePath || f?.fileName || f?.path || ""
+      ),
+      ...(dragKeys.length > 0 ? [""] : []),
+    ];
+    beginZipping(dragLabel, {
+      mode: "move",
+      sourcePaths,
+      destinationPath: targetFolder,
+    });
+    try {
+      const tasks = [];
+      if (dragFile?.fileName) tasks.push(moveDraggedFile(dragFile));
+      if (dragKeys.length > 0) tasks.push(moveMultipleDrag(dragKeys, targetFolder));
+      if (dragKeys2.length > 0) tasks.push(moveMultipleDrag2(dragKeys2, targetFolder));
+      await Promise.all(tasks);
+      getFileData(currentPage);
+    } catch (error) {
+      console.error("Drag move failed:", error);
+    } finally {
+      endZipping();
     }
   };
 
@@ -3197,17 +3179,7 @@ const DefaultFolder = () => {
               </button>
               <button
                 className="drag_btn ok"
-                onClick={() => {
-                  moveDraggedFile(dragFile);
-                  const dragKeys = getFileSelectionKeys();
-                  const dragKeys2 = getFolderSelectionKeys();
-                  if (dragKeys.length > 0) {
-                    moveMultipleDrag(dragKeys, targetFolder);
-                  }
-                  if (dragKeys2.length > 0) {
-                    moveMultipleDrag2(dragKeys2, targetFolder);
-                  }
-                }}
+                onClick={handleDragMoveConfirm}
               >
                 Yes
               </button>

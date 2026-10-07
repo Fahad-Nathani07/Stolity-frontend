@@ -21,6 +21,7 @@ import PageLoaders from './pages/PageLoaders';
 import ToastExamples from './pages/ToastExamples';
 import { UploadProvider } from './pages/UploadContext';
 import UploadProgressModal from './pages/UploadProgressModal';
+import ServerActionProgressHost from './components/ServerActionProgressHost';
 import UserProfile from './pages/UserProfile'
 import { GoogleOAuthProvider } from '@react-oauth/google';
 import PreLogin from './pages/PreLogin';
@@ -195,6 +196,7 @@ const {
       
           <UploadProgressModal />
           <DownloadProgressModal />
+          <ServerActionProgressHost />
             <Routes>
               {/* Public routes */}
               <Route path="/Login" element={<Login spanExpanded={spanExpanded} setSpanExpanded={setSpanExpanded} />} />

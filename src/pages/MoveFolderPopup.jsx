@@ -1,5 +1,4 @@
-import React, { useContext, useState, useEffect } from "react";
-import { UploadContext } from "./UploadContext";
+import React, { useState, useEffect } from "react";
 import { useSelector, useDispatch } from "react-redux";
 import {
   incrementFCounter,
@@ -10,7 +9,6 @@ import {
 } from "../store/fileSlicer";
 import axios from "axios";
 
-import LoaderDualRing from "../components/LoaderDualRing";
 import FolderPickerListPanel from "../components/FolderPickerListPanel";
 import FolderDestinationModal, {
   formatModalItemSummary,
@@ -25,16 +23,12 @@ import {
   parseFolderListingItems,
 } from "../utils/getFolderParams";
 import { fetchFolderListing } from "../utils/fetchFolderListing";
-import {
-  startMoveTransfer,
-  finishMoveTransfer,
-  failMoveTransfer,
-} from "../utils/moveTransferProgress";
-import { afterLoaderComplete } from "../utils/actionLoaderDelay";
 import { showToast as globalShowToast } from "../components/ToastProvider";
+import { useZippingProgressModal } from "../hooks/useZippingProgressModal";
+import { refreshRootListingIfDestinationIsRoot } from "../utils/rootListingRefresh";
 
 function MoveFolderPopup({ moveKey, onClose, onRenameSuccess, showToast: showToastProp }) {
-  const { addUpload, updateUploadProgress, removeUpload } = useContext(UploadContext);
+  const { beginZipping, endZipping, zippingModal } = useZippingProgressModal();
   const apiUrl = process.env.REACT_APP_API_ENDPOINT;
   const token = sessionStorage.getItem("number");
   const filenameRedux = useSelector((state) => state.getdata.fileName);
@@ -155,16 +149,19 @@ const handleItemClick = async (path) => {
     return;
   }
 
+  const progressLabel =
+    sourceFolders.length > 1
+      ? `${sourceFolders.length} folders`
+      : sourceFolders[0]?.split("/").filter(Boolean).pop() || "folder";
+
   setLoading2(true);
-  let uploadId = null;
+  beginZipping(progressLabel, {
+    mode: "move",
+    sourcePaths: sourceFolders,
+    destinationPath: selectedPath,
+  });
   try {
     const sharedParams = isSharedValue ? { shared: filenameRedux } : {};
-    uploadId = startMoveTransfer(
-      addUpload,
-      updateUploadProgress,
-      "Moving folder",
-      { isFolder: true }
-    );
 
     await axios.post(
       `${apiUrl}move-folder`,
@@ -181,25 +178,22 @@ const handleItemClick = async (path) => {
       }
     );
 
-    finishMoveTransfer(updateUploadProgress, removeUpload, uploadId);
-    uploadId = null;
-
     showToast("success", "Folder moved successfully!");
     await onRenameSuccess?.();
-    afterLoaderComplete(() => {
-      setLoading2(false);
-      onClose();
-    });
+    // User may have breadcrumbed to root while move ran — NestedPage refresh is gone
+    refreshRootListingIfDestinationIsRoot(selectedPath);
+    endZipping();
+    setLoading2(false);
+    onClose();
   } catch (error) {
-    failMoveTransfer(removeUpload, uploadId);
-    uploadId = null;
+    endZipping();
     console.error("wwwww: Error moving folder:", error);
-    // Keep modal open so the user can see the toast and pick another destination
+    // Keep destination picker open so the user can pick another destination
     showToast(
       "error",
       getApiErrorMessage(error, "Failed to move folder. Please try again.")
     );
-    afterLoaderComplete(() => setLoading2(false));
+    setLoading2(false);
   }
 };
 
@@ -283,34 +277,38 @@ const handleCreateFolder = async () => {
 
   return (
     <>
-      <FolderDestinationModal
-        variant="move-folder"
-        title="Move folder"
-        itemSummary={formatModalItemSummary(moveKey)}
-        selectedPath={selectedPath}
-        onClose={handleClose}
-        onConfirm={handleMove}
-        confirmLabel="Move here"
-        confirmLoading={loading2}
-        locationPath={locationPath}
-        counter={counter}
-        onRootClick={handleRootClick}
-        onBack={handleBack}
-        newFolderName={newFolderName}
-        onNewFolderNameChange={setNewFolderName}
-        onCreateFolder={handleCreateFolder}
-        creatingFolder={creatingFolder}
-      >
-        <FolderPickerListPanel
-          loading={loadingFolders}
-          folders={folders1}
+      {!loading2 && (
+        <FolderDestinationModal
+          variant="move-folder"
+          title="Move folder"
+          itemSummary={formatModalItemSummary(moveKey)}
+          selectedPath={selectedPath}
+          onClose={handleClose}
+          onConfirm={handleMove}
+          confirmLabel="Move here"
+          confirmLoading={false}
+          locationPath={locationPath}
           counter={counter}
-          getTextAfterSlashes={getTextAfterSlashes}
-          onOpenFolder={handleItemClick}
-        />
-      </FolderDestinationModal>
-
-      {loading2 && <LoaderDualRing />}
+          onRootClick={handleRootClick}
+          onBack={handleBack}
+          newFolderName={newFolderName}
+          onNewFolderNameChange={setNewFolderName}
+          onCreateFolder={handleCreateFolder}
+          creatingFolder={creatingFolder}
+        >
+          <FolderPickerListPanel
+            loading={loadingFolders}
+            folders={folders1}
+            counter={counter}
+            getTextAfterSlashes={getTextAfterSlashes}
+            onOpenFolder={handleItemClick}
+            disabledFolderPaths={
+              Array.isArray(moveKey) ? moveKey : moveKey ? [moveKey] : []
+            }
+          />
+        </FolderDestinationModal>
+      )}
+      {zippingModal}
     </>
   );
 }

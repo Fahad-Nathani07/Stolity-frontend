@@ -73,16 +73,13 @@ import {
   openPreviewFile,
   resolvePreviewAfterDelete,
 } from "../utils/previewModalNavigation";
-import { afterMinLoaderDisplay, afterLoaderComplete } from "../utils/actionLoaderDelay";
-import {
-  startMoveTransfer,
-  finishMoveTransfer,
-  failMoveTransfer,
-} from "../utils/moveTransferProgress";
+import { afterMinLoaderDisplay } from "../utils/actionLoaderDelay";
 import {
   installHashAnchorGuard,
   stripLocationHash,
 } from "../utils/preventHashAnchorClicks";
+import { assertFolderNavAllowed } from "../utils/transferFolderLock";
+import { refreshRootListingIfDestinationIsRoot } from "../utils/rootListingRefresh";
 import "../css/FilesToolbar.css";
 import "../css/NestedBreadcrumb.css";
 import CardFilePreview from "../components/CardFilePreview";
@@ -1867,6 +1864,10 @@ const NestedPage = () => {
         ? `${filenameRedux}/${file.fileName}`
         : file.fileName;
 
+      if (!assertFolderNavAllowed(updatedFileName || file.fileName, showToast)) {
+        return;
+      }
+
       dispatch(
         setFolderPath({
           folderPath: updatedFileName + "/",
@@ -2708,13 +2709,15 @@ const NestedPage = () => {
       if (breadcrumbNavigatingRef.current) return;
       if (targetIndex < 0 || targetIndex >= parts.length - 1) return;
 
+      const targetPath = `${parts.slice(0, targetIndex + 1).join("/")}/`;
+      if (!assertFolderNavAllowed(targetPath, showToast)) return;
+
       breadcrumbNavigatingRef.current = true;
       setBreadcrumbBusy(true);
       setPlaceholderLoading(true);
       clearFileSelection();
       clearSearchBar();
 
-      const targetPath = `${parts.slice(0, targetIndex + 1).join("/")}/`;
       dispatch(
         setFolderPath({
           folderPath: targetPath,
@@ -2740,6 +2743,7 @@ const NestedPage = () => {
       navigate,
       clearSearchBar,
       finishBreadcrumbNav,
+      showToast,
     ]
   );
 
@@ -2749,10 +2753,14 @@ const NestedPage = () => {
       if (breadcrumbNavigatingRef.current) return;
 
       if (parts.length <= 1) {
+        if (!assertFolderNavAllowed("", showToast)) return;
         clearNestedNav();
         navigate("/Files");
         return;
       }
+
+      const parentPath = `${parts.slice(0, -1).join("/")}/`;
+      if (!assertFolderNavAllowed(parentPath, showToast)) return;
 
       breadcrumbNavigatingRef.current = true;
       setBreadcrumbBusy(true);
@@ -2760,7 +2768,6 @@ const NestedPage = () => {
       clearFileSelection();
       clearSearchBar();
 
-      const parentPath = `${parts.slice(0, -1).join("/")}/`;
       dispatch(
         setFolderPath({
           folderPath: parentPath,
@@ -2781,6 +2788,7 @@ const NestedPage = () => {
       navigate,
       clearSearchBar,
       finishBreadcrumbNav,
+      showToast,
     ]
   );
 
@@ -5342,8 +5350,6 @@ const NestedPage = () => {
   };
 
   const moveDraggedFile = async (filename) => {
-    let uploadId = null;
-
     if (filename.isFolder === true) {
       try {
         const sharedPathOptions = {
@@ -5354,13 +5360,6 @@ const NestedPage = () => {
         const sourceFolder = normalizeMovePath(
           filename.fileName,
           sharedPathOptions
-        );
-
-        uploadId = startMoveTransfer(
-          addUpload,
-          updateUploadProgress,
-          "Moving " + filename.fileName,
-          { isFolder: true }
         );
 
         await axios.post(
@@ -5378,12 +5377,8 @@ const NestedPage = () => {
           }
         );
 
-        finishMoveTransfer(updateUploadProgress, removeUpload, uploadId);
-        uploadId = null;
         showToast("success", "Folder Moved Successfully!");
       } catch (error) {
-        failMoveTransfer(removeUpload, uploadId);
-        uploadId = null;
         showToast(
           "error",
           getApiErrorMessage(error, "Failed to move folder!")
@@ -5413,12 +5408,6 @@ const NestedPage = () => {
           ? movingFile.substring(movingFile.lastIndexOf("/") + 1)
           : movingFile;
 
-        uploadId = startMoveTransfer(
-          addUpload,
-          updateUploadProgress,
-          "Moving " + movingFile
-        );
-
         await axios.post(
           `${apiUrl}move-file`,
           {
@@ -5435,12 +5424,8 @@ const NestedPage = () => {
           }
         );
 
-        finishMoveTransfer(updateUploadProgress, removeUpload, uploadId);
-        uploadId = null;
         showToast("success", `"${movingFile}" Moved Successfully!`);
       } catch (error) {
-        failMoveTransfer(removeUpload, uploadId);
-        uploadId = null;
         showToast(
           "error",
           getApiErrorMessage(
@@ -5455,17 +5440,10 @@ const NestedPage = () => {
 
   //Move multiple files
   const moveMultipleDrag = async (arr, folname) => {
-    let uploadId = null;
     const sharedParams = isSharedValue ? { shared: filenameRedux } : {};
     const sourceFolder = path.replace(/\/$/, "");
 
     try {
-      uploadId = startMoveTransfer(
-        addUpload,
-        updateUploadProgress,
-        "Moving files…"
-      );
-
       for (const key of arr) {
         await axios.post(
           `${apiUrl}move-file`,
@@ -5484,12 +5462,8 @@ const NestedPage = () => {
         );
       }
 
-      finishMoveTransfer(updateUploadProgress, removeUpload, uploadId);
-      uploadId = null;
       showToast("success", "Files Moved Successfully!");
     } catch (error) {
-      failMoveTransfer(removeUpload, uploadId);
-      uploadId = null;
       showToast(
         "error",
         getApiErrorMessage(error, "Failed to move files. Please try again.")
@@ -5500,7 +5474,6 @@ const NestedPage = () => {
 
   //Move multiple folders
   const moveMultipleDrag2 = async (arr, folname) => {
-    let uploadId = null;
     const sharedParams = isSharedValue ? { shared: filenameRedux } : {};
 
     try {
@@ -5537,14 +5510,6 @@ const NestedPage = () => {
 
       if (!sourceFolders.length) return;
 
-      const movingFolders = sourceFolders.join(", ");
-      uploadId = startMoveTransfer(
-        addUpload,
-        updateUploadProgress,
-        "Moving " + movingFolders,
-        { isFolder: true }
-      );
-
       await axios.post(
         `${apiUrl}move-folder`,
         {
@@ -5560,12 +5525,8 @@ const NestedPage = () => {
         }
       );
 
-      finishMoveTransfer(updateUploadProgress, removeUpload, uploadId);
-      uploadId = null;
       showToast("success", "Folders Moved Successfully!");
     } catch (error) {
-      failMoveTransfer(removeUpload, uploadId);
-      uploadId = null;
       console.error(error);
       showToast(
         "error",
@@ -5577,11 +5538,29 @@ const NestedPage = () => {
 
   const handleDragMoveConfirm = async () => {
     setDragPop(false);
-    setLoader2(true);
+    const keys = getFileSelectionKeys();
+    const keys2 = getFolderSelectionKeys();
+    const dragLabel =
+      dragFile?.fileName ||
+      (keys.length + keys2.length > 1
+        ? `${keys.length + keys2.length} items`
+        : keys[0] || keys2[0] || "items");
+    const sourcePaths = [
+      ...(dragFile?.isFolder
+        ? [dragFile.fileName]
+        : dragFile?.fileName
+          ? [path]
+          : []),
+      ...keys2,
+      ...(keys.length > 0 ? [path] : []),
+    ];
+    beginZipping(dragLabel, {
+      mode: "move",
+      sourcePaths,
+      destinationPath: targetFolder,
+    });
 
     try {
-      const keys = getFileSelectionKeys();
-      const keys2 = getFolderSelectionKeys();
       const tasks = [];
       if (dragFile?.fileName) {
         tasks.push(moveDraggedFile(dragFile));
@@ -5594,11 +5573,12 @@ const NestedPage = () => {
       }
       await Promise.all(tasks);
       clearFileSelection();
-      afterLoaderComplete(() => setLoader2(false));
       await refreshFolderListWithSkeleton();
+      refreshRootListingIfDestinationIsRoot(targetFolder);
     } catch (error) {
       console.error("Drag move failed:", error);
-      afterLoaderComplete(() => setLoader2(false));
+    } finally {
+      endZipping();
     }
   };
 

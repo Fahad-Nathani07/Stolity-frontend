@@ -69,13 +69,10 @@ import {
   openPreviewFile,
   resolvePreviewAfterDelete,
 } from "../utils/previewModalNavigation";
-import { afterMinLoaderDisplay, afterLoaderComplete } from "../utils/actionLoaderDelay";
-import {
-  startMoveTransfer,
-  finishMoveTransfer,
-  failMoveTransfer,
-} from "../utils/moveTransferProgress";
+import { afterMinLoaderDisplay } from "../utils/actionLoaderDelay";
 import { installHashAnchorGuard } from "../utils/preventHashAnchorClicks";
+import { assertFolderNavAllowed } from "../utils/transferFolderLock";
+import { subscribeRootListingRefresh } from "../utils/rootListingRefresh";
 import CardFilePreview from "../components/CardFilePreview";
 import UploadFolderPanel from "../components/UploadFolderPanel";
 import FilesPaginationFooter from "../components/FilesPaginationFooter";
@@ -2121,6 +2118,16 @@ const refreshFileListWithSkeleton = async () => {
   }
 };
 
+  const refreshFileListRef = useRef(refreshFileListWithSkeleton);
+  refreshFileListRef.current = refreshFileListWithSkeleton;
+
+  // Copy/move to root may finish after user left NestedPage — refresh My Files listing
+  useEffect(() => {
+    return subscribeRootListingRefresh(() => {
+      refreshFileListRef.current?.();
+    });
+  }, []);
+
   const {
     query,
     searchLoading,
@@ -2259,6 +2266,7 @@ const chkFileorFolder = (file, size) => {
   const isFolder = file.fileType === "Folder" || file.isFolder === true;
 
   if (isFolder) {
+    if (!assertFolderNavAllowed(file.fileName, showToast)) return;
     console.log("It's a folder:", file.fileName);
     
     // ✅ Dispatch AND immediately call with known value
@@ -4735,16 +4743,9 @@ useEffect(()=>{
 
   const moveDraggedFile = async (filename) => {
     const sharedParams = isSharedValue ? { shared: filenameRedux } : {};
-    let uploadId = null;
 
     if (filename.isFolder === true) {
       try {
-        uploadId = startMoveTransfer(
-          addUpload,
-          updateUploadProgress,
-          "Moving " + filename.fileName,
-          { isFolder: true }
-        );
         await axios.post(
           `${apiUrl}move-folder`,
           {
@@ -4759,12 +4760,8 @@ useEffect(()=>{
             params: sharedParams,
           }
         );
-        finishMoveTransfer(updateUploadProgress, removeUpload, uploadId);
-        uploadId = null;
         showToast("success", "Folder Moved Successfully!");
       } catch (error) {
-        failMoveTransfer(removeUpload, uploadId);
-        uploadId = null;
         showToast(
           "error",
           getApiErrorMessage(error, "Failed to move folder!")
@@ -4775,11 +4772,6 @@ useEffect(()=>{
     } else {
       const movingFile = filename.fileName;
       try {
-        uploadId = startMoveTransfer(
-          addUpload,
-          updateUploadProgress,
-          "Moving " + movingFile
-        );
         await axios.post(
           `${apiUrl}move-file`,
           {
@@ -4795,12 +4787,8 @@ useEffect(()=>{
             params: sharedParams,
           }
         );
-        finishMoveTransfer(updateUploadProgress, removeUpload, uploadId);
-        uploadId = null;
         showToast("success", `"${movingFile}" Moved Successfully!`);
       } catch (error) {
-        failMoveTransfer(removeUpload, uploadId);
-        uploadId = null;
         showToast(
           "error",
           getApiErrorMessage(
@@ -4815,14 +4803,8 @@ useEffect(()=>{
 
   //Move multiple files
   const moveMultipleDrag = async (arr, folname) => {
-    let uploadId = null;
     const sharedParams = isSharedValue ? { shared: filenameRedux } : {};
     try {
-      uploadId = startMoveTransfer(
-        addUpload,
-        updateUploadProgress,
-        "Moving files…"
-      );
       for (const key of arr) {
         await axios.post(
           `${apiUrl}move-file`,
@@ -4840,12 +4822,8 @@ useEffect(()=>{
           }
         );
       }
-      finishMoveTransfer(updateUploadProgress, removeUpload, uploadId);
-      uploadId = null;
       showToast("success", "Files Moved Successfully!");
     } catch (error) {
-      failMoveTransfer(removeUpload, uploadId);
-      uploadId = null;
       console.error(error);
       showToast(
         "error",
@@ -4857,7 +4835,6 @@ useEffect(()=>{
 
   //Move multiple folders
   const moveMultipleDrag2 = async (arr, folname) => {
-    let uploadId = null;
     const sharedParams = isSharedValue ? { shared: filenameRedux } : {};
 
     try {
@@ -4888,14 +4865,6 @@ useEffect(()=>{
 
       if (!sourceFolders.length) return;
 
-      const movingFolders = sourceFolders.join(", ");
-      uploadId = startMoveTransfer(
-        addUpload,
-        updateUploadProgress,
-        "Moving " + movingFolders,
-        { isFolder: true }
-      );
-
       await axios.post(
         `${apiUrl}move-folder`,
         {
@@ -4911,12 +4880,8 @@ useEffect(()=>{
         }
       );
 
-      finishMoveTransfer(updateUploadProgress, removeUpload, uploadId);
-      uploadId = null;
       showToast("success", "Folders Moved Successfully!");
     } catch (error) {
-      failMoveTransfer(removeUpload, uploadId);
-      uploadId = null;
       console.error(error);
       showToast(
         "error",
@@ -4928,11 +4893,25 @@ useEffect(()=>{
 
   const handleDragMoveConfirm = async () => {
     setDragPop(false);
-    setLoader2(true);
+    const keys = getFileSelectionKeys();
+    const keys2 = getFolderSelectionKeys();
+    const dragLabel =
+      dragFile?.fileName ||
+      (keys.length + keys2.length > 1
+        ? `${keys.length + keys2.length} items`
+        : keys[0] || keys2[0] || "items");
+    const sourcePaths = [
+      ...(dragFile?.isFolder ? [dragFile.fileName] : dragFile?.fileName ? [""] : []),
+      ...keys2,
+      ...(keys.length > 0 ? [""] : []),
+    ];
+    beginZipping(dragLabel, {
+      mode: "move",
+      sourcePaths,
+      destinationPath: targetFolder,
+    });
 
     try {
-      const keys = getFileSelectionKeys();
-      const keys2 = getFolderSelectionKeys();
       const tasks = [];
       if (dragFile?.fileName) {
         tasks.push(moveDraggedFile(dragFile));
@@ -4946,11 +4925,11 @@ useEffect(()=>{
       await Promise.all(tasks);
       clearFileSelection();
       setCurrentPage(1);
-      afterLoaderComplete(() => setLoader2(false));
       await refreshFileListWithSkeleton();
     } catch (error) {
       console.error("Drag move failed:", error);
-      afterLoaderComplete(() => setLoader2(false));
+    } finally {
+      endZipping();
     }
   };
 

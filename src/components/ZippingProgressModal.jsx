@@ -3,10 +3,45 @@ import DraggableFloatShell from "./DraggableFloatShell";
 import "../css/UploadProgressModal.css";
 import "./ZippingProgressModal.css";
 
+const MODE_COPY = {
+  title: "Copying",
+  subtitle: "Copying files, please wait…",
+  eta: "Copying on server",
+  fallbackName: "files",
+};
+
+const MODE_MOVE = {
+  title: "Moving",
+  subtitle: "Moving items, please wait…",
+  eta: "Moving on server",
+  fallbackName: "items",
+};
+
+const MODE_UNZIP = {
+  title: "Unzipping",
+  subtitle: "Unzipping files, please wait…",
+  eta: "Extracting ZIP on server",
+  fallbackName: "archive",
+};
+
+const MODE_ZIP = {
+  title: "Zipping",
+  subtitle: "Zipping files, please wait…",
+  eta: "Preparing ZIP on server",
+  fallbackName: "folder",
+};
+
+function resolveModeConfig(mode) {
+  if (mode === "unzip") return MODE_UNZIP;
+  if (mode === "copy") return MODE_COPY;
+  if (mode === "move") return MODE_MOVE;
+  return MODE_ZIP;
+}
+
 /**
- * Floating panel during server-side zip / unzip.
+ * Floating panel during server-side zip / unzip / copy / move.
  * Indeterminate bar: slides left → right, exits right, reappears left.
- * @param {'zip'|'unzip'} [mode]
+ * @param {'zip'|'unzip'|'copy'|'move'} [mode]
  */
 export default function ZippingProgressModal({
   isOpen,
@@ -15,7 +50,7 @@ export default function ZippingProgressModal({
   onCancel,
 }) {
   const [minimized, setMinimized] = useState(false);
-  const isUnzip = mode === "unzip";
+  const config = resolveModeConfig(mode);
 
   useEffect(() => {
     if (!isOpen) {
@@ -30,15 +65,9 @@ export default function ZippingProgressModal({
       .replace(/\\/g, "/")
       .split("/")
       .filter(Boolean)
-      .pop() || (isUnzip ? "archive" : "folder");
+      .pop() || config.fallbackName;
 
-  const title = isUnzip ? "Unzipping" : "Zipping";
-  const subtitle = isUnzip
-    ? "Unzipping files, please wait…"
-    : "Zipping files, please wait…";
-  const eta = isUnzip
-    ? "Extracting ZIP on server"
-    : "Preparing ZIP on server";
+  const { title, subtitle, eta } = config;
 
   return (
     <DraggableFloatShell

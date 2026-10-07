@@ -69,6 +69,7 @@ import IconList from "../images/list.svg";
 import IconHomeW from "../images/GridWhite.svg";
 import IconListW from "../images/listWhite.svg";
 import DeletePopup from "../images/deletePopup.svg";
+import warningIcon from "../images/warningIcon.svg";
 import SortHome from "../images/SortHome.svg";
 import { ChevronDown, History as RotateCcwClock, SlidersHorizontal } from "lucide-react";
 import SortIcon from "../images/sort-style-1.svg";
@@ -3904,8 +3905,38 @@ const isMultiSizeExceeded = selectedTotalBytes > remainingBytes;
                 }}
               />
 
-             
-              
+              <div
+                style={{
+                  position: "fixed",
+                  left: "50%",
+                  transform: "translateX(-50%)",
+                  bottom: "calc(var(--stolity-footer-bar-height, 72px) + 16px)",
+                  zIndex: 90,
+                  width: "min(900px, calc(100% - 48px))",
+                  borderRadius: "16px",
+                  padding: "16px 20px",
+                  backgroundColor: "#ffecec",
+                  border: "1px solid #ffb3b3",
+                  display: "flex",
+                  alignItems: "flex-start",
+                  gap: "12px",
+                  color: "#b91c1c",
+                  fontSize: "14px",
+                  lineHeight: "1.5",
+                  boxShadow: "0 12px 28px -12px rgba(185, 28, 28, 0.4)",
+                }}
+              >
+                <span style={{ fontSize: "20px", lineHeight: "1" }}>
+                  <img src={warningIcon} alt="" style={{ height: "30px" }} />
+                </span>
+                <p style={{ margin: 0 }}>
+                  Items in the Recycle Bin are kept for{" "}
+                  <strong>7 days</strong> from the date they were deleted.
+                  After that they are permanently removed and cannot be
+                  recovered. Restore anything you still need before it expires.
+                </p>
+              </div>
+
                 <div id="dataView">
 
                   {displayView === "list" ? (
