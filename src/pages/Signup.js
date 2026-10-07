@@ -15,8 +15,6 @@ import IconLGoogle from "../images/iconGLogin.svg";
 import { Link } from "react-router-dom";
 import "../css/LoginGraphicTip.css";
 import LogoMini from "../images/logo-mini.svg";
-import NewLogo from "../images/NewLogo.svg";
-import { motion } from "framer-motion";
 import PhoneInput from "react-phone-input-2";
 import "react-phone-input-2/lib/style.css";
 import { ReactComponent as PasswordShow } from "../images/icon-eye.svg";
@@ -24,15 +22,20 @@ import { ReactComponent as PasswordHide } from "../images/icon-eye-hide.svg";
 import protectionIcon from "../images/protectionIcon.svg";
 import axios from "axios";
 import { FaArrowLeft } from "react-icons/fa";
+import { useDispatch } from "react-redux";
+import { setGoogleAuth } from "../store/fileSlicer";
+import { loginUser } from "../store/subscriptionSlice";
+import { setUserProfileFromUserData, normalizeAvatarUrl } from "../store/userProfileSlice";
 import { showToast } from "../components/ToastProvider";
 import {
   getStoredReferralCode,
   attributeStoredReferral,
 } from "../utils/referralCapture";
 
-const Signup = () => {
+const Signup = ({ setSpanExpanded, spanExpanded }) => {
   const apiUrl = process.env.REACT_APP_API_ENDPOINT;
   const token = sessionStorage.getItem("number");
+  const dispatch = useDispatch();
 
   // Multi-step state
   const [step, setStep] = useState(1); // 1: Email, 2: OTP, 3: Complete Signup
@@ -48,9 +51,7 @@ const Signup = () => {
   const [isGoogleLoggingIn, setIsGoogleLoggingIn] = useState(false);
 
   const navigate = useNavigate();
-  // LOGIN ANIMATION
   const [buttonClicked, setButtonClicked] = useState(false);
-  const [spanExpanded, setSpanExpanded] = useState(false);
   const [resendTimer, setResendTimer] = useState(0); // In seconds, start at 0
 
   useEffect(() => {
@@ -101,33 +102,28 @@ const Signup = () => {
     return () => clearInterval(timerInterval);
   }, [resendTimer]);
 
-  // Utility masking function
+  // Keep first char of local part; preserve full domain (do not hardcode .com)
   function maskEmail(email) {
-    if (!email) return "";
+    if (!email || !email.includes("@")) return email || "";
     const [user, domain] = email.split("@");
-    // Keep first character of user, then 'xxx', then first part of domain (before .)
-    const maskedUser = user ? user[0] + "xxx" : "";
-    const domainPart = domain ? domain.split(".")[0] : "";
-    return maskedUser + domainPart + ".com";
+    const maskedUser = user ? `${user[0]}xxx` : "";
+    return `${maskedUser}@${domain}`;
   }
 
   useEffect(() => {
     if (buttonClicked) {
-      const buttonTimeout = setTimeout(() => {
-        setButtonClicked(false);
-        // Keep /Login casing (route is /Login); ref already attributed server-side via OTP
-        navigate("/Login");
-      }, 1500);
+      const buttonTimeout = setTimeout(() => setButtonClicked(false), 2750);
       return () => clearTimeout(buttonTimeout);
     }
-  }, [buttonClicked, navigate]);
+  }, [buttonClicked]);
 
+  // Google signup uses App-level loader (same as Login); Files clears it after mount
   useEffect(() => {
     if (spanExpanded) {
-      const spanTimeout = setTimeout(() => setSpanExpanded(false), 1500);
+      const spanTimeout = setTimeout(() => setSpanExpanded?.(false), 1700);
       return () => clearTimeout(spanTimeout);
     }
-  }, [spanExpanded]);
+  }, [spanExpanded, setSpanExpanded]);
 
   const togglePasswordVisibility = () => {
     setShowPassword((prev) => !prev);
@@ -248,7 +244,7 @@ const Signup = () => {
     }
   };
 
-  // STEP 3: Complete Signup with verified email
+  // STEP 3: Register → auto login → Files (same session path as Login)
   const handleCompleteSignup = async (e) => {
     e.preventDefault();
 
@@ -262,15 +258,10 @@ const Signup = () => {
       return;
     }
 
-    // Do NOT navigate until register succeeds — early /login redirect was dropping
-    // in-flight attribution and made ?ref= disappear from the address bar.
-    setSpanExpanded(true);
     setIsLoading(true);
 
     try {
-      // Keep stolity_ref in localStorage through register → login.
-      // Signup attribution runs after successful login.
-      const res = await axios.post(
+      await axios.post(
         `${apiUrl}verified-register-user`,
         {
           name: name.trim(),
@@ -285,13 +276,69 @@ const Signup = () => {
           },
         }
       );
-      console.log(res.data);
-      showToast("success", "Account has been created successfully!");
-      setButtonClicked(true); // start success animation → /Login after API done
+
+      // Register has no token — log in with the credentials just set
+      const loginRes = await axios.post(
+        `${apiUrl}login-user`,
+        { email, password },
+        { headers: { "Content-Type": "application/json" } }
+      );
+
+      const responseData = loginRes.data;
+      const accessToken = responseData.accessToken;
+      const userId = responseData.loginId;
+      const userData = responseData.userData;
+
+      if (!accessToken || !userData) {
+        throw new Error(responseData?.message || "Account created but sign-in failed. Please log in.");
+      }
+
+      showToast("success", "Account created successfully!");
+      setButtonClicked(true);
+      setSpanExpanded?.(true);
+
+      const rawAvatar = normalizeAvatarUrl(userData?.userAvatar);
+      sessionStorage.clear();
+      sessionStorage.setItem("userData", JSON.stringify(responseData));
+      sessionStorage.setItem("number", accessToken.toString());
+      sessionStorage.setItem("userId", userId.toString());
+      sessionStorage.setItem("email", userData.email.toString());
+      sessionStorage.setItem("name", userData.name.toString());
+      sessionStorage.setItem("avatar", rawAvatar);
+      if (userData.contact) {
+        sessionStorage.setItem("num", userData.contact.toString());
+      }
+
+      dispatch(
+        setUserProfileFromUserData({
+          userData,
+          userId,
+          avatar: rawAvatar,
+        })
+      );
+      dispatch(loginUser({ email, password }));
+
+      if (getStoredReferralCode()) {
+        try {
+          await attributeStoredReferral(apiUrl, accessToken);
+        } catch {
+          /* non-blocking */
+        }
+      }
+
+      setTimeout(() => {
+        navigate("/Files");
+      }, 1000);
     } catch (error) {
       console.error("Error creating account:", error);
-      showToast("error", error.response?.data?.message || "Error creating account!");
-      setSpanExpanded(false);
+      setSpanExpanded?.(false);
+      showToast(
+        "error",
+        error.response?.data?.message ||
+          error.message ||
+          "Error creating account!"
+      );
+    } finally {
       setIsLoading(false);
     }
   };
@@ -304,7 +351,7 @@ const Signup = () => {
     }
 
     setIsGoogleLoggingIn(true);
-    setSpanExpanded(true);
+    setSpanExpanded?.(true); // App-level loader (same path as Login → Files clears it)
 
     try {
       const res = await axios.post(
@@ -319,21 +366,43 @@ const Signup = () => {
       }
 
       showToast("success", data.message || "Signed in successfully");
-      sessionStorage.setItem("userData", JSON.stringify(data.userData));
-      sessionStorage.setItem("number", data.accessToken.toString());
-      sessionStorage.setItem("email", data.userData.email.toString());
-      if (data.loginId) {
-        sessionStorage.setItem("userId", data.loginId.toString());
+
+      const accessToken = data.accessToken;
+      const userId = data.loginId;
+      const userData = data.userData;
+      const avatar = normalizeAvatarUrl(userData?.userAvatar);
+
+      sessionStorage.setItem("avatar", avatar);
+      sessionStorage.setItem("userData", JSON.stringify(userData));
+      sessionStorage.setItem("number", accessToken.toString());
+      sessionStorage.setItem("email", userData.email.toString());
+      if (userId != null) {
+        sessionStorage.setItem("userId", userId.toString());
       }
+      if (userData?.name) {
+        sessionStorage.setItem("name", String(userData.name));
+      }
+      if (userData?.contact) {
+        sessionStorage.setItem("num", String(userData.contact));
+      }
+
+      dispatch(
+        setUserProfileFromUserData({
+          userData,
+          userId,
+          avatar,
+        })
+      );
+      dispatch(setGoogleAuth(true));
 
       // Google signup skips /Login — attribute here while ref is still stored
       if (getStoredReferralCode()) {
-        await attributeStoredReferral(apiUrl, data.accessToken);
+        await attributeStoredReferral(apiUrl, accessToken);
       }
 
       navigate("/Files");
     } catch (error) {
-      setSpanExpanded(false);
+      setSpanExpanded?.(false);
       const apiMsg =
         error?.response?.data?.message ||
         error?.response?.data?.error ||
@@ -929,37 +998,6 @@ const Signup = () => {
           </div>
         </div>
       </div>
-
-      <span
-        className={`animate_logo animate_logo_loader ${spanExpanded ? "expanded" : ""
-          }`}
-        data-value="1"
-        style={{
-          background: `conic-gradient(from 0deg at 50% 50%, #E5252A 0deg, #E7400C 120deg, #E5660F 240deg, #E5252A 360deg)`,
-        }}
-      >
-        <div className="logo__load" style={{ width: "100px", height: "100px" }}>
-          <motion.img
-            src={NewLogo}
-            alt="Logo"
-            style={{
-              width: "90px",
-              height: "90px",
-              filter: "brightness(0) invert(1)",
-            }}
-            animate={{
-              scale: [1, 1.2, 1],
-              rotate: [0, 360],
-            }}
-            transition={{
-              duration: 2,
-              ease: "easeInOut",
-              repeat: Infinity,
-              repeatDelay: 1,
-            }}
-          />
-        </div>
-      </span>
     </>
   );
 };

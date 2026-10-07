@@ -199,8 +199,8 @@ const {
               {/* Public routes */}
               <Route path="/Login" element={<Login spanExpanded={spanExpanded} setSpanExpanded={setSpanExpanded} />} />
               <Route path="/login" element={<Login spanExpanded={spanExpanded} setSpanExpanded={setSpanExpanded} />} />
-              <Route path="/Signup" element={<Signup />} />
-              <Route path="/signup" element={<Signup />} />
+              <Route path="/Signup" element={<Signup spanExpanded={spanExpanded} setSpanExpanded={setSpanExpanded} />} />
+              <Route path="/signup" element={<Signup spanExpanded={spanExpanded} setSpanExpanded={setSpanExpanded} />} />
               <Route path="/ForgotPassword" element={<ForgotPassword />} />
               <Route path="/SignupWithGoogle" element={<SignupWithGoogle />} />
               <Route path="/pre-login" element={<PreLogin />} />

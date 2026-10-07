@@ -85,13 +85,13 @@ const ForgotPassword = () => {
 
 
 
+  // Keep first char of local part; preserve full domain (do not hardcode .com)
   function maskEmail(email) {
-  if (!email) return "";
-  const [user, domain] = email.split("@");
-  const maskedUser = user ? user[0] + "xxx" : "";
-  const domainPart = domain ? domain.split(".")[0] : "";
-  return maskedUser + domainPart + ".com";
-}
+    if (!email || !email.includes("@")) return email || "";
+    const [user, domain] = email.split("@");
+    const maskedUser = user ? `${user[0]}xxx` : "";
+    return `${maskedUser}@${domain}`;
+  }
 
 
   useEffect(() => {

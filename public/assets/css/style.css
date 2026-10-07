@@ -37210,7 +37210,8 @@ ol {
   display: flex;
   justify-content: center;
   align-items: center;
-  z-index: 1021;
+  /* Above files-navbar (1050) and mobile sidenav (~1200) */
+  z-index: 2100;
 }
 
 .rename_modal {
