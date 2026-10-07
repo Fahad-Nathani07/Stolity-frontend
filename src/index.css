@@ -172,7 +172,6 @@ input[type="button"],
   filter: none !important;
   cursor: not-allowed !important;
   opacity: 1 !important;
-  pointer-events: none;
 }
 
 .get-start-btn::before {
