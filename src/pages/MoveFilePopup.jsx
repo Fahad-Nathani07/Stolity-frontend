@@ -536,14 +536,14 @@ const handleCreateFolder = async () => {
             counter={counter}
             getTextAfterSlashes={getTextAfterSlashes}
             onOpenFolder={handleItemClick}
-            disabledFolderPaths={[
-              sourceFol,
-              ...(Array.isArray(folders) ? folders : []).map((f) =>
+            // Only lock folders being moved — not the source parent (e.g. Movies),
+            // so users can still open Movies → English as destination.
+            disabledFolderPaths={(Array.isArray(folders) ? folders : []).map(
+              (f) =>
                 typeof f === "string"
                   ? f
                   : f?.filePath || f?.fileName || f?.path || ""
-              ),
-            ]}
+            )}
           />
         </FolderDestinationModal>
       )}

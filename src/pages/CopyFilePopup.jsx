@@ -440,7 +440,6 @@ const handleCreateFolder = async () => {
             counter={counter}
             getTextAfterSlashes={getTextAfterSlashes}
             onOpenFolder={handleItemClick}
-            disabledFolderPaths={[sourceFol]}
           />
         </FolderDestinationModal>
       )}

@@ -433,6 +433,34 @@
   box-shadow: 0 12px 40px rgba(0, 0, 0, 0.35);
 }
 
+.cfm-code-wrap {
+  width: min(88%, 1100px);
+  height: 70vh;
+  overflow: auto;
+  background: #fafafa;
+  border-radius: 10px;
+  box-shadow: 0 12px 40px rgba(0, 0, 0, 0.35);
+  text-align: left;
+}
+
+.cfm-code-wrap .cfm-code-highlighter {
+  margin: 0 !important;
+  border-radius: 0 !important;
+  font-size: 13px !important;
+  background: transparent !important;
+}
+
+.cfm-code-loading {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 16px;
+  color: #6b7280;
+  font-size: 13px;
+}
+
 .cfm-doc-wrap {
   width: min(88%, 1000px);
   height: 70vh;

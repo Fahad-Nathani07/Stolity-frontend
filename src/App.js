@@ -31,7 +31,6 @@ import IndustryDetail from './pages/IndustryDetail';
 import { DownloadProvider } from './pages/DownloadContext';
 import { Download } from 'lucide-react';
 import DownloadProgressModal from './pages/DownloadProgressModal';
-import DefaultFolder from './pages/DefaultFolder';
 import TermsAndConditions from './pages/TermsAndConditions';  // <-- NEW IMPORT
 import PrivacyPolicy from './pages/PrivacyPolicy';  // <-- NEW IMPORT
 import Favourites from './pages/Favourites';
@@ -234,7 +233,6 @@ const {
                 <Route path="/TestLightbox" element={<TestLightbox />} />
                 <Route path="/UserProfile" element={<UserProfile />} />
                 <Route path="/nested/:folderId" element={<NestedPage />} />
-                <Route path="/folder/:folderName" element={<DefaultFolder />} />
                 <Route path="/Loader" element={<Loader />} />
                 <Route path="/PageLoaders" element={<PageLoaders />} />
                 <Route path="/Toast" element={<ToastExamples />} />

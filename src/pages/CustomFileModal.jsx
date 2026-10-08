@@ -1,6 +1,8 @@
 import React, { useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import axios from "axios";
+import { Prism as SyntaxHighlighter } from "react-syntax-highlighter";
+import { oneLight } from "react-syntax-highlighter/dist/esm/styles/prism";
 
 import { MdOutlineDriveFileRenameOutline } from "react-icons/md";
 import editIcon from "../images/editIcon.svg"
@@ -14,6 +16,7 @@ import { RiDeleteBinFill } from "react-icons/ri";
 import VideoPlayer from "../components/VideoPlayer";
 import ImageZoomViewer from "../components/ImageZoomViewer";
 import { resolveVideoPlayUrl } from "../utils/videoPlayer";
+import { resolveCodeLanguage } from "../utils/codePreview";
 // import DocViewer, { DocViewerRenderers } from '@cyntler/react-doc-viewer';
 import * as mammoth from "mammoth";
 // import * as XLSX from "xlsx";
@@ -27,6 +30,8 @@ import { DualRingMark } from "../components/brandLoaders";
 import CreateFolderModal from "../components/CreateFolderModal";
 import "../css/CustomFileModal.css";
 import { showToast } from "../components/ToastProvider";
+
+const CODE_CHUNK_LINES = 500;
 
 const MIN_IMAGE_ZOOM = 1;
 const MAX_IMAGE_ZOOM = 4;
@@ -65,6 +70,7 @@ export default function CustomFileModal({
   path,
   setSelectedFolder,
   docSrc,
+  codeFilePath,
   previewFile,
 }) {
   const [folderWindowStart, setFolderWindowStart] = useState(0);
@@ -100,12 +106,75 @@ export default function CustomFileModal({
   const [imageZoom, setImageZoom] = useState(1);    // stable mount for pptx-preview
   const [resolvedVideoUrl, setResolvedVideoUrl] = useState("");
   const [videoUrlLoading, setVideoUrlLoading] = useState(false);
+  const [codeLanguage, setCodeLanguage] = useState("text");
+  const [codeChunks, setCodeChunks] = useState([]);
+  const [codeFullLines, setCodeFullLines] = useState([]);
+  const [codeHasMore, setCodeHasMore] = useState(false);
+  const [codeLoading, setCodeLoading] = useState(false);
 
 useEffect(()=>{
   console.log("modalFile123456",modalFile)
   setIsRenameMode(false);
   setImageZoom(1);
 },[modalFile, onClose])
+
+useEffect(() => {
+  if (!codeFilePath || !apiUrl || !token) {
+    setCodeChunks([]);
+    setCodeFullLines([]);
+    setCodeHasMore(false);
+    setCodeLoading(false);
+    setCodeLanguage("text");
+    return undefined;
+  }
+
+  let cancelled = false;
+  const controller =
+    typeof AbortController !== "undefined" ? new AbortController() : null;
+
+  setCodeLoading(true);
+  setCodeChunks([]);
+  setCodeFullLines([]);
+  setCodeHasMore(false);
+  setCodeLanguage(resolveCodeLanguage(codeFilePath));
+
+  axios
+    .get(`${apiUrl}getFile`, {
+      params: {
+        filePath: codeFilePath,
+        ...(isSharedValue && filenameRedux ? { shared: filenameRedux } : {}),
+      },
+      headers: { Authorization: `Bearer ${token}` },
+      responseType: "text",
+      signal: controller?.signal,
+    })
+    .then((res) => {
+      if (cancelled) return;
+      const text =
+        typeof res.data === "string"
+          ? res.data
+          : String(res.data ?? "");
+      const lines = text.split("\n");
+      setCodeFullLines(lines);
+      setCodeChunks([lines.slice(0, CODE_CHUNK_LINES).join("\n")]);
+      setCodeHasMore(lines.length > CODE_CHUNK_LINES);
+    })
+    .catch((err) => {
+      if (cancelled || err?.name === "CanceledError" || err?.code === "ERR_CANCELED") {
+        return;
+      }
+      console.error("Code preview fetch failed", err);
+      showToast("error", "Failed to load code preview");
+    })
+    .finally(() => {
+      if (!cancelled) setCodeLoading(false);
+    });
+
+  return () => {
+    cancelled = true;
+    controller?.abort?.();
+  };
+}, [codeFilePath, apiUrl, token, isSharedValue, filenameRedux]);
 
 useEffect(() => {
   if (typeof window === "undefined") return undefined;
@@ -764,7 +833,30 @@ const handleMove = async (selectedOption) => {
     Boolean(imageSrc) &&
     !videoSrc &&
     !pdfSrc &&
-    !docSrc;
+    !docSrc &&
+    !codeFilePath;
+
+  const handleCodeScroll = (e) => {
+    if (!codeHasMore || codeLoading) return;
+    const { scrollTop, scrollHeight, clientHeight } = e.target;
+    if (scrollHeight - scrollTop - clientHeight > 48) return;
+
+    setCodeLoading(true);
+    window.setTimeout(() => {
+      setCodeChunks((prev) => {
+        const shown = prev.reduce(
+          (acc, chunk) => acc + chunk.split("\n").length,
+          0
+        );
+        const next = codeFullLines.slice(shown, shown + CODE_CHUNK_LINES);
+        if (shown + CODE_CHUNK_LINES >= codeFullLines.length) {
+          setCodeHasMore(false);
+        }
+        return [...prev, next.join("\n")];
+      });
+      setCodeLoading(false);
+    }, 120);
+  };
   const handleImageZoomIn = () =>
     setImageZoom((current) =>
       Math.min(MAX_IMAGE_ZOOM, current + IMAGE_ZOOM_STEP)
@@ -948,6 +1040,34 @@ const handleMove = async (selectedOption) => {
             url={resolvedVideoUrl}
             fileName={fileName || videoSrc}
           />
+        ) : codeFilePath ? (
+          <div
+            className="cfm-code-wrap"
+            onClick={(e) => e.stopPropagation()}
+            onScroll={handleCodeScroll}
+          >
+            {codeChunks.map((chunk, idx) => (
+              <SyntaxHighlighter
+                key={`${codeFilePath}-${idx}`}
+                language={codeLanguage}
+                style={oneLight}
+                wrapLines
+                wrapLongLines
+                className="cfm-code-highlighter"
+              >
+                {chunk}
+              </SyntaxHighlighter>
+            ))}
+            {codeLoading && (
+              <div className="cfm-code-loading">
+                <DualRingMark size={36} />
+                <p>Loading code…</p>
+              </div>
+            )}
+            {!codeLoading && codeChunks.length === 0 && (
+              <p className="cfm-empty">No preview available.</p>
+            )}
+          </div>
         ) : pdfSrc ? (
           <iframe
             src={pdfSrc}

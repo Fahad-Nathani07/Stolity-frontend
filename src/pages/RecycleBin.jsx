@@ -297,7 +297,6 @@ const [showMultiRestoreModal, setShowMultiRestoreModal] = useState(false);
   });
   const [show, setShow] = useState(false);
   const [showImage, setShowImage] = useState(false);
-  const [codePopup, setCodePopup] = useState(false);
 
   useEffect(() => {
     const lockScroll = () => {
@@ -312,14 +311,14 @@ const [showMultiRestoreModal, setShowMultiRestoreModal] = useState(false);
       document.body.style.width = "";
     };
 
-    if (showImage || codePopup) {
+    if (showImage) {
       lockScroll();
     } else {
       unlockScroll();
     }
 
     return () => unlockScroll(); // cleanup
-  }, [showImage, codePopup]);
+  }, [showImage]);
 
   const [endIndex, setEndIndex] = useState(0);
   const [filedata, setFileData] = useState([]);
@@ -1590,7 +1589,6 @@ const getFileData = async () => {
 
   useSessionEndCleanup(() => {
     setShowImage(false);
-    setCodePopup(false);
     setIsCWhisperClicked(false);
     setMoveFol(false);
     setInfoShower(false);

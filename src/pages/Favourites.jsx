@@ -46,8 +46,6 @@ import {
 } from "../utils/zipFolderThenNativeDownload";
 import { useZippingProgressModal } from "../hooks/useZippingProgressModal";
 import { useDownloadActions } from "./DownloadContext";
-import { Prism as SyntaxHighlighter } from "react-syntax-highlighter";
-import { oneLight } from "react-syntax-highlighter/dist/esm/styles/prism";
 import AvatarDefault from "../images/AvatarDefault.jpg";
 import sharedIcon from "../images/shared_icon.svg";
 import { resolveFileIconPath, encodeStorageUrl } from "../utils/fileIcon";
@@ -87,6 +85,7 @@ import {
   openPreviewFile,
   resolvePreviewAfterDelete,
 } from "../utils/previewModalNavigation";
+import { isCodeFileExtension } from "../utils/codePreview";
 import { afterMinLoaderDisplay } from "../utils/actionLoaderDelay";
 import { assertFolderNavAllowed } from "../utils/transferFolderLock";
 import "../css/FilesToolbar.css";
@@ -125,7 +124,6 @@ import moveIcon2 from "../images/DropdownIcons/MoveIcon.svg";
 import renameIcon from "../images/DropdownIcons/renameIcon.svg";
 import shareIcon from "../images/DropdownIcons/shareIcon.svg";
 import eyeIcon from "../images/DropdownIcons/eyeIcon.svg";
-import loaderGif from "../images/Loaders/Animation4.gif";
 import Dropzone from "react-dropzone";
 import createFolderPopup from "../images/createFolderPopup.svg";
 import StarIcon from "@mui/icons-material/Star"; // Filled star
@@ -353,6 +351,7 @@ const Favourites = () => {
   const [loading, isSetLoading] = useState(false);
   const [downloadLink, setDownloadLink] = useState(null);
   const [modalFile, setModalFile] = useState("");
+  const [previewFile, setPreviewFile] = useState(null);
 
   const [sharePopup, setSharepopup] = useState(false);
 
@@ -371,7 +370,7 @@ const Favourites = () => {
   });
   const [show, setShow] = useState(false);
   const [showImage, setShowImage] = useState(false);
-  const [codePopup, setCodePopup] = useState(false);
+  const [codeFilePath, setCodeFilePath] = useState("");
   //   const [showAudioPlayer, setShowAudioPlayer] = useState(false);
   // const [currentAudioFile, setCurrentAudioFile] = useState(null);
 
@@ -388,14 +387,14 @@ const Favourites = () => {
       document.body.style.width = "";
     };
 
-    if (showImage || codePopup) {
+    if (showImage) {
       lockScroll();
     } else {
       unlockScroll();
     }
 
     return () => unlockScroll(); // cleanup
-  }, [showImage, codePopup]);
+  }, [showImage]);
 
   const [endIndex, setEndIndex] = useState(0);
   const [filedata, setFileData] = useState([]);
@@ -532,6 +531,8 @@ const Favourites = () => {
     setVideoSrc("");
     setAudioSrc("");
     setPdfSrc("");
+    setDocSrc("");
+    setCodeFilePath("");
   };
 
   const [selectStatus, setSelectStatus] = useState(false);
@@ -1960,7 +1961,7 @@ const Favourites = () => {
 
   useSessionEndCleanup(() => {
     setShowImage(false);
-    setCodePopup(false);
+    setCodeFilePath("");
     setIsWhisperClicked(false);
     setIsCWhisperClicked(false);
     setMoveFol(false);
@@ -2628,88 +2629,19 @@ const Favourites = () => {
     setSelectedFile(null);
   };
 
-  const [codeContent, setCodeContent] = useState("");
-  const [codeLanguage, setCodeLanguage] = useState("javascript");
-  const codeExtensions = [
-    "js",
-    "jsx",
-    "ts",
-    "tsx",
-    "html",
-    "css",
-    "json",
-    "py",
-    "php",
-    "cpp",
-  ];
-
-  const [isLoading1, setIsLoading1] = useState(false);
-  const [codeChunks, setCodeChunks] = useState([]); // chunks of lines
-  const [fullLines, setFullLines] = useState([]); // entire line array
-  const [chunkSize] = useState(500); // lines per chunk
-  const [hasMoreChunks, setHasMoreChunks] = useState(false);
-
-  const previewCodeFile = async (file) => {
-    try {
-      setIsLoading1(true);
-      setCodePopup(true); // Show popup immediately
-
-      const res = await axios.get(`${apiUrl}getFile`, {
-        params: { filePath: file.fileName },
-        headers: { Authorization: `Bearer ${token}` },
-        responseType: "text",
-      });
-
-      const ext = file.fileName.split(".").pop();
-      const langMap = {
-        js: "javascript",
-        jsx: "jsx",
-        ts: "typescript",
-        tsx: "tsx",
-        html: "html",
-        css: "css",
-        json: "json",
-        py: "python",
-        php: "php",
-        cpp: "cpp",
-      };
-      setCodeLanguage(langMap[ext] || "text");
-
-      const lines = res.data.split("\n");
-      setFullLines(lines);
-      setCodeChunks([lines.slice(0, chunkSize).join("\n")]);
-      setHasMoreChunks(lines.length > chunkSize);
-    } catch (error) {
-      console.error("Error fetching file:", error);
-    } finally {
-      setIsLoading1(false);
-    }
-  };
-
-  const handleScroll = (e) => {
-    const bottom =
-      e.target.scrollHeight - e.target.scrollTop === e.target.clientHeight;
-    if (bottom && hasMoreChunks && !isLoading1) {
-      setIsLoading1(true);
-
-      setTimeout(() => {
-        const currentLength = codeChunks.reduce(
-          (acc, chunk) => acc + chunk.split("\n").length,
-          0
-        );
-        const nextChunk = fullLines.slice(
-          currentLength,
-          currentLength + chunkSize
-        );
-        setCodeChunks((prev) => [...prev, nextChunk.join("\n")]);
-
-        if (currentLength + chunkSize >= fullLines.length) {
-          setHasMoreChunks(false);
-        }
-
-        setIsLoading1(false);
-      }, 200); // simulate async delay
-    }
+  const openCodeInPreviewModal = (file) => {
+    setErrorMessage2("");
+    setPreviewFile(file);
+    setModalFile(file.fileName);
+    setImageSrc("");
+    setVideoSrc("");
+    setAudioSrc("");
+    setPdfSrc("");
+    setDocSrc("");
+    setCodeFilePath(file.fileName);
+    const idx = filedata.findIndex((f) => f.fileName === file.fileName);
+    if (idx !== -1) setCurrentImageIndex(idx);
+    handleImageShow();
   };
 
   const [showFolderModal, setShowFolderModal] = useState(false);
@@ -4053,6 +3985,7 @@ const Favourites = () => {
       }
 
       const ft = (fileType || "").toLowerCase();
+      setPreviewFile(filedata[newIndex]);
 
       // Image types
       const imageTypes = ["jpeg", "jpg", "png", "gif", "hevc", "heif", "heic", "svg", "webp", "avif"];
@@ -4065,6 +3998,7 @@ const Favourites = () => {
 
       // Clear previous srcs
       setIsProgressVisible(false);
+      setCodeFilePath("");
 
       console.log("✅ FileType(ft)", ft)
 
@@ -4100,6 +4034,14 @@ const Favourites = () => {
         // set docSrc via fetch
         console.log("✅DOCSSSS")
         getDocInfo(filedata[newIndex].fileName);
+        setModalFile(filedata[newIndex].fileName);
+      } else if (isCodeFileExtension(ft)) {
+        setImageSrc("");
+        setVideoSrc("");
+        setAudioSrc("");
+        setPdfSrc("");
+        setDocSrc("");
+        setCodeFilePath(filedata[newIndex].fileName);
         setModalFile(filedata[newIndex].fileName);
       } else {
         setImageSrc("");
@@ -4230,6 +4172,7 @@ const Favourites = () => {
       }
 
       const ft = (fileType || "").toLowerCase();
+      setPreviewFile(filedata[newIndex]);
 
       const imageTypes = ["jpeg", "jpg", "png", "gif", "heic", "hevc", "heif", "svg", "webp"];
       const pdfTypes = ["pdf", "txt"];
@@ -4238,6 +4181,7 @@ const Favourites = () => {
 
       // Clear previous srcs
       setIsProgressVisible(false);
+      setCodeFilePath("");
 
       // Handle types
       if (imageTypes.includes(ft)) {
@@ -4270,6 +4214,14 @@ const Favourites = () => {
         setPdfSrc("");
         // set docSrc via fetch
         getDocInfo(filedata[newIndex].fileName);
+        setModalFile(filedata[newIndex].fileName);
+      } else if (isCodeFileExtension(ft)) {
+        setImageSrc("");
+        setVideoSrc("");
+        setAudioSrc("");
+        setPdfSrc("");
+        setDocSrc("");
+        setCodeFilePath(filedata[newIndex].fileName);
         setModalFile(filedata[newIndex].fileName);
       } else {
         setImageSrc("");
@@ -4317,6 +4269,7 @@ const Favourites = () => {
         openPreviewFile(next.file, next.index, {
           handleImageShow,
           setCurrentImageIndex,
+          setPreviewFile,
           setModalFile,
           setErrorMessage2,
           setIsProgressVisible,
@@ -4325,6 +4278,7 @@ const Favourites = () => {
           setAudioSrc,
           setPdfSrc,
           setDocSrc,
+          setCodeFilePath,
           getImageInfo,
           getPdfInfo,
           getDocInfo,
@@ -4369,6 +4323,7 @@ const Favourites = () => {
     openPreviewFile(next.file, next.index, {
       handleImageShow,
       setCurrentImageIndex,
+      setPreviewFile,
       setModalFile,
       setErrorMessage2,
       setIsProgressVisible,
@@ -4377,6 +4332,7 @@ const Favourites = () => {
       setAudioSrc,
       setPdfSrc,
       setDocSrc,
+      setCodeFilePath,
       getImageInfo,
       getPdfInfo,
       getDocInfo,
@@ -4854,56 +4810,6 @@ const Favourites = () => {
 
   return (
     <>
-      {codePopup && (
-        <div className="code-popup-overlay">
-          <div className="code-popup-container">
-            <button
-              className="code-popup-close-btn"
-              onClick={() => setCodePopup(false)}
-              aria-label="Close"
-            >
-              ×
-            </button>
-
-            <h2 className="code-popup-title">Code Preview</h2>
-
-            <div
-              className="code-scroll-container"
-              style={{ maxHeight: "70vh", overflowY: "auto" }}
-              onScroll={handleScroll}
-            >
-              {codeChunks.map((chunk, idx) => (
-                <SyntaxHighlighter
-                  key={idx}
-                  language={codeLanguage}
-                  style={oneLight}
-                  wrapLines
-                  wrapLongLines
-                  className="code-popup-highlighter"
-                >
-                  {chunk}
-                </SyntaxHighlighter>
-              ))}
-
-              {isLoading1 && (
-                <div
-                  style={{
-                    textAlign: "center",
-                    padding: "10px",
-                    display: "flex",
-                    justifyContent: "center",
-                    flexDirection: "column",
-                    alignItems: "center",
-                  }}
-                >
-                  <img src={loaderGif} alt="" />
-                  <p>Loading Code File....</p>
-                </div>
-              )}
-            </div>
-          </div>
-        </div>
-      )}
 
       <FileInfoModal
         isOpen={infoShower}
@@ -5580,6 +5486,7 @@ const Favourites = () => {
                                     if (trySelectInsteadOfOpen(file)) return;
 
                                     setErrorMessage2("");
+                                    setPreviewFile(file);
 
                                     const isFolder =
                                       file.fileType === "Folder" ||
@@ -5590,17 +5497,14 @@ const Favourites = () => {
                                       return;
                                     }
 
-                                    const codeExtensions = [
-                                      "js", "jsx", "ts", "tsx", "html", "css", "json", "xml",
-                                      "py", "java", "c", "cpp", "rb", "php", "sh", "go", "cs",
-                                    ];
-
                                     const fileTypeLower = file.fileType?.toLowerCase();
 
-                                    if (codeExtensions.includes(fileTypeLower)) {
-                                      previewCodeFile(file);
+                                    if (isCodeFileExtension(fileTypeLower)) {
+                                      openCodeInPreviewModal(file);
                                       return;
                                     }
+
+                                    setCodeFilePath("");
 
                                     const imageTypes = ["jpeg", "jpg", "png", "gif", "hevc", "heif", "heic", "svg", "webp"];
                                     const pdfTypes = ["pdf", "txt"];
@@ -5684,6 +5588,7 @@ const Favourites = () => {
                                         if (trySelectInsteadOfOpen(file)) return;
 
                                         setErrorMessage2("");
+                                        setPreviewFile(file);
 
                                         const isFolder =
                                           file.fileType === "Folder" ||
@@ -5694,17 +5599,14 @@ const Favourites = () => {
                                           return;
                                         }
 
-                                        const codeExtensions = [
-                                          "js", "jsx", "ts", "tsx", "html", "css", "json", "xml",
-                                          "py", "java", "c", "cpp", "rb", "php", "sh", "go", "cs",
-                                        ];
-
                                         const fileTypeLower = file.fileType?.toLowerCase();
 
-                                        if (codeExtensions.includes(fileTypeLower)) {
-                                          previewCodeFile(file);
+                                        if (isCodeFileExtension(fileTypeLower)) {
+                                          openCodeInPreviewModal(file);
                                           return;
                                         }
+
+                                        setCodeFilePath("");
 
                                         const imageTypes = ["jpeg", "jpg", "png", "gif", "hevc", "heif", "heic", "svg", "webp"];
                                         const pdfTypes = ["pdf", "txt"];
@@ -6206,34 +6108,17 @@ const Favourites = () => {
                                 if (trySelectInsteadOfOpen(file)) return;
 
                                 setErrorMessage2("");
+                                setPreviewFile(file);
 
-                                const codeExtensions = [
-                                  "js",
-                                  "jsx",
-                                  "ts",
-                                  "tsx",
-                                  "html",
-                                  "css",
-                                  "json",
-                                  "xml",
-                                  "py",
-                                  "java",
-                                  "c",
-                                  "cpp",
-                                  "rb",
-                                  "php",
-                                  "sh",
-                                  "go",
-                                  "cs",
-                                ];
                                 const fileTypeLower =
                                   file.fileType?.toLowerCase();
 
-                                // CODE FILE DETECTION
-                                if (codeExtensions.includes(fileTypeLower)) {
-                                  previewCodeFile(file); // <-- handles API call + setCodeContent + open modal
+                                if (isCodeFileExtension(fileTypeLower)) {
+                                  openCodeInPreviewModal(file);
                                   return;
                                 }
+
+                                setCodeFilePath("");
 
                                 if (
                                   [
@@ -6893,6 +6778,9 @@ const Favourites = () => {
         setTriggerUpdate={setTriggerUpdate}
         isPublic={modalFile?.isPublic}
         docSrc={docSrc}
+        codeFilePath={codeFilePath}
+        previewFile={previewFile}
+        setModalFile={setModalFile}
         // onRenameSuccess={() => getFolderFiles(selectedFolder)}
         onRenameSuccess={() => getFileData()}
         onMoveSuccess={onMoveSuccessFromModal}
