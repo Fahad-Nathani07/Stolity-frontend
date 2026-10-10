@@ -216,52 +216,7 @@
   }
 }
 
-@media screen and (max-width: 640px) {
-  .ap-bar {
-    height: auto;
-    min-height: 56px;
-    padding: 8px 10px;
-    gap: 8px;
-    flex-wrap: nowrap;
-  }
-
-  .ap-bar-track {
-    max-width: 28%;
-    min-width: 0;
-  }
-
-  .ap-bar-art {
-    width: 32px;
-    height: 32px;
-  }
-
-  .ap-bar-title {
-    font-size: 12px;
-  }
-
-  .ap-bar-center {
-    gap: 8px;
-    flex: 1;
-    min-width: 0;
-  }
-
-  .ap-bar-progress {
-    gap: 6px;
-  }
-
-  .ap-bar-time {
-    width: 30px;
-    font-size: 10px;
-  }
-
-  .ap-repeat-ctrl {
-    display: none;
-  }
-
-  .ap-bar-window-btns .ap-minimize-btn {
-    display: none;
-  }
-}
+/* Audio bar layout for ≤991 / ≤640 lives in AudioPlayerModal.css */
 
 /* ── Image / video preview (CustomFileModal) ── */
 @media screen and (max-width: 991px) {

@@ -21,6 +21,11 @@ import {
 } from "../utils/getFolderParams";
 import { useZippingProgressModal } from "../hooks/useZippingProgressModal";
 import { refreshRootListingIfDestinationIsRoot } from "../utils/rootListingRefresh";
+import { LONG_RUNNING_AWS_REQUEST_OPTIONS } from "../utils/longRunningAwsRequest";
+import {
+  captureListingContext,
+  isStillOnListingPath,
+} from "../utils/listingRefreshGuard";
 
 function progressLabelFromItems(files, moveKey) {
   if (Array.isArray(files) && files.length > 1) {
@@ -37,7 +42,16 @@ function progressLabelFromItems(files, moveKey) {
   return String(raw).replace(/\\/g, "/").split("/").filter(Boolean).pop() || "files";
 }
 
-function CopyFilePopup({ moveKey, source, onClose, files, fileSize, setTriggerUpdate, onCopySuccess, showToast }) {
+function CopyFilePopup({
+  moveKey,
+  source,
+  onClose,
+  files,
+  fileSize,
+  setTriggerUpdate,
+  onCopySuccess,
+  showToast,
+}) {
   const [locationPath, setLocationPath] = useState("");
   const apiUrl = process.env.REACT_APP_API_ENDPOINT;
   const token = sessionStorage.getItem("number");
@@ -240,6 +254,7 @@ const handleMove = async () => {
   }
 
   setLoading2(true);
+  const startedListing = captureListingContext();
   beginZipping(progressLabelFromItems(files, moveKey), {
     mode: "copy",
     sourcePaths: [adjustedSourceFolder],
@@ -263,6 +278,7 @@ const handleMove = async () => {
           keys: apiFileKeys,
         },
         {
+          ...LONG_RUNNING_AWS_REQUEST_OPTIONS,
           headers: {
             Authorization: `Bearer ${token}`,
             "Content-Type": "application/json",
@@ -291,6 +307,7 @@ const handleMove = async () => {
           keys: apiFileKeys,
         },
         {
+          ...LONG_RUNNING_AWS_REQUEST_OPTIONS,
           headers: {
             Authorization: `Bearer ${token}`,
             "Content-Type": "application/json",
@@ -306,18 +323,17 @@ const handleMove = async () => {
       console.log("ddddd: Files1 source: ", adjustedSourceFolder);
       console.log("ddddd: Files1 destination: ", selectedPath);
 
-      // Always refresh the current listing after copy (same as move).
-      // NestedPage's triggerUpdate effect often no-ops without selectedFolder,
-      // so onCopySuccess (reloadAfterTast / getFileData) is the reliable path.
-      setTriggerUpdate?.((x) => x + 1);
-      onCopySuccess?.();
-      // User may have breadcrumbed to root while copy ran — NestedPage refresh is gone
-      refreshRootListingIfDestinationIsRoot(selectedPath);
-
       showToast("success", "File(s) copied successfully!");
       endZipping();
       setLoading2(false);
       onClose();
+
+      // Only refresh if user is still on the same page/folder as when copy started
+      if (isStillOnListingPath(startedListing)) {
+        setTriggerUpdate?.((x) => x + 1);
+        refreshRootListingIfDestinationIsRoot(selectedPath);
+        onCopySuccess?.();
+      }
     } else {
       endZipping();
       setLoading2(false);

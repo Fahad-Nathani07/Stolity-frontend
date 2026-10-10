@@ -102,7 +102,7 @@ import { UploadContext } from "./UploadContext";
 import { Modal as BootstrapModal } from "react-bootstrap";
 
 import VideoPlayer from "../components/VideoPlayer";
-import { resolveVideoPlayUrl } from "../utils/videoPlayer";
+import { resolveVideoPlayDetails } from "../utils/videoPlayer";
 import SideNav from "../components/SideNav";
 import Footer from "../components/Footer";
 import TruncatedTooltip from "../components/TruncatedTooltip";
@@ -211,11 +211,13 @@ const [creatingFolder, setCreatingFolder] = useState(false);
   const [errorMessage, setErrorMessage] = useState("");
   const [videoSrc, setVideoSrc] = useState("");
   const [resolvedVideoUrl, setResolvedVideoUrl] = useState("");
+  const [resolvedVideoSize, setResolvedVideoSize] = useState(0);
   const [isProgressVisible, setIsProgressVisible] = useState(false);
 
   
 
   const [showDeleteModal, setShowDeleteModal] = useState(false);
+  const [showExpiryWarning, setShowExpiryWarning] = useState(true);
 
   const [folderFieldError, setFolderFieldError] = useState("");
   const [showDropdown, setShowDropdown] = useState(false);
@@ -1250,6 +1252,7 @@ const getFileData = async () => {
         apiUrl,
         token,
         filePath: filename,
+        inline: true,
       });
       await preloadStreamedImage(url);
       setImageSrc(url);
@@ -1263,21 +1266,27 @@ const getFileData = async () => {
   useEffect(() => {
     if (!videoSrc || !apiUrl || !token) {
       setResolvedVideoUrl("");
+      setResolvedVideoSize(0);
       return undefined;
     }
     if (String(videoSrc).startsWith("blob:")) {
       setResolvedVideoUrl(videoSrc);
+      setResolvedVideoSize(0);
       return undefined;
     }
     let cancelled = false;
     const controller =
       typeof AbortController !== "undefined" ? new AbortController() : null;
     setResolvedVideoUrl("");
-    resolveVideoPlayUrl(apiUrl, token, videoSrc, {
+    setResolvedVideoSize(0);
+    resolveVideoPlayDetails(apiUrl, token, videoSrc, {
       signal: controller?.signal,
     })
-      .then((url) => {
-        if (!cancelled) setResolvedVideoUrl(url);
+      .then(({ url, size }) => {
+        if (!cancelled) {
+          setResolvedVideoUrl(url);
+          setResolvedVideoSize(Number(size) || 0);
+        }
       })
       .catch((err) => {
         if (!cancelled && err?.name !== "AbortError") {
@@ -1297,6 +1306,7 @@ const getFileData = async () => {
         apiUrl,
         token,
         filePath: filename,
+        inline: true,
       });
       setIsProgressVisible(false);
       setAudioSrc(url);
@@ -3528,6 +3538,8 @@ const isMultiSizeExceeded = selectedTotalBytes > remainingBytes;
           keys: [modalFile],
         },
         {
+          ...LONG_RUNNING_AWS_REQUEST_OPTIONS,
+
           headers: {
             Authorization: `Bearer ${token}`,
             "Content-Type": "application/json",
@@ -3903,39 +3915,7 @@ const isMultiSizeExceeded = selectedTotalBytes > remainingBytes;
                 }}
               />
 
-              <div
-                style={{
-                  position: "fixed",
-                  left: "50%",
-                  transform: "translateX(-50%)",
-                  bottom: "calc(var(--stolity-footer-bar-height, 72px) + 16px)",
-                  zIndex: 90,
-                  width: "min(900px, calc(100% - 48px))",
-                  borderRadius: "16px",
-                  padding: "16px 20px",
-                  backgroundColor: "#ffecec",
-                  border: "1px solid #ffb3b3",
-                  display: "flex",
-                  alignItems: "flex-start",
-                  gap: "12px",
-                  color: "#b91c1c",
-                  fontSize: "14px",
-                  lineHeight: "1.5",
-                  boxShadow: "0 12px 28px -12px rgba(185, 28, 28, 0.4)",
-                }}
-              >
-                <span style={{ fontSize: "20px", lineHeight: "1" }}>
-                  <img src={warningIcon} alt="" style={{ height: "30px" }} />
-                </span>
-                <p style={{ margin: 0 }}>
-                  Items in the Recycle Bin are kept for{" "}
-                  <strong>7 days</strong> from the date they were deleted.
-                  After that they are permanently removed and cannot be
-                  recovered. Restore anything you still need before it expires.
-                </p>
-              </div>
-
-                <div id="dataView">
+                <div id="dataView" style={{ position: "relative", zIndex: 30 }}>
 
                   {displayView === "list" ? (
                     placeholderLoading ? (
@@ -4643,6 +4623,7 @@ const isMultiSizeExceeded = selectedTotalBytes > remainingBytes;
                   <VideoPlayer
                     key={resolvedVideoUrl}
                     url={resolvedVideoUrl}
+                    fileSize={resolvedVideoSize}
                     fileName={videoSrc}
                   />
                 ) : videoSrc ? (
@@ -5484,6 +5465,38 @@ const isMultiSizeExceeded = selectedTotalBytes > remainingBytes;
         onClose={() => setShowUpgradeModal(false)}
         onUpgrade={() => nav("/Payment")}
       />
+
+      {showExpiryWarning && (
+        <div className="rename_popup_wrapper">
+          <div className="rename_modal">
+            <div
+              style={{
+                display: "flex",
+                justifyContent: "center",
+                marginBottom: "15px",
+              }}
+            >
+              <img src={warningIcon} alt="" style={{ height: "48px" }} />
+            </div>
+            <h2 className="rename_title2">Recycle Bin retention</h2>
+            <p className="rename_subtext">
+              Items in the Recycle Bin are kept for{" "}
+              <strong>7 days</strong> from the date they were deleted. After
+              that they are permanently removed and cannot be recovered.
+              Restore anything you still need before it expires.
+            </p>
+            <div className="rename_buttons">
+              <button
+                type="button"
+                className="rename_btn ok"
+                onClick={() => setShowExpiryWarning(false)}
+              >
+                Got it
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {showDeleteModal && (
        <>

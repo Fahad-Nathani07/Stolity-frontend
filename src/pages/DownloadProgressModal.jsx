@@ -5,8 +5,11 @@ import DraggableFloatShell from "../components/DraggableFloatShell";
 import {
   buildSoftEtaLabel,
   computeOverallProgress,
+  computeBatchByteProgress,
   countCompletedTransfers,
+  formatTransferProgressLabel,
   getDisplayOverallProgress,
+  getItemByteProgress,
   getTransferDisplayName,
   isDownloadOnlyBatch,
   DOWNLOAD_OPERATION,
@@ -120,6 +123,11 @@ const DownloadProgressModal = () => {
     completedCount,
     totalCount: fileCount,
   });
+  const batchBytes = computeBatchByteProgress(downloadArray);
+  const overallSizeLabel = formatTransferProgressLabel(
+    batchBytes.loaded,
+    batchBytes.total
+  );
   const hasIncomplete = downloadArray.some((d) => Math.round(d.progress) < 100);
 
   const handleCancelAll = () => {
@@ -206,6 +214,9 @@ const DownloadProgressModal = () => {
                 <span className="tp-percent-unit">%</span>
               </span>
             </div>
+            {overallSizeLabel ? (
+              <div className="tp-summary-size">{overallSizeLabel}</div>
+            ) : null}
             <div className="tp-bar-wrap" aria-hidden="true">
               <div className="tp-bar" style={{ width: `${percentShown}%` }} />
             </div>
@@ -224,6 +235,11 @@ const DownloadProgressModal = () => {
                 const itemPct = Math.min(
                   100,
                   Math.max(0, download.progress || 0)
+                );
+                const itemBytes = getItemByteProgress(download);
+                const itemSizeLabel = formatTransferProgressLabel(
+                  itemBytes.loaded,
+                  itemBytes.total
                 );
                 const displayName = getTransferDisplayName(download.fileName);
                 const iconSrc = resolveFileIconPath({
@@ -249,7 +265,15 @@ const DownloadProgressModal = () => {
                             {displayName}
                           </div>
                           <div className="tp-item-status">
-                            <strong>{Math.round(itemPct)}</strong>% complete
+                            <strong>{Math.round(itemPct)}</strong>%
+                            {itemSizeLabel ? (
+                              <span className="tp-item-size">
+                                {" "}
+                                · {itemSizeLabel}
+                              </span>
+                            ) : (
+                              " complete"
+                            )}
                           </div>
                         </div>
                       </div>

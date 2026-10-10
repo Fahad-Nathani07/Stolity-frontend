@@ -1,5 +1,5 @@
 /**
- * App-level zip/unzip/copy/move progress state.
+ * App-level zip/unzip/copy/move/delete progress state.
  * Survives route changes (e.g. open folder C while move B→A is running).
  */
 
@@ -10,7 +10,7 @@ import {
 } from "./transferFolderLock";
 
 const CANCELLABLE_MODES = new Set(["zip", "unzip"]);
-const PATH_LOCK_MODES = new Set(["copy", "move"]);
+const PATH_LOCK_MODES = new Set(["copy", "move", "delete"]);
 
 let prompt = null; // { folderName, mode, startedAt }
 let abortController = null;
@@ -44,7 +44,7 @@ export function subscribeServerActionProgress(listener) {
 /**
  * @param {string} [folderName]
  * @param {{
- *   mode?: 'zip'|'unzip'|'copy'|'move',
+ *   mode?: 'zip'|'unzip'|'copy'|'move'|'delete',
  *   sourcePaths?: string[],
  *   destinationPath?: string,
  * }} [options]
@@ -53,7 +53,12 @@ export function subscribeServerActionProgress(listener) {
 export function beginServerActionProgress(folderName, options = {}) {
   const raw = options.mode;
   const mode =
-    raw === "unzip" || raw === "copy" || raw === "move" ? raw : "zip";
+    raw === "unzip" ||
+    raw === "copy" ||
+    raw === "move" ||
+    raw === "delete"
+      ? raw
+      : "zip";
 
   const controller =
     typeof AbortController !== "undefined" && CANCELLABLE_MODES.has(mode)

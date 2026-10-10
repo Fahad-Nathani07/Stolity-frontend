@@ -8,7 +8,7 @@ import {
 } from "../utils/serverActionProgressStore";
 
 /**
- * Controls the floating zip / unzip / copy / move panel.
+ * Controls the floating zip / unzip / copy / move / delete panel.
  * Progress UI is rendered once in App (ServerActionProgressHost) so it
  * survives navigating into another folder mid-transfer.
  */

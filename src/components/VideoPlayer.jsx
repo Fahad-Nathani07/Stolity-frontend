@@ -1,4 +1,5 @@
 import React, { useCallback, useEffect, useRef, useState } from "react";
+import ReactPlayer from "react-player";
 import {
   FaCompress,
   FaExpand,
@@ -12,6 +13,8 @@ import { MdForward10, MdReplay10 } from "react-icons/md";
 import ApTooltip from "./ApTooltip";
 import { DualRingMark } from "./brandLoaders";
 import { getVideoFileName } from "../utils/videoPlayer";
+import { warmVideoPlaybackCache } from "../utils/videoPlaybackWarmup";
+import { pauseGlobalAudioPlayer } from "../utils/mediaPlaybackGuard";
 import "../css/VideoPlayer.css";
 
 const formatTime = (seconds) => {
@@ -32,18 +35,55 @@ const truncateText = (text, maxLength = 40) => {
   return `${text.slice(0, maxLength)}…`;
 };
 
+const VIDEO_ERR_CODEC =
+  "This video format (10-bit HEVC / Main10) isn't supported by your browser. Please download the file to play it.";
+const VIDEO_ERR_NETWORK =
+  "Connection interrupted while loading the video. Check your network and try again.";
+
+/** @param {number | undefined} code MediaError.code from HTMLMediaElement.error */
+function getVideoPlaybackErrorMessage(code) {
+  if (code === 2) return VIDEO_ERR_NETWORK;
+  if (code === 1) return "";
+  return VIDEO_ERR_CODEC;
+}
+
+/** Abort in-flight Range/media requests when switching or closing a video. */
+function stopVideoNetwork(video) {
+  if (!video) return;
+  try {
+    video.pause();
+    video.removeAttribute("src");
+    while (video.firstChild) {
+      video.removeChild(video.firstChild);
+    }
+    video.load();
+  } catch {
+    /* ignore teardown errors */
+  }
+}
+
 const VideoPlayer = ({
   url,
+  fileSize = 0,
   fileName = "",
   className = "",
   fitToFrame = false,
 }) => {
-  const videoRef = useRef(null);
+  const playerRef = useRef(null);
   const containerRef = useRef(null);
   const progressRef = useRef(null);
   const hideTimerRef = useRef(null);
   const bufferTimerRef = useRef(null);
   const shouldAutoPlayRef = useRef(true);
+  const warmAbortRef = useRef(null);
+
+  const getInternalVideo = useCallback(() => {
+    try {
+      return playerRef.current?.getInternalPlayer?.() || null;
+    } catch {
+      return null;
+    }
+  }, []);
 
   const clearFitSize = useCallback(() => {
     const container = containerRef.current;
@@ -52,17 +92,34 @@ const VideoPlayer = ({
     container.style.removeProperty("height");
   }, []);
 
+  const [playing, setPlaying] = useState(false);
+  const [muted, setMuted] = useState(false);
+  const [volume, setVolume] = useState(0.85);
+  const [played, setPlayed] = useState(0);
+  const [loaded, setLoaded] = useState(0);
+  const [playedSeconds, setPlayedSeconds] = useState(0);
+  const [duration, setDuration] = useState(0);
+  const [buffering, setBuffering] = useState(true);
+  const [ready, setReady] = useState(false);
+  const [error, setError] = useState("");
+  const [isFullscreen, setIsFullscreen] = useState(false);
+  const [showControls, setShowControls] = useState(true);
+
   const fitPlayerToFrame = useCallback(() => {
     const container = containerRef.current;
-    const video = videoRef.current;
+    const video = getInternalVideo();
     if (!container || !fitToFrame || document.fullscreenElement) return;
 
     const stage = container.parentElement;
     if (!stage) return;
 
-    const vw = video?.videoWidth;
-    const vh = video?.videoHeight;
-    if (!vw || !vh) return;
+    let vw = video?.videoWidth;
+    let vh = video?.videoHeight;
+    if (!vw || !vh) {
+      if (!error) return;
+      vw = 16;
+      vh = 9;
+    }
 
     const style = getComputedStyle(stage);
     const insetX =
@@ -81,21 +138,16 @@ const VideoPlayer = ({
       w = h * ar;
     }
 
+    if (error) {
+      w = Math.max(w, Math.min(maxW, 520));
+      h = Math.max(h, Math.min(maxH, 300));
+      if (w > maxW) w = maxW;
+      if (h > maxH) h = maxH;
+    }
+
     container.style.width = `${Math.floor(w)}px`;
     container.style.height = `${Math.floor(h)}px`;
-  }, [fitToFrame]);
-
-  const [playing, setPlaying] = useState(false);
-  const [muted, setMuted] = useState(false);
-  const [volume, setVolume] = useState(0.85);
-  const [played, setPlayed] = useState(0);
-  const [playedSeconds, setPlayedSeconds] = useState(0);
-  const [duration, setDuration] = useState(0);
-  const [buffering, setBuffering] = useState(true);
-  const [ready, setReady] = useState(false);
-  const [error, setError] = useState("");
-  const [isFullscreen, setIsFullscreen] = useState(false);
-  const [showControls, setShowControls] = useState(true);
+  }, [fitToFrame, error, getInternalVideo]);
 
   const displayName = truncateText(getVideoFileName(fileName), 40);
 
@@ -117,14 +169,11 @@ const VideoPlayer = ({
   const togglePlay = useCallback(
     (e) => {
       e?.stopPropagation();
-      const video = videoRef.current;
-      if (!video) return;
-
-      if (video.paused) {
-        video.play().catch(() => setPlaying(false));
-      } else {
-        video.pause();
-      }
+      setPlaying((prev) => {
+        const next = !prev;
+        if (next) pauseGlobalAudioPlayer();
+        return next;
+      });
       revealControls();
     },
     [revealControls]
@@ -132,10 +181,12 @@ const VideoPlayer = ({
 
   const seekBy = useCallback(
     (delta) => {
-      const video = videoRef.current;
-      if (!video || !duration) return;
-      const next = Math.max(0, Math.min(duration, video.currentTime + delta));
-      video.currentTime = next;
+      const player = playerRef.current;
+      if (!player || !duration) return;
+      const current = player.getCurrentTime?.() || 0;
+      const next = Math.max(0, Math.min(duration, current + delta));
+      setBuffering(true);
+      player.seekTo(next, "seconds");
       setPlayedSeconds(next);
       setPlayed(duration > 0 ? next / duration : 0);
       revealControls();
@@ -147,15 +198,16 @@ const VideoPlayer = ({
     (e) => {
       e.stopPropagation();
       const bar = progressRef.current;
-      const video = videoRef.current;
-      if (!bar || !video || !duration) return;
+      const player = playerRef.current;
+      if (!bar || !player || !duration) return;
       const rect = bar.getBoundingClientRect();
       const ratio = Math.max(
         0,
         Math.min(1, (e.clientX - rect.left) / rect.width)
       );
       const next = ratio * duration;
-      video.currentTime = next;
+      setBuffering(true);
+      player.seekTo(next, "seconds");
       setPlayed(ratio);
       setPlayedSeconds(next);
       revealControls();
@@ -216,13 +268,15 @@ const VideoPlayer = ({
       }
     };
     document.addEventListener("fullscreenchange", onFullscreenChange);
-    return () => document.removeEventListener("fullscreenchange", onFullscreenChange);
+    return () =>
+      document.removeEventListener("fullscreenchange", onFullscreenChange);
   }, [clearFitSize, fitPlayerToFrame]);
 
   useEffect(() => {
     shouldAutoPlayRef.current = true;
     setPlaying(false);
     setPlayed(0);
+    setLoaded(0);
     setPlayedSeconds(0);
     setDuration(0);
     setReady(false);
@@ -233,17 +287,31 @@ const VideoPlayer = ({
     clearBufferTimer();
   }, [url, clearBufferTimer, clearFitSize]);
 
+  // Parallel Range warm (start + end) — does not block attaching the player.
   useEffect(() => {
-    const video = videoRef.current;
-    if (!video) return;
-    video.muted = muted;
-  }, [muted]);
+    if (!url) return undefined;
+    warmAbortRef.current?.abort?.();
+    const controller =
+      typeof AbortController !== "undefined" ? new AbortController() : null;
+    warmAbortRef.current = controller;
+    warmVideoPlaybackCache(url, {
+      size: fileSize,
+      signal: controller?.signal,
+    });
+    return () => {
+      controller?.abort?.();
+      if (warmAbortRef.current === controller) {
+        warmAbortRef.current = null;
+      }
+    };
+  }, [url, fileSize]);
 
   useEffect(() => {
-    const video = videoRef.current;
-    if (!video) return;
-    video.volume = volume;
-  }, [volume]);
+    return () => {
+      warmAbortRef.current?.abort?.();
+      stopVideoNetwork(getInternalVideo());
+    };
+  }, [url, getInternalVideo]);
 
   useEffect(() => {
     const onKeyDown = (e) => {
@@ -299,22 +367,9 @@ const VideoPlayer = ({
     return () => {
       if (hideTimerRef.current) clearTimeout(hideTimerRef.current);
       clearBufferTimer();
+      stopVideoNetwork(getInternalVideo());
     };
-  }, [clearBufferTimer]);
-
-  const handleLoadedMetadata = useCallback(() => {
-    const video = videoRef.current;
-    if (!video) return;
-    if (Number.isFinite(video.duration)) {
-      setDuration(video.duration);
-    }
-    fitPlayerToFrame();
-    setReady(true);
-  }, [fitPlayerToFrame]);
-
-  const handleLoadedData = useCallback(() => {
-    fitPlayerToFrame();
-  }, [fitPlayerToFrame]);
+  }, [clearBufferTimer, getInternalVideo]);
 
   useEffect(() => {
     if (!fitToFrame) return undefined;
@@ -330,28 +385,44 @@ const VideoPlayer = ({
     return () => observer.disconnect();
   }, [fitToFrame, fitPlayerToFrame, url]);
 
-  const handleCanPlay = useCallback(() => {
-    clearBufferTimer();
-    setBuffering(false);
-    const video = videoRef.current;
-    if (!video) return;
-
+  const handleReady = useCallback(() => {
+    setReady(true);
+    fitPlayerToFrame();
     if (shouldAutoPlayRef.current) {
       shouldAutoPlayRef.current = false;
-      video.play().catch(() => setPlaying(false));
+      pauseGlobalAudioPlayer();
+      setPlaying(true);
     }
-    fitPlayerToFrame();
-  }, [clearBufferTimer, fitPlayerToFrame]);
+  }, [fitPlayerToFrame]);
 
-  const handleWaiting = useCallback(() => {
+  const handleDuration = useCallback((d) => {
+    if (Number.isFinite(d) && d > 0) setDuration(d);
+  }, []);
+
+  const handleProgress = useCallback((state) => {
+    if (!state) return;
+    if (Number.isFinite(state.played)) setPlayed(state.played);
+    if (Number.isFinite(state.loaded)) setLoaded(state.loaded);
+    if (Number.isFinite(state.playedSeconds)) {
+      setPlayedSeconds(state.playedSeconds);
+    }
+  }, []);
+
+  const handleBuffer = useCallback(() => {
     clearBufferTimer();
     bufferTimerRef.current = setTimeout(() => setBuffering(true), 350);
   }, [clearBufferTimer]);
 
-  const handlePlaying = useCallback(() => {
+  const handleBufferEnd = useCallback(() => {
+    clearBufferTimer();
+    setBuffering(false);
+  }, [clearBufferTimer]);
+
+  const handlePlay = useCallback(() => {
     clearBufferTimer();
     setBuffering(false);
     setPlaying(true);
+    pauseGlobalAudioPlayer();
   }, [clearBufferTimer]);
 
   const handlePause = useCallback(() => {
@@ -359,25 +430,18 @@ const VideoPlayer = ({
     setShowControls(true);
   }, []);
 
-  const handleTimeUpdate = useCallback(() => {
-    const video = videoRef.current;
-    if (!video || !Number.isFinite(video.duration) || video.duration <= 0) {
-      return;
-    }
-    setPlayedSeconds(video.currentTime);
-    setPlayed(video.currentTime / video.duration);
-  }, []);
-
   const handleEnded = useCallback(() => {
     setPlaying(false);
     setShowControls(true);
   }, []);
 
-  const handleVideoError = useCallback(() => {
-    setError("Unable to play this video.");
+  const handleError = useCallback(() => {
+    const code = getInternalVideo()?.error?.code;
+    const message = getVideoPlaybackErrorMessage(code);
+    setError(message);
     setBuffering(false);
     setPlaying(false);
-  }, []);
+  }, [getInternalVideo]);
 
   const VolumeIcon =
     muted || volume === 0 ? FaVolumeMute : volume < 0.5 ? FaVolumeDown : FaVolumeUp;
@@ -390,38 +454,60 @@ const VideoPlayer = ({
   return (
     <div
       ref={containerRef}
-      className={`vp-root ${showControls ? "vp-show-controls" : ""} ${
+      className={`vp-root ${showControls && !error ? "vp-show-controls" : ""} ${
         isFullscreen ? "vp-fullscreen" : ""
-      } ${fitToFrame ? "vp-fit-frame" : ""} ${className}`.trim()}
-      onMouseMove={revealControls}
-      onMouseLeave={() => playing && setShowControls(false)}
+      } ${fitToFrame ? "vp-fit-frame" : ""} ${
+        error ? "vp-has-error" : ""
+      } ${className}`.trim()}
+      onMouseMove={error ? undefined : revealControls}
+      onMouseLeave={() => !error && playing && setShowControls(false)}
       onClick={(e) => e.stopPropagation()}
     >
       <div className="vp-stage">
-        <video
-          ref={videoRef}
-          key={url}
-          className="vp-video"
-          src={url}
-          playsInline
-          preload="auto"
-          onLoadedMetadata={handleLoadedMetadata}
-          onLoadedData={handleLoadedData}
-          onCanPlay={handleCanPlay}
-          onWaiting={handleWaiting}
-          onPlaying={handlePlaying}
-          onPause={handlePause}
-          onTimeUpdate={handleTimeUpdate}
-          onEnded={handleEnded}
-          onError={handleVideoError}
-        />
+        <div className="vp-react-player">
+          <ReactPlayer
+            key={url}
+            ref={playerRef}
+            url={url}
+            width="100%"
+            height="100%"
+            playing={playing && !error}
+            muted={muted}
+            volume={volumeLevel}
+            controls={false}
+            playsinline
+            progressInterval={400}
+            stopOnUnmount
+            config={{
+              file: {
+                attributes: {
+                  preload: "auto",
+                  playsInline: true,
+                  className: "vp-video",
+                },
+                forceVideo: true,
+              },
+            }}
+            onReady={handleReady}
+            onDuration={handleDuration}
+            onProgress={handleProgress}
+            onBuffer={handleBuffer}
+            onBufferEnd={handleBufferEnd}
+            onPlay={handlePlay}
+            onPause={handlePause}
+            onEnded={handleEnded}
+            onError={handleError}
+          />
+        </div>
 
-        <button
-          type="button"
-          className="vp-stage-hit"
-          onClick={togglePlay}
-          aria-label={playing ? "Pause" : "Play"}
-        />
+        {!error && (
+          <button
+            type="button"
+            className="vp-stage-hit"
+            onClick={togglePlay}
+            aria-label={playing ? "Pause" : "Play"}
+          />
+        )}
 
         {buffering && !error && (
           <div className="vp-buffering" aria-hidden="true">
@@ -435,7 +521,11 @@ const VideoPlayer = ({
           </div>
         )}
 
-        {error && <div className="vp-error">{error}</div>}
+        {error && (
+          <div className="vp-error" role="alert">
+            <p className="vp-error-text">{error}</p>
+          </div>
+        )}
       </div>
 
       <div className="vp-top-bar">
@@ -444,119 +534,127 @@ const VideoPlayer = ({
         </span>
       </div>
 
-      <div className="vp-controls">
-        <div
-          ref={progressRef}
-          className="vp-progress"
-          onClick={handleProgressClick}
-          role="slider"
-          aria-valuemin={0}
-          aria-valuemax={duration}
-          aria-valuenow={playedSeconds}
-          aria-label="Seek"
-        >
-          <div className="vp-progress-track">
-            <div
-              className="vp-progress-fill"
-              style={{ width: `${(played || 0) * 100}%` }}
-            />
-          </div>
-        </div>
-
-        <div className="vp-controls-row">
-          <div className="vp-controls-left">
-            <ApTooltip label={playing ? "Pause (K)" : "Play (K)"}>
-              <button
-                type="button"
-                className="vp-btn"
-                onClick={togglePlay}
-                aria-label={playing ? "Pause" : "Play"}
-              >
-                {playing ? <FaPause /> : <FaPlay />}
-              </button>
-            </ApTooltip>
-
-            <ApTooltip label="Back 10s (Shift+←)">
-              <button
-                type="button"
-                className="vp-btn"
-                onClick={(e) => {
-                  e.stopPropagation();
-                  seekBy(-10);
-                }}
-                aria-label="Back 10 seconds"
-              >
-                <MdReplay10 />
-              </button>
-            </ApTooltip>
-
-            <ApTooltip label="Forward 10s (Shift+→)">
-              <button
-                type="button"
-                className="vp-btn"
-                onClick={(e) => {
-                  e.stopPropagation();
-                  seekBy(10);
-                }}
-                aria-label="Forward 10 seconds"
-              >
-                <MdForward10 />
-              </button>
-            </ApTooltip>
-
-            <span className="vp-time">
-              {formatTime(playedSeconds)} / {formatTime(duration)}
-            </span>
+      {!error && (
+        <div className="vp-controls">
+          <div
+            ref={progressRef}
+            className="vp-progress"
+            onClick={handleProgressClick}
+            role="slider"
+            aria-valuemin={0}
+            aria-valuemax={duration}
+            aria-valuenow={playedSeconds}
+            aria-label="Seek"
+          >
+            <div className="vp-progress-track">
+              <div
+                className="vp-progress-loaded"
+                style={{ width: `${(loaded || 0) * 100}%` }}
+              />
+              <div
+                className="vp-progress-fill"
+                style={{ width: `${(played || 0) * 100}%` }}
+              />
+            </div>
           </div>
 
-          <div className="vp-controls-right">
-            <div className="vp-volume">
-              <ApTooltip label={muted ? "Unmute (M)" : "Mute (M)"}>
+          <div className="vp-controls-row">
+            <div className="vp-controls-left">
+              <ApTooltip label={playing ? "Pause (K)" : "Play (K)"}>
                 <button
                   type="button"
                   className="vp-btn"
-                  onClick={toggleMute}
-                  aria-label={muted ? "Unmute" : "Mute"}
+                  onClick={togglePlay}
+                  aria-label={playing ? "Pause" : "Play"}
                 >
-                  <VolumeIcon />
+                  {playing ? <FaPause /> : <FaPlay />}
                 </button>
               </ApTooltip>
-              <ApTooltip label={`Volume ${volumePercent}%`}>
-                <div className="vp-volume-track">
-                  <div className="vp-volume-rail" aria-hidden="true">
-                    <div
-                      className="vp-volume-fill"
-                      style={{ width: `${volumePercent}%` }}
-                    />
-                  </div>
-                  <input
-                    type="range"
-                    className="vp-volume-slider"
-                    min={0}
-                    max={1}
-                    step={0.01}
-                    value={volumeLevel}
-                    onChange={handleVolumeChange}
-                    onClick={(e) => e.stopPropagation()}
-                    aria-label="Volume"
-                  />
-                </div>
+
+              <ApTooltip label="Back 10s (Shift+←)">
+                <button
+                  type="button"
+                  className="vp-btn"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    seekBy(-10);
+                  }}
+                  aria-label="Back 10 seconds"
+                >
+                  <MdReplay10 />
+                </button>
               </ApTooltip>
+
+              <ApTooltip label="Forward 10s (Shift+→)">
+                <button
+                  type="button"
+                  className="vp-btn"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    seekBy(10);
+                  }}
+                  aria-label="Forward 10 seconds"
+                >
+                  <MdForward10 />
+                </button>
+              </ApTooltip>
+
+              <span className="vp-time">
+                {formatTime(playedSeconds)} / {formatTime(duration)}
+              </span>
             </div>
 
-            <ApTooltip label={isFullscreen ? "Exit fullscreen (F)" : "Fullscreen (F)"}>
-              <button
-                type="button"
-                className="vp-btn"
-                onClick={toggleFullscreen}
-                aria-label={isFullscreen ? "Exit fullscreen" : "Fullscreen"}
+            <div className="vp-controls-right">
+              <div className="vp-volume">
+                <ApTooltip label={muted ? "Unmute (M)" : "Mute (M)"}>
+                  <button
+                    type="button"
+                    className="vp-btn"
+                    onClick={toggleMute}
+                    aria-label={muted ? "Unmute" : "Mute"}
+                  >
+                    <VolumeIcon />
+                  </button>
+                </ApTooltip>
+                <ApTooltip label={`Volume ${volumePercent}%`}>
+                  <div className="vp-volume-track">
+                    <div className="vp-volume-rail" aria-hidden="true">
+                      <div
+                        className="vp-volume-fill"
+                        style={{ width: `${volumePercent}%` }}
+                      />
+                    </div>
+                    <input
+                      type="range"
+                      className="vp-volume-slider"
+                      min={0}
+                      max={1}
+                      step={0.01}
+                      value={volumeLevel}
+                      onChange={handleVolumeChange}
+                      onClick={(e) => e.stopPropagation()}
+                      aria-label="Volume"
+                    />
+                  </div>
+                </ApTooltip>
+              </div>
+
+              <ApTooltip
+                label={isFullscreen ? "Exit fullscreen (F)" : "Fullscreen (F)"}
               >
-                {isFullscreen ? <FaCompress /> : <FaExpand />}
-              </button>
-            </ApTooltip>
+                <button
+                  type="button"
+                  className="vp-btn"
+                  onClick={toggleFullscreen}
+                  aria-label={isFullscreen ? "Exit fullscreen" : "Fullscreen"}
+                >
+                  {isFullscreen ? <FaCompress /> : <FaExpand />}
+                </button>
+              </ApTooltip>
+            </div>
           </div>
         </div>
-      </div>
+      )}
     </div>
   );
 };

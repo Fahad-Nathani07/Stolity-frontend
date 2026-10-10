@@ -7,8 +7,11 @@ import DraggableFloatShell from "../components/DraggableFloatShell";
 import {
   buildSoftEtaLabel,
   computeOverallProgress,
+  computeBatchByteProgress,
   countCompletedTransfers,
+  formatTransferProgressLabel,
   getDisplayOverallProgress,
+  getItemByteProgress,
   getTransferDisplayName,
   isUploadOnlyBatch,
   resolveTransferOperation,
@@ -154,6 +157,11 @@ const UploadProgressModal = () => {
     completedCount,
     totalCount: uploadArray.length,
   });
+  const batchBytes = computeBatchByteProgress(uploadArray);
+  const overallSizeLabel = formatTransferProgressLabel(
+    batchBytes.loaded,
+    batchBytes.total
+  );
   const incompleteUploads = uploadArray.filter((u) => Math.round(u.progress) < 100);
   const hasIncomplete = incompleteUploads.length > 0;
   // Pause-all only pauses the active file; header follows that one item
@@ -265,6 +273,9 @@ const UploadProgressModal = () => {
                 <span className="tp-percent-unit">%</span>
               </span>
             </div>
+            {overallSizeLabel ? (
+              <div className="tp-summary-size">{overallSizeLabel}</div>
+            ) : null}
             <div className="tp-bar-wrap" aria-hidden="true">
               <div className="tp-bar" style={{ width: `${percentShown}%` }} />
             </div>
@@ -282,6 +293,11 @@ const UploadProgressModal = () => {
                 const isActuallyPaused = upload.paused;
                 const isCompleted = Math.round(upload.progress) >= 100;
                 const itemPct = Math.min(100, Math.max(0, upload.progress || 0));
+                const itemBytes = getItemByteProgress(upload);
+                const itemSizeLabel = formatTransferProgressLabel(
+                  itemBytes.loaded,
+                  itemBytes.total
+                );
                 const displayName = getTransferDisplayName(upload.fileName);
                 const iconSrc = resolveFileIconPath({
                   fileName: displayName,
@@ -306,7 +322,15 @@ const UploadProgressModal = () => {
                             {displayName}
                           </div>
                           <div className="tp-item-status">
-                            <strong>{Math.round(itemPct)}</strong>% complete
+                            <strong>{Math.round(itemPct)}</strong>%
+                            {itemSizeLabel ? (
+                              <span className="tp-item-size">
+                                {" "}
+                                · {itemSizeLabel}
+                              </span>
+                            ) : (
+                              " complete"
+                            )}
                             {isActuallyPaused && !isCompleted && (
                               <span className="tp-paused">(Paused)</span>
                             )}

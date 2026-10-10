@@ -26,6 +26,11 @@ import { fetchFolderListing } from "../utils/fetchFolderListing";
 import { showToast as globalShowToast } from "../components/ToastProvider";
 import { useZippingProgressModal } from "../hooks/useZippingProgressModal";
 import { refreshRootListingIfDestinationIsRoot } from "../utils/rootListingRefresh";
+import { LONG_RUNNING_AWS_REQUEST_OPTIONS } from "../utils/longRunningAwsRequest";
+import {
+  captureListingContext,
+  isStillOnListingPath,
+} from "../utils/listingRefreshGuard";
 
 function MoveFolderPopup({ moveKey, onClose, onRenameSuccess, showToast: showToastProp }) {
   const { beginZipping, endZipping, zippingModal } = useZippingProgressModal();
@@ -155,6 +160,7 @@ const handleItemClick = async (path) => {
       : sourceFolders[0]?.split("/").filter(Boolean).pop() || "folder";
 
   setLoading2(true);
+  const startedListing = captureListingContext();
   beginZipping(progressLabel, {
     mode: "move",
     sourcePaths: sourceFolders,
@@ -170,6 +176,7 @@ const handleItemClick = async (path) => {
         destinationFolder: selectedPath,
       },
       {
+        ...LONG_RUNNING_AWS_REQUEST_OPTIONS,
         headers: {
           Authorization: `Bearer ${token}`,
           "Content-Type": "application/json",
@@ -179,12 +186,14 @@ const handleItemClick = async (path) => {
     );
 
     showToast("success", "Folder moved successfully!");
-    await onRenameSuccess?.();
-    // User may have breadcrumbed to root while move ran — NestedPage refresh is gone
-    refreshRootListingIfDestinationIsRoot(selectedPath);
     endZipping();
     setLoading2(false);
     onClose();
+    // Only refresh if user is still on the same page/folder as when move started
+    if (isStillOnListingPath(startedListing)) {
+      refreshRootListingIfDestinationIsRoot(selectedPath);
+      await onRenameSuccess?.();
+    }
   } catch (error) {
     endZipping();
     console.error("wwwww: Error moving folder:", error);

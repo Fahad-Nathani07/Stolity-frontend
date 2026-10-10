@@ -1,11 +1,11 @@
 /**
- * While copy/move runs, lock From (source) + To (destination) folders
+ * While copy/move/delete runs, lock From (source) + To (destination) folders
  * so listing / picker cannot navigate into them.
  */
 
 import { normalizeFolderPath } from "./movePath";
 
-let lock = null; // { paths: string[], mode: 'copy'|'move' }
+let lock = null; // { paths: string[], mode: 'copy'|'move'|'delete' }
 const listeners = new Set();
 
 function notify() {
@@ -43,9 +43,15 @@ export function setTransferFolderLock(opts = {}) {
     notify();
     return;
   }
+  const mode =
+    opts.mode === "copy"
+      ? "copy"
+      : opts.mode === "delete"
+        ? "delete"
+        : "move";
   lock = {
     paths,
-    mode: opts.mode === "copy" ? "copy" : "move",
+    mode,
   };
   notify();
 }
@@ -96,7 +102,12 @@ export function subscribeTransferFolderLock(listener) {
  */
 export function assertFolderNavAllowed(path, showToast) {
   if (!isFolderTransferLocked(path)) return true;
-  const verb = lock?.mode === "copy" ? "copy" : "move";
+  const verb =
+    lock?.mode === "copy"
+      ? "copy"
+      : lock?.mode === "delete"
+        ? "delete"
+        : "move";
   showToast?.(
     "warning",
     `This folder is busy with a ${verb}. Please wait until it finishes.`

@@ -17,6 +17,13 @@ const MODE_MOVE = {
   fallbackName: "items",
 };
 
+const MODE_DELETE = {
+  title: "Moving to recycle bin",
+  subtitle: "Deleting items, please wait…",
+  eta: "Soft-delete on server",
+  fallbackName: "items",
+};
+
 const MODE_UNZIP = {
   title: "Unzipping",
   subtitle: "Unzipping files, please wait…",
@@ -35,13 +42,14 @@ function resolveModeConfig(mode) {
   if (mode === "unzip") return MODE_UNZIP;
   if (mode === "copy") return MODE_COPY;
   if (mode === "move") return MODE_MOVE;
+  if (mode === "delete") return MODE_DELETE;
   return MODE_ZIP;
 }
 
 /**
- * Floating panel during server-side zip / unzip / copy / move.
+ * Floating panel during server-side zip / unzip / copy / move / delete.
  * Indeterminate bar: slides left → right, exits right, reappears left.
- * @param {'zip'|'unzip'|'copy'|'move'} [mode]
+ * @param {'zip'|'unzip'|'copy'|'move'|'delete'} [mode]
  */
 export default function ZippingProgressModal({
   isOpen,

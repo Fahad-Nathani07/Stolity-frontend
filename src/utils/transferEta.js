@@ -31,25 +31,50 @@ export function isDownloadOnlyBatch(items = []) {
   return items.every((item) => resolveTransferOperation(item) === DOWNLOAD_OPERATION);
 }
 
-export function computeOverallProgress(items = []) {
-  if (!items.length) return 0;
+const KB = 1024;
+const MB = 1024 * 1024;
+const GB = 1024 * 1024 * 1024;
+
+/** Progress size label: ≥1GB → GB, ≥1MB → MB, else KB. */
+export function formatTransferBytes(bytes) {
+  const n = Math.max(0, Number(bytes) || 0);
+  if (n >= GB) return `${(n / GB).toFixed(2)} GB`;
+  if (n >= MB) return `${(n / MB).toFixed(n >= 100 * MB ? 0 : 1)} MB`;
+  return `${(n / KB).toFixed(n >= 100 * KB ? 0 : 1)} KB`;
+}
+
+/** e.g. "500 MB / 1.52 GB" — each side formatted by its own size. */
+export function formatTransferProgressLabel(loadedBytes, totalBytes) {
+  const total = Math.max(0, Number(totalBytes) || 0);
+  if (total <= 0) return null;
+  const loaded = Math.min(total, Math.max(0, Number(loadedBytes) || 0));
+  return `${formatTransferBytes(loaded)} / ${formatTransferBytes(total)}`;
+}
+
+function itemSizeWeight(item, avgKnown) {
+  const s = Math.max(0, Number(item?.sizeInBytes) || 0);
+  return s > 0 ? s : avgKnown;
+}
+
+function resolveItemWeights(items = []) {
   const knownSizes = items
     .map((u) => Number(u.sizeInBytes) || 0)
     .filter((n) => n > 0);
-  if (!knownSizes.length) {
+  if (!knownSizes.length) return null;
+  const avgKnown =
+    knownSizes.reduce((acc, n) => acc + n, 0) / knownSizes.length;
+  return items.map((u) => itemSizeWeight(u, avgKnown));
+}
+
+export function computeOverallProgress(items = []) {
+  if (!items.length) return 0;
+  const weights = resolveItemWeights(items);
+  if (!weights) {
     return (
       items.reduce((acc, u) => acc + (Number(u.progress) || 0), 0) /
       items.length
     );
   }
-  // Unknown sizes (e.g. some folders) share the average of known file sizes
-  // so they still move overall progress instead of counting as 0 bytes.
-  const avgKnown =
-    knownSizes.reduce((acc, n) => acc + n, 0) / knownSizes.length;
-  const weights = items.map((u) => {
-    const s = Number(u.sizeInBytes) || 0;
-    return s > 0 ? s : avgKnown;
-  });
   const totalSize = weights.reduce((acc, n) => acc + n, 0);
   if (!totalSize) return 0;
   return (
@@ -58,6 +83,30 @@ export function computeOverallProgress(items = []) {
       0
     ) / totalSize
   );
+}
+
+/** Transferred + total bytes for one row (from % × sizeInBytes). */
+export function getItemByteProgress(item = {}) {
+  const total = Math.max(0, Number(item.sizeInBytes) || 0);
+  if (total <= 0) return { loaded: 0, total: 0 };
+  const progress = Math.min(100, Math.max(0, Number(item.progress) || 0));
+  return { loaded: (total * progress) / 100, total };
+}
+
+/**
+ * Batch transferred / total bytes (same size weighting as overall %).
+ * @returns {{ loaded: number, total: number }}
+ */
+export function computeBatchByteProgress(items = []) {
+  if (!items.length) return { loaded: 0, total: 0 };
+  const weights = resolveItemWeights(items);
+  if (!weights) return { loaded: 0, total: 0 };
+  const total = weights.reduce((acc, n) => acc + n, 0);
+  const loaded = items.reduce((acc, u, i) => {
+    const progress = Math.min(100, Math.max(0, Number(u.progress) || 0));
+    return acc + (weights[i] * progress) / 100;
+  }, 0);
+  return { loaded, total };
 }
 
 /** Count items whose per-file progress has reached 100%. */

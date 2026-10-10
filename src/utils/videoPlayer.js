@@ -1,5 +1,8 @@
 import { buildFileStreamUrl } from "./fileStream";
-import { resolveMediaPlayUrl } from "./mediaPlayUrl";
+import {
+  resolveMediaPlayDetails,
+  resolveMediaPlayUrl,
+} from "./mediaPlayUrl";
 
 const VIDEO_EXTENSIONS = new Set([
   "mp4",
@@ -32,6 +35,25 @@ export function buildVideoStreamUrl(
   return buildFileStreamUrl(apiUrl, token, filePath, { shared, sharedName });
 }
 
+/** @returns {Promise<{ url: string, size: number }>} */
+export async function resolveVideoPlayDetails(
+  apiUrl,
+  token,
+  filePath,
+  { shared = false, sharedName = "", signal } = {}
+) {
+  return resolveMediaPlayDetails({
+    apiUrl,
+    token,
+    filePath,
+    shared,
+    sharedName,
+    inline: true,
+    signal,
+  });
+}
+
+/** @returns {Promise<string>} */
 export async function resolveVideoPlayUrl(
   apiUrl,
   token,
@@ -44,6 +66,8 @@ export async function resolveVideoPlayUrl(
     filePath,
     shared,
     sharedName,
+    // inline → Content-Disposition + proper video MIME on Spaces (not attachment/octet-stream)
+    inline: true,
     signal,
   });
 }

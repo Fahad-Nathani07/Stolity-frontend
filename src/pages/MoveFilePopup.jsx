@@ -33,6 +33,11 @@ import { fetchFolderListing } from "../utils/fetchFolderListing";
 import { showToast as globalShowToast } from "../components/ToastProvider";
 import { useZippingProgressModal } from "../hooks/useZippingProgressModal";
 import { refreshRootListingIfDestinationIsRoot } from "../utils/rootListingRefresh";
+import { LONG_RUNNING_AWS_REQUEST_OPTIONS } from "../utils/longRunningAwsRequest";
+import {
+  captureListingContext,
+  isStillOnListingPath,
+} from "../utils/listingRefreshGuard";
 
 const MoveFilePopup = ({
   moveKey,
@@ -349,6 +354,7 @@ const handleMove = async () => {
   ];
 
   setLoading2(true);
+  const startedListing = captureListingContext();
   beginZipping(progressLabel, {
     mode: "move",
     sourcePaths,
@@ -367,6 +373,7 @@ const handleMove = async () => {
           keys: apiFileKeys,
         },
         {
+          ...LONG_RUNNING_AWS_REQUEST_OPTIONS,
           headers: {
             Authorization: `Bearer ${token}`,
             "Content-Type": "application/json",
@@ -384,6 +391,7 @@ const handleMove = async () => {
           destinationFolder: selectedPath,
         },
         {
+          ...LONG_RUNNING_AWS_REQUEST_OPTIONS,
           headers: {
             Authorization: `Bearer ${token}`,
             "Content-Type": "application/json",
@@ -398,16 +406,16 @@ const handleMove = async () => {
     if (folderKeys.length) parts.push(`${folderKeys.length} folder(s)`);
     showToast("success", `Moved ${parts.join(" and ")} successfully!`);
 
-    if (typeof reloadAfterTast === "function") {
-      setTimeout(() => {
-        reloadAfterTast();
-      }, 300);
-    }
-    // User may have breadcrumbed to root while move ran — NestedPage refresh is gone
-    refreshRootListingIfDestinationIsRoot(selectedPath);
     endZipping();
     setLoading2(false);
     onClose();
+    // Only refresh if user is still on the same page/folder as when move started
+    if (isStillOnListingPath(startedListing)) {
+      refreshRootListingIfDestinationIsRoot(selectedPath);
+      if (typeof reloadAfterTast === "function") {
+        await reloadAfterTast();
+      }
+    }
   } catch (error) {
     console.error("wwwww: Error moving items:", error);
     endZipping();

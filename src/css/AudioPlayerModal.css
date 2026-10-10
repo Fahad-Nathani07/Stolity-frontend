@@ -559,6 +559,14 @@
   margin-left: 1px;
 }
 
+/* Mobile-only controls (hidden on desktop, including tooltip wraps) */
+.ap-tip-wrap:has(.ap-repeat-cycle),
+.ap-tip-wrap:has(.ap-mute-mobile),
+.ap-repeat-cycle,
+.ap-mute-mobile {
+  display: none;
+}
+
 /* ── Sidebar offset ── */
 @media (min-width: 992px) {
   body.sidebar-icon-only .ap-bar {
@@ -590,45 +598,162 @@
   }
 }
 
+/* Tablet / SideNav bottom bar */
 @media (max-width: 991px) {
   .ap-bar {
     left: 0;
-    gap: 12px;
-    padding: 0 12px;
+    right: 0;
+    height: auto;
+    min-height: 0;
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    grid-template-areas:
+      "track window"
+      "center center";
+    align-items: center;
+    column-gap: 8px;
+    row-gap: 8px;
+    padding: 10px 12px calc(10px + env(safe-area-inset-bottom, 0px));
   }
 
   .ap-bar-track {
+    grid-area: track;
     width: auto;
-    max-width: 140px;
+    max-width: none;
+    min-width: 0;
   }
 
-  .ap-bar-sub {
+  .ap-bar-window-btns {
+    grid-area: window;
+    justify-self: end;
+  }
+
+  .ap-bar-center {
+    grid-area: center;
+    flex-direction: column;
+    align-items: stretch;
+    gap: 8px;
+    width: 100%;
+  }
+
+  .ap-bar-progress {
+    order: 1;
+    width: 100%;
+    gap: 8px;
+  }
+
+  .ap-bar-transport {
+    order: 2;
+    justify-content: center;
+    flex-wrap: wrap;
+    gap: 12px;
+    width: 100%;
+  }
+
+  .ap-bar-sub,
+  .ap-bar-divider,
+  .ap-bar-volume-section,
+  .ap-repeat-ctrl,
+  .ap-bar-window-btns .ap-minimize-btn {
     display: none;
   }
 
-  .ap-bar-divider:last-of-type {
-    display: none;
+  .ap-tip-wrap:has(.ap-repeat-cycle),
+  .ap-tip-wrap:has(.ap-mute-mobile) {
+    display: contents;
   }
 
-  .ap-bar-volume-section {
-    display: none;
+  .ap-repeat-cycle,
+  .ap-mute-mobile {
+    display: inline-flex;
   }
 
-  .ap-bar-time:last-child {
-    display: none;
+  .ap-bar-art {
+    width: 36px;
+    height: 36px;
+  }
+
+  .ap-bar-art img {
+    width: 20px;
+    height: 20px;
+  }
+
+  .ap-bar-title {
+    font-size: 13px;
+  }
+
+  .ap-bar-time {
+    width: 34px;
+    font-size: 11px;
+  }
+
+  .ap-bar-seek {
+    min-width: 0;
+  }
+
+  .ap-play-btn {
+    width: 40px;
+    height: 40px;
+    font-size: 13px;
+  }
+
+  .ap-icon-btn {
+    width: 36px;
+    height: 36px;
+    font-size: 15px;
+  }
+
+  .ap-bar-window-btns .ap-icon-btn {
+    width: 36px;
+    height: 36px;
+    min-width: 36px;
+    min-height: 36px;
   }
 }
 
+/* Phone */
 @media (max-width: 640px) {
-  .ap-bar-divider {
-    display: none;
+  .ap-bar {
+    padding: 8px 10px calc(8px + env(safe-area-inset-bottom, 0px));
+    row-gap: 6px;
   }
 
-  .ap-bar-transport .ap-icon-btn:not(.ap-play-btn) {
-    display: none;
+  .ap-bar-art {
+    width: 32px;
+    height: 32px;
+    border-radius: 7px;
   }
 
-  .ap-bar-transport .ap-icon-btn.is-active {
-    display: inline-flex;
+  .ap-bar-title {
+    font-size: 12px;
+  }
+
+  .ap-bar-time {
+    width: 30px;
+    font-size: 10px;
+  }
+
+  .ap-bar-transport {
+    gap: 8px;
+  }
+
+  .ap-play-btn {
+    width: 38px;
+    height: 38px;
+  }
+
+  .ap-icon-btn {
+    width: 34px;
+    height: 34px;
+    font-size: 14px;
+  }
+
+  .ap-bar-seek-rail {
+    height: 4px;
+  }
+
+  .ap-bar-seek-thumb {
+    width: 12px;
+    height: 12px;
   }
 }

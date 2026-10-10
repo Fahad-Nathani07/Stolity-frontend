@@ -85,6 +85,15 @@ import {
   stripLocationHash,
 } from "../utils/preventHashAnchorClicks";
 import { assertFolderNavAllowed } from "../utils/transferFolderLock";
+import {
+  softDeleteProgressLabel,
+  softDeleteSourcePaths,
+} from "../utils/softDeleteProgress";
+import {
+  captureListingContext,
+  isStillOnListingPath,
+  setLiveListingContext,
+} from "../utils/listingRefreshGuard";
 import { refreshRootListingIfDestinationIsRoot } from "../utils/rootListingRefresh";
 import "../css/FilesToolbar.css";
 import "../css/NestedBreadcrumb.css";
@@ -353,6 +362,7 @@ const NestedPage = () => {
   const userProfile = useSelector((state) => state.userProfile);
   const [loader_Recycle, setLoader_Recycle] = useState(false);
   const [loader2, setLoader2] = useState(false);
+  const { beginZipping, endZipping, zippingModal } = useZippingProgressModal();
   const userData = JSON.parse(sessionStorage.getItem("userData"));
   const name = userProfile.name || sessionStorage.getItem("name");
   const avatarUrl = userProfile.avatar || sessionStorage.getItem("avatar");
@@ -406,7 +416,6 @@ const NestedPage = () => {
   const [selectedFilter, setSelectedFilter] = useState("Sort By");
   const token = sessionStorage.getItem("number");
   const [errorMessage2, setErrorMessage2] = useState("");
-  const [paginatedData, setPaginatedData] = useState([]);
   // const [currentPage, setCurrentPage] = useState(1);
   const [startIndex, setStartIndex] = useState(0);
   const [endIndex, setEndIndex] = useState(10);
@@ -694,7 +703,7 @@ const NestedPage = () => {
   useEffect(() => {
     if (prevValueRef.current !== undefined && prevValueRef.current !== breadCrumClickTrigger) {
       console.log("zxcvb Reloading now");
-      reloadAfterTast();
+      reloadAfterTast({ resetPage: true });
     }
 
     prevValueRef.current = breadCrumClickTrigger;
@@ -1053,9 +1062,31 @@ const NestedPage = () => {
     const keys = getFileSelectionKeys();
     const keys2 = getFolderSelectionKeys();
 
-    setLoader_Recycle(true);
+    // Clean sourceFolder - remove trailing slash if any
+    let cleanedSourceFolder = (path || "").replace(/\/$/, "");
+
+    // For SHARED folder, mimic single-delete behavior by stripping shared root prefix
+    if (isSharedValue && filenameRedux) {
+      if (cleanedSourceFolder === filenameRedux) {
+        cleanedSourceFolder = ""; // root inside shared
+      } else if (cleanedSourceFolder.startsWith(`${filenameRedux}/`)) {
+        cleanedSourceFolder = cleanedSourceFolder.replace(
+          `${filenameRedux}/`,
+          ""
+        );
+      }
+    }
+
+    const startedListing = captureListingContext();
+    beginZipping(softDeleteProgressLabel({ files: keys, folders: keys2 }), {
+      mode: "delete",
+      sourcePaths: softDeleteSourcePaths({
+        parentPath: path || "",
+        fileKeys: keys,
+        folderKeys: keys2,
+      }),
+    });
     dispatch(setLoader(true));
-    const loaderStartedAt = Date.now();
 
     try {
       let params = {};
@@ -1074,21 +1105,6 @@ const NestedPage = () => {
         const parts = key.split("/");
         return parts[parts.length - 1];
       });
-
-      // Clean sourceFolder - remove trailing slash if any
-      let cleanedSourceFolder = (path || "").replace(/\/$/, "");
-
-      // For SHARED folder, mimic single-delete behavior by stripping shared root prefix
-      if (isSharedValue && filenameRedux) {
-        if (cleanedSourceFolder === filenameRedux) {
-          cleanedSourceFolder = ""; // root inside shared
-        } else if (cleanedSourceFolder.startsWith(`${filenameRedux}/`)) {
-          cleanedSourceFolder = cleanedSourceFolder.replace(
-            `${filenameRedux}/`,
-            ""
-          );
-        }
-      }
 
       // Soft delete files
       if (filesToDelete > 0) {
@@ -1152,17 +1168,15 @@ const NestedPage = () => {
         toastMessage = `${fileLabel} and ${folderLabel} moved to recycle bin successfully!`;
       }
 
-      // Refresh lists / storage
-      reloadAfterTast();
       clearFileSelection();
+      if (isStillOnListingPath(startedListing)) {
+        await refreshFolderListWithLoader();
+      }
 
       // Update storage in Redux
       dispatch(fetchUserFolderSize({ token, force: true }));
 
-      afterMinLoaderDisplay(loaderStartedAt, () => {
-        setLoader_Recycle(false);
-        showToast("success", toastMessage);
-      });
+      showToast("success", toastMessage);
     } catch (error) {
       const serverMsg =
         error?.response?.data?.message ||
@@ -1174,8 +1188,8 @@ const NestedPage = () => {
           : "Some error has occurred"
       );
       console.error("handleMulDelete (other page) error:", error);
-      afterMinLoaderDisplay(loaderStartedAt, () => setLoader_Recycle(false));
     } finally {
+      endZipping();
       dispatch(setLoader(false));
     }
   };
@@ -1232,6 +1246,7 @@ const NestedPage = () => {
       const folderPath = String(gateStats.folderPath)
         .replace(/\\/g, "/")
         .replace(/^\/+|\/+$/g, "");
+      const startedListing = captureListingContext();
       const abortController = beginZipping(folderPath);
       try {
         const result = await zipFolderThenNativeDownload({
@@ -1248,7 +1263,9 @@ const NestedPage = () => {
         });
         endZipping();
         showToast("success", result.toastMessage || ZIP_THEN_DOWNLOAD_TOAST);
-        reloadAfterTast?.();
+        if (isStillOnListingPath(startedListing)) {
+          await refreshFolderListWithLoader();
+        }
       } catch (err) {
         endZipping();
         if (isDownloadCancelledError(err)) {
@@ -1590,13 +1607,16 @@ const NestedPage = () => {
     settotalPages(Math.ceil(responseData.length / itemsPerPage) || 0);
     const totalEntries = responseData.length;
   };
-  useEffect(() => {
-    const startIndex = (currentPage - 1) * itemsPerPage;
-    const endSliceIndex = startIndex + itemsPerPage;
+  // Derive page slice in render — avoids one-frame empty flash after large folder loads
+  // (filedata set + placeholder off, while paginatedData still [] until a later effect).
+  const paginatedData = useMemo(() => {
+    const pageStart = (currentPage - 1) * itemsPerPage;
+    return filedata.slice(pageStart, pageStart + itemsPerPage);
+  }, [filedata, currentPage, itemsPerPage, refreshKey]);
 
-    setPaginatedData(filedata.slice(startIndex, endSliceIndex));
+  useEffect(() => {
     settotalPages(Math.ceil(filedata.length / itemsPerPage) || 0);
-  }, [filedata, currentPage, itemsPerPage, refreshKey]); // Add refreshKey
+  }, [filedata, itemsPerPage]);
 
   const getFileTypeIcon = (fileType) => {
     switch (fileType) {
@@ -1653,7 +1673,7 @@ const NestedPage = () => {
         closePopup(); // No filters → reload and close
         return;
       }
-      await reloadAfterTast();
+      await reloadAfterTast({ resetPage: true });
       return;
     }
 
@@ -1849,7 +1869,7 @@ const NestedPage = () => {
   const closePopup = () => {
     setSelectedFileTypes([]); // 👈 Clear all selected file types
     setCustomExtInput("");
-    reloadAfterTast();
+    reloadAfterTast({ resetPage: true });
     setShowFTPopup(false);
   };
 
@@ -1951,6 +1971,7 @@ const NestedPage = () => {
         filePath: filename,
         shared: isSharedValue,
         sharedName: filenameRedux,
+        inline: true,
       });
       await preloadStreamedImage(url);
       setImageSrc(url);
@@ -1971,6 +1992,7 @@ const NestedPage = () => {
         filePath: filename,
         shared: isSharedValue,
         sharedName: filenameRedux,
+        inline: true,
       });
       setIsProgressVisible(false);
       setAudioSrc(url);
@@ -2149,7 +2171,6 @@ const NestedPage = () => {
     confirmDownloadBatch,
     onDownloadBatchLimitChoice,
   } = useDownloadBatchLimitGate();
-  const { beginZipping, endZipping, zippingModal } = useZippingProgressModal();
   const [createFolderButton, setCreateFolderButton] = useState(false);
 
   // Functions to handle modal visibility
@@ -2313,8 +2334,8 @@ const NestedPage = () => {
 
         showToast("success", "File renamed successfully!");
         setExtension("");
-        reloadAfterTast();
         handleClosePopover();
+        await refreshFolderListWithLoader();
       } catch (error) {
         console.log(error)
         showToast("warning", error?.response?.data?.message);
@@ -2339,8 +2360,8 @@ const NestedPage = () => {
         );
 
         showToast("success", "Folder renamed successfully!");
-        reloadAfterTast();
         handleClosePopover();
+        await refreshFolderListWithLoader();
       } catch (error) {
         console.log(error);
         showToast("warning", error?.response?.data?.message || "There's an error");
@@ -2382,7 +2403,7 @@ const NestedPage = () => {
         setPubPri2("");
         setVisiKey("");
         setIsVisibility(false);
-        reloadAfterTast();
+        await refreshFolderListWithLoader();
       } catch (error) {
         console.error(`There's error at ${error}`);
         showToast("error", "Error while changing visibility!");
@@ -2418,10 +2439,6 @@ const NestedPage = () => {
       return;
     }
 
-    setLoader_Recycle(true); // Start recycle loader
-    const loaderStartedAt = Date.now();
-    // dispatch(setLoader(true)); // START loader
-
     const isShared = isSharedValue; // replace with your actual shared flag
 
     const config = {
@@ -2434,13 +2451,56 @@ const NestedPage = () => {
       }),
     };
 
+    let sourceFolder = "";
+    let key = file.fileName;
+    let folderPath = "";
+
+    if (file?.isFolder) {
+      folderPath = normalizeMovePath(file.fileName, {
+        isShared: isSharedValue,
+        sharedRoot: filenameRedux,
+      });
+    } else if (file.relativePath && file.relativePath.length > 0) {
+      const lastSlashIndex = file.relativePath.lastIndexOf("/");
+      if (lastSlashIndex !== -1) {
+        sourceFolder = file.relativePath.substring(0, lastSlashIndex);
+        key = file.relativePath.substring(lastSlashIndex + 1);
+      } else {
+        key = file.relativePath;
+        sourceFolder = "";
+      }
+    } else {
+      const lastSlashIndex = file.fileName.lastIndexOf("/");
+      if (lastSlashIndex !== -1) {
+        sourceFolder = file.fileName.substring(0, lastSlashIndex);
+        key = file.fileName.substring(lastSlashIndex + 1);
+      } else {
+        key = file.fileName;
+        sourceFolder = "";
+      }
+    }
+
+    const startedListing = captureListingContext();
+    beginZipping(
+      softDeleteProgressLabel({
+        singleName: file?.fileName,
+        files: file?.isFolder ? [] : [key],
+        folders: file?.isFolder ? [folderPath || file.fileName] : [],
+      }),
+      {
+        mode: "delete",
+        sourcePaths: softDeleteSourcePaths({
+          parentPath: sourceFolder || path || "",
+          fileKeys: file?.isFolder ? [] : [key],
+          folderKeys: file?.isFolder
+            ? [folderPath || file.fileName]
+            : [],
+        }),
+      }
+    );
+
     try {
       if (file?.isFolder) {
-        const folderPath = normalizeMovePath(file.fileName, {
-          isShared: isSharedValue,
-          sharedRoot: filenameRedux,
-        });
-
         await axios.delete(`${apiUrl}soft-delete-folder`, {
           ...LONG_RUNNING_AWS_REQUEST_OPTIONS,
           headers: {
@@ -2453,39 +2513,9 @@ const NestedPage = () => {
           data: { sourceFolders: [folderPath] },
         });
 
-        // dispatch(setLoader(false));
-        afterMinLoaderDisplay(loaderStartedAt, () => {
-          setLoader_Recycle(false);
-          showToast("success", "Folder moved to recycle bin successfully!");
-        });
+        showToast("success", "Folder moved to recycle bin successfully!");
       } else {
-        // Soft delete file
         const apiEndpoint = `${apiUrl}soft-delete`;
-
-        // Derive sourceFolder and key by falling back to splitting fileName if relativePath missing
-        let sourceFolder = "";
-        let key = file.fileName;
-
-        if (file.relativePath && file.relativePath.length > 0) {
-          const lastSlashIndex = file.relativePath.lastIndexOf("/");
-          if (lastSlashIndex !== -1) {
-            sourceFolder = file.relativePath.substring(0, lastSlashIndex);
-            key = file.relativePath.substring(lastSlashIndex + 1);
-          } else {
-            key = file.relativePath;
-            sourceFolder = "";
-          }
-        } else {
-          // Use fileName split fallback
-          const lastSlashIndex = file.fileName.lastIndexOf("/");
-          if (lastSlashIndex !== -1) {
-            sourceFolder = file.fileName.substring(0, lastSlashIndex);
-            key = file.fileName.substring(lastSlashIndex + 1);
-          } else {
-            key = file.fileName;
-            sourceFolder = "";
-          }
-        }
 
         console.log("Soft delete:", { sourceFolder, key });
 
@@ -2494,20 +2524,18 @@ const NestedPage = () => {
           keys: [key],
         };
 
-        const res = await axios.delete(apiEndpoint, {
+        await axios.delete(apiEndpoint, {
           ...LONG_RUNNING_AWS_REQUEST_OPTIONS,
           ...config,
           data: dataToSend,
         });
 
-        // dispatch(setLoader(false));
-        afterMinLoaderDisplay(loaderStartedAt, () => {
-          setLoader_Recycle(false);
-          showToast("success", "File moved to recycle bin successfully");
-        });
+        showToast("success", "File moved to recycle bin successfully");
       }
 
-      await reloadAfterTast(isSharedValue);
+      if (isStillOnListingPath(startedListing)) {
+        await refreshFolderListWithLoader();
+      }
 
     } catch (error) {
       const serverMsg =
@@ -2521,9 +2549,8 @@ const NestedPage = () => {
         typeof serverMsg === "string" && serverMsg.trim() ? serverMsg : fallback
       );
       console.error("Delete error:", error);
-      // dispatch(setLoader(false));
-      afterMinLoaderDisplay(loaderStartedAt, () => setLoader_Recycle(false));
     } finally {
+      endZipping();
       if (token) {
         dispatch(fetchUserFolderSize({ token, force: true }));
       }
@@ -2682,6 +2709,8 @@ const NestedPage = () => {
   } else {
     path = "";
   }
+  // Keep live listing context so long ops only refresh if user is still here
+  setLiveListingContext({ page: "nested", path });
   // const secondPath = path;
   // const parts = secondPath.split("/");
 
@@ -3860,13 +3889,13 @@ const NestedPage = () => {
         setCurrentPage(1);
         setPubPri("private");
         // getFileData(1);
-        reloadAfterTast();
+        await refreshFolderListWithLoader({ resetPage: true });
       } else if (anySucceeded && anyCanceled) {
         // List already refreshed on cancel-all; just toast
         showToast("info", "Upload stopped. Finished files are available.");
       } else if (anySucceeded && anyFailed) {
         showToast("warning", "Some files failed to upload.");
-        reloadAfterTast();
+        await refreshFolderListWithLoader();
       } else if (allCanceled) {
         showToast("info", "Uploads were canceled successfully.");
       } else if (anyFailed) {
@@ -3969,13 +3998,13 @@ const NestedPage = () => {
       result;
     if (anySucceeded && !anyFailed && !anyCanceled) {
       showToast("success", `Folder "${displayName}" uploaded successfully!`);
-      reloadAfterTast();
+      await refreshFolderListWithLoader();
     } else if (anySucceeded && anyCanceled) {
       showToast("info", "Upload stopped. Finished files are available.");
-      reloadAfterTast();
+      await refreshFolderListWithLoader();
     } else if (anySucceeded && anyFailed) {
       showToast("warning", "Some folder files failed to upload.");
-      reloadAfterTast();
+      await refreshFolderListWithLoader();
     } else if (allCanceled) {
       showToast("info", "Folder upload was canceled.");
     } else if (anyFailed) {
@@ -4063,7 +4092,7 @@ const NestedPage = () => {
       handleCloseCreateFolder();
       setOpenFileUploadModal(false);
       showToast("success", "Folder created successfully!");
-      reloadAfterTast();
+      await refreshFolderListWithLoader();
     } catch (error) {
       console.error(`There's an error at ${error}`);
       const message = getCreateFolderErrorMessage(error);
@@ -4151,35 +4180,49 @@ const NestedPage = () => {
     [remainingBytes, isSharedValue]
   );
 
-  const filterAndPaginateData = (response, path, query) => {
+  const clampCurrentPage = (itemCount) => {
+    setCurrentPage((prev) => {
+      const maxPage = Math.max(1, Math.ceil(itemCount / itemsPerPage) || 1);
+      return Math.min(prev, maxPage);
+    });
+  };
+
+  const filterAndPaginateData = (
+    response,
+    path,
+    query,
+    { resetPage = false } = {}
+  ) => {
     const q = (query || "").toLowerCase();
     const list = Array.isArray(response) ? response : [];
 
     // Shared getFolder responses are already scoped to the current folder.
     // Their fileNames are relative to the shared root and must not be
     // re-filtered against breadcrumb paths like "infomanav.in/".
+    let filteredRecords;
     if (isSharedValue) {
-      const filteredRecords = list.filter((record) =>
+      filteredRecords = list.filter((record) =>
         String(record.fileName || "")
           .toLowerCase()
           .includes(q)
       );
-      setFileData(filteredRecords);
-      setCurrentPage(1);
-      return;
+    } else {
+      filteredRecords = list.filter((record) => {
+        const matchesPath = removeAfterLastSlash(record.fileName) === path;
+        const matchesQuery = String(record.fileName || "")
+          .toLowerCase()
+          .includes(q);
+        return matchesPath && matchesQuery;
+      });
     }
-
-    const filteredRecords = list.filter((record) => {
-      const matchesPath = removeAfterLastSlash(record.fileName) === path;
-      const matchesQuery = String(record.fileName || "")
-        .toLowerCase()
-        .includes(q);
-      return matchesPath && matchesQuery;
-    });
 
     // Keep full filtered list in filedata; pagination effect slices by itemsPerPage
     setFileData(filteredRecords);
-    setCurrentPage(1);
+    if (resetPage) {
+      setCurrentPage(1);
+    } else {
+      clampCurrentPage(filteredRecords.length);
+    }
   };
 
   // console.log("PaginatedData : ", paginatedData);
@@ -4206,18 +4249,26 @@ const NestedPage = () => {
       setFileData([]);
     },
     reloadList: () => {
-      filterAndPaginateData(responseData || [], path, "");
+      // Leaving search → start from page 1 of the folder listing
+      filterAndPaginateData(responseData || [], path, "", { resetPage: true });
     },
   });
 
   clearSearchBarRef.current = resetSearchBar;
 
+  // Folder / shared-root navigation → page 1
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [path, isSharedValue]);
+
+  // Sync listing from Redux/API data without jumping back to page 1 on refresh
   useEffect(() => {
     if (query.trim()) return;
-    filterAndPaginateData(responseData || [], path, "");
+    filterAndPaginateData(responseData || [], path, "", { resetPage: false });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [path, isSharedValue, responseData, query]);
 
-  const reloadAfterTast = async () => {
+  const reloadAfterTast = async ({ resetPage = false } = {}) => {
 
     try {
       console.log("yyyyy  reloadAfterTask START");
@@ -4249,8 +4300,12 @@ const NestedPage = () => {
       console.log("  updating state, count =", folderFiles.length);
       setAllData(folderFiles);
       setTotalEntries(folderFiles.length);
-      setCurrentPage(1);
       setFileData(folderFiles);
+      if (resetPage) {
+        setCurrentPage(1);
+      } else {
+        clampCurrentPage(folderFiles.length);
+      }
       setRefreshKey((prevKey) => prevKey + 1);
 
       dispatch(
@@ -4277,21 +4332,27 @@ const NestedPage = () => {
     }
   };
 
-  const refreshFolderListWithSkeleton = async () => {
+  /** Table/grid Placeholder.Grid while refreshing; keeps current page (clamped). */
+  const refreshFolderListWithLoader = async (options = {}) => {
+    // Let any modal unmount paint before the skeleton (close → then placeholder).
+    await new Promise((r) => requestAnimationFrame(() => r()));
     setPlaceholderLoading(true);
     try {
-      await reloadAfterTast();
+      await reloadAfterTast({ resetPage: false, ...options });
     } finally {
       setPlaceholderLoading(false);
     }
   };
+
+  /** @deprecated Prefer refreshFolderListWithLoader — kept as alias for call sites. */
+  const refreshFolderListWithSkeleton = refreshFolderListWithLoader;
 
   // Cancel-all: refresh list once immediately, then aborts continue in background
   useEffect(() => {
     if (typeof registerCancelRefresh !== "function") return undefined;
     return registerCancelRefresh(() => {
       setCurrentPage(1);
-      reloadAfterTast();
+      refreshFolderListWithLoader({ resetPage: true });
     });
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [registerCancelRefresh]);
@@ -4319,7 +4380,7 @@ const NestedPage = () => {
 
     (async () => {
       try {
-        await reloadAfterTast();
+        await reloadAfterTast({ resetPage: true });
       } finally {
         if (!cancelled) setPlaceholderLoading(false);
       }
@@ -4378,6 +4439,7 @@ const NestedPage = () => {
         const folderPath = String(fileName)
           .replace(/\\/g, "/")
           .replace(/^\/+|\/+$/g, "");
+        const startedListing = captureListingContext();
         const abortController = beginZipping(folderPath);
         cancelToken.current = abortController;
         try {
@@ -4395,7 +4457,9 @@ const NestedPage = () => {
           });
           endZipping();
           showToast("success", result.toastMessage || ZIP_THEN_DOWNLOAD_TOAST);
-          reloadAfterTast?.();
+          if (isStillOnListingPath(startedListing)) {
+            await refreshFolderListWithLoader();
+          }
         } catch (error) {
           endZipping();
           if (isDownloadCancelledError(error)) {
@@ -4590,6 +4654,7 @@ const NestedPage = () => {
   async function processZipFile(file, destinationPath = "") {
     if (!file?.fileName) return;
 
+    const startedListing = captureListingContext();
     const abortController = beginZipping(file.fileName, { mode: "zip" });
 
     const apiUrl1 = `${apiUrl}zip-object`;
@@ -4609,7 +4674,9 @@ const NestedPage = () => {
       });
 
       showToast("success", getZipSuccessMessage(zipResult));
-      reloadAfterTast();
+      if (isStillOnListingPath(startedListing)) {
+        await refreshFolderListWithLoader();
+      }
     } catch (error) {
       if (isZipUnzipCancelled(error)) {
         showToast("info", "Zip cancelled.");
@@ -4638,6 +4705,7 @@ const NestedPage = () => {
   async function processUnzipFile(file, destinationPath = "") {
     if (!file?.fileName) return;
 
+    const startedListing = captureListingContext();
     const abortController = beginZipping(file.fileName, { mode: "unzip" });
 
     const apiUrl1 = `${apiUrl}unzip-object`;
@@ -4664,7 +4732,9 @@ const NestedPage = () => {
       });
 
       showToast("success", "File successfully unzipped!");
-      reloadAfterTast();
+      if (isStillOnListingPath(startedListing)) {
+        await refreshFolderListWithLoader();
+      }
     } catch (error) {
       if (isZipUnzipCancelled(error)) {
         showToast("info", "Unzip cancelled.");
@@ -4923,8 +4993,6 @@ const NestedPage = () => {
   };
 
   const deleteFromModal = async (filename) => {
-    const loaderStartedAt = Date.now();
-    setLoader_Recycle(true);
     const deletedIndex = currentImageIndex;
 
     const lastSlashIndex = filename.lastIndexOf("/");
@@ -4946,6 +5014,15 @@ const NestedPage = () => {
       endpoint += `?shared=${encodeURIComponent(filenameRedux)}`;
     }
 
+    const startedListing = captureListingContext();
+    beginZipping(softDeleteProgressLabel({ singleName: filename }), {
+      mode: "delete",
+      sourcePaths: softDeleteSourcePaths({
+        parentPath: sourceFolder || path || "",
+        fileKeys: [keyOnly],
+      }),
+    });
+
     try {
       await axios.delete(endpoint, {
         ...LONG_RUNNING_AWS_REQUEST_OPTIONS,
@@ -4956,12 +5033,11 @@ const NestedPage = () => {
         },
       });
 
-      await advancePreviewAfterRemove(filename, deletedIndex);
+      if (isStillOnListingPath(startedListing)) {
+        await advancePreviewAfterRemove(filename, deletedIndex);
+      }
 
-      afterMinLoaderDisplay(loaderStartedAt, () => {
-        setLoader_Recycle(false);
-        showToast("success", "File moved to recycle bin successfully");
-      });
+      showToast("success", "File moved to recycle bin successfully");
     } catch (error) {
       const serverMsg =
         error?.response?.data?.message ||
@@ -4972,7 +5048,8 @@ const NestedPage = () => {
           ? serverMsg
           : "There's an error while moving file to recycle bin!"
       );
-      afterMinLoaderDisplay(loaderStartedAt, () => setLoader_Recycle(false));
+    } finally {
+      endZipping();
     }
   };
 
@@ -5384,6 +5461,7 @@ const NestedPage = () => {
             destinationFolder: targetFolder,
           },
           {
+            ...LONG_RUNNING_AWS_REQUEST_OPTIONS,
             headers: {
               Authorization: `Bearer ${token}`,
               "Content-Type": "application/json",
@@ -5431,6 +5509,8 @@ const NestedPage = () => {
             keys: [fileKey],
           },
           {
+            ...LONG_RUNNING_AWS_REQUEST_OPTIONS,
+
             headers: {
               Authorization: `Bearer ${token}`,
               "Content-Type": "application/json",
@@ -5468,6 +5548,8 @@ const NestedPage = () => {
             keys: [key.substring(path.lastIndexOf("/") + 1)],
           },
           {
+            ...LONG_RUNNING_AWS_REQUEST_OPTIONS,
+
             headers: {
               Authorization: `Bearer ${token}`,
               "Content-Type": "application/json",
@@ -5532,6 +5614,8 @@ const NestedPage = () => {
           destinationFolder: folname,
         },
         {
+          ...LONG_RUNNING_AWS_REQUEST_OPTIONS,
+
           headers: {
             Authorization: `Bearer ${token}`,
             "Content-Type": "application/json",
@@ -5569,6 +5653,7 @@ const NestedPage = () => {
       ...keys2,
       ...(keys.length > 0 ? [path] : []),
     ];
+    const startedListing = captureListingContext();
     beginZipping(dragLabel, {
       mode: "move",
       sourcePaths,
@@ -5588,8 +5673,10 @@ const NestedPage = () => {
       }
       await Promise.all(tasks);
       clearFileSelection();
-      await refreshFolderListWithSkeleton();
-      refreshRootListingIfDestinationIsRoot(targetFolder);
+      if (isStillOnListingPath(startedListing)) {
+        await refreshFolderListWithSkeleton();
+        refreshRootListingIfDestinationIsRoot(targetFolder);
+      }
     } catch (error) {
       console.error("Drag move failed:", error);
     } finally {
@@ -5666,6 +5753,8 @@ const NestedPage = () => {
           keys: [modalFile.substring(path2.lastIndexOf("/") + 1)],
         },
         {
+          ...LONG_RUNNING_AWS_REQUEST_OPTIONS,
+
           headers: {
             Authorization: `Bearer ${token}`,
             "Content-Type": "application/json",
@@ -5677,7 +5766,7 @@ const NestedPage = () => {
       async function executeFunctionsInOrder() {
         try {
           showToast("success", "File Moved successfully");
-          await reloadAfterTast();
+          await refreshFolderListWithLoader();
           handleNext();
         } catch (error) {
           console.error("Error executing functions:", error);
@@ -6377,7 +6466,24 @@ const NestedPage = () => {
 
               <div id="dataView">
                 {displayView === "list" ? (
-                  !placeholderLoading && !searchLoading && paginatedData.length === 0 ? (
+                  placeholderLoading || searchLoading ? (
+                    <div
+                      className="table-responsive"
+                      id="listViewContent"
+                      style={{ margin: "20px" }}
+                    >
+                      <Placeholder.Grid
+                        rows={11}
+                        columns={5}
+                        active
+                        style={{
+                          paddingLeft: 20,
+                          paddingRight: 20,
+                          paddingTop: 12,
+                        }}
+                      />
+                    </div>
+                  ) : filedata.length === 0 ? (
                     <div style={{ margin: "20px" }}>
                       <EmptyFilesState
                         isFiltered={
@@ -6521,27 +6627,7 @@ const NestedPage = () => {
                           </tr>
                         </thead>
 
-                        {/* <Placeholder.Grid
-                  rows={10}
-                  columns={5}
-                  active
-                  style={{ paddingLeft: 20, paddingRight: 20, paddingTop: 12 }}
-                /> */}
-                        {placeholderLoading || searchLoading ? (
-                          <tbody>
-                            <tr className="bgSameonHover">
-                              <td colSpan="6">
-                                <Placeholder.Grid
-                                  rows={11}
-                                  columns={5}
-                                  active
-                                  style={{ paddingLeft: 20, paddingRight: 20, paddingTop: 12 }}
-                                />
-                              </td>
-                            </tr>
-                          </tbody>
-                        ) : (
-                          paginatedData.map((file, index) => {
+                        {paginatedData.map((file, index) => {
                             return (
                               <tbody>
                                 <tr
@@ -7423,14 +7509,13 @@ const NestedPage = () => {
                                 </tr>
                               </tbody>
                             );
-                          })
-                        )}
+                          })}
                       </table>
                     </div>
                   )
                 ) : (
                   <>
-                    {(placeholderLoading || paginatedData.length > 0) && (
+                    {(placeholderLoading || searchLoading || filedata.length > 0) && (
                       <div className="files-card-view-header">
                         <div className="files-card-view-header__check">
                           {filenameRedux !== "blackbox" && (
@@ -7466,7 +7551,7 @@ const NestedPage = () => {
                             style={{ paddingLeft: 20, paddingRight: 20, paddingTop: 12 }}
                           />
                         </div>
-                      ) : paginatedData.length === 0 ? (
+                      ) : filedata.length === 0 ? (
                         <EmptyFilesState
                           isFiltered={
                             selectedFileTypes.length > 0 ||
@@ -8201,8 +8286,8 @@ const NestedPage = () => {
                   onClose={handleMFClose}
                   files={getFileSelectionKeys()}
                   folders={getFolderSelectionKeys()}
-                  reloadAfterTast={handleMClose}
-                  onRenameSuccess={refreshFolderListWithSkeleton}
+                  reloadAfterTast={refreshFolderListWithLoader}
+                  onRenameSuccess={refreshFolderListWithLoader}
                   showToast={showToast}
                 />
               )}
@@ -8244,7 +8329,7 @@ const NestedPage = () => {
                   files={getFileSelectionKeys()}
                   fileSize={copiedFileSize}
                   setTriggerUpdate={setTriggerUpdate}
-                  onCopySuccess={reloadAfterTast}
+                  onCopySuccess={refreshFolderListWithLoader}
                   showToast={showToast}
                 />
               )}
@@ -8296,7 +8381,7 @@ const NestedPage = () => {
         isPublic={modalFile?.isPublic}
         setModalFile={setModalFile}
         // onRenameSuccess={() => getFolderFiles(selectedFolder)}
-        onRenameSuccess={() => reloadAfterTast()}
+        onRenameSuccess={() => refreshFolderListWithLoader()}
         onMoveSuccess={onMoveSuccessFromModal}
         previewFile={previewFile}
 
@@ -8576,7 +8661,7 @@ const NestedPage = () => {
         onDownload={handleDownload}
         openPathSelectionModal={openPathSelectionModal}
         path={path} // Pass path here
-        reloadAfterTast={reloadAfterTast}
+        reloadAfterTast={refreshFolderListWithLoader}
       />
 
       <PremiumUpgradeModal
@@ -8731,7 +8816,7 @@ const NestedPage = () => {
         />
       )}
 
-      {loader2 && (<Loader2 />)}
+      {loader2 && <Loader2 />}
 
       <UploadConflictModal
         isOpen={Boolean(uploadConflictNames?.length)}

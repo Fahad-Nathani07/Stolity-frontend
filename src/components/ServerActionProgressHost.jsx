@@ -8,7 +8,7 @@ import {
 } from "../utils/serverActionProgressStore";
 
 /**
- * Single app-level host for zip/unzip/copy/move progress.
+ * Single app-level host for zip/unzip/copy/move/delete progress.
  * Keeps the floating modal visible across folder navigation.
  */
 export default function ServerActionProgressHost() {

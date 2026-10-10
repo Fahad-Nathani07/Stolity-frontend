@@ -1,7 +1,8 @@
 .ucm-overlay {
   position: fixed;
   inset: 0;
-  z-index: 2100;
+  /* Above file upload rsuite modal (2100) so conflict choices aren't hidden behind it */
+  z-index: 2300;
   display: flex;
   align-items: center;
   justify-content: center;

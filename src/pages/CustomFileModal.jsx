@@ -15,7 +15,7 @@ import { FaArrowsRotate } from "react-icons/fa6";
 import { RiDeleteBinFill } from "react-icons/ri";
 import VideoPlayer from "../components/VideoPlayer";
 import ImageZoomViewer from "../components/ImageZoomViewer";
-import { resolveVideoPlayUrl } from "../utils/videoPlayer";
+import { resolveVideoPlayDetails } from "../utils/videoPlayer";
 import { resolveCodeLanguage } from "../utils/codePreview";
 // import DocViewer, { DocViewerRenderers } from '@cyntler/react-doc-viewer';
 import * as mammoth from "mammoth";
@@ -30,6 +30,7 @@ import { DualRingMark } from "../components/brandLoaders";
 import CreateFolderModal from "../components/CreateFolderModal";
 import "../css/CustomFileModal.css";
 import { showToast } from "../components/ToastProvider";
+import { LONG_RUNNING_AWS_REQUEST_OPTIONS } from "../utils/longRunningAwsRequest";
 
 const CODE_CHUNK_LINES = 500;
 
@@ -105,6 +106,7 @@ export default function CustomFileModal({
   const pptxMountRef = useRef(null);
   const [imageZoom, setImageZoom] = useState(1);    // stable mount for pptx-preview
   const [resolvedVideoUrl, setResolvedVideoUrl] = useState("");
+  const [resolvedVideoSize, setResolvedVideoSize] = useState(0);
   const [videoUrlLoading, setVideoUrlLoading] = useState(false);
   const [codeLanguage, setCodeLanguage] = useState("text");
   const [codeChunks, setCodeChunks] = useState([]);
@@ -195,6 +197,7 @@ useEffect(() => {
 useEffect(() => {
   if (!videoSrc || !apiUrl || !token) {
     setResolvedVideoUrl("");
+    setResolvedVideoSize(0);
     setVideoUrlLoading(false);
     return undefined;
   }
@@ -203,13 +206,17 @@ useEffect(() => {
     typeof AbortController !== "undefined" ? new AbortController() : null;
   setVideoUrlLoading(true);
   setResolvedVideoUrl("");
-  resolveVideoPlayUrl(apiUrl, token, videoSrc, {
+  setResolvedVideoSize(0);
+  resolveVideoPlayDetails(apiUrl, token, videoSrc, {
     shared: isSharedValue,
     sharedName: filenameRedux,
     signal: controller?.signal,
   })
-    .then((url) => {
-      if (!cancelled) setResolvedVideoUrl(url);
+    .then(({ url, size }) => {
+      if (!cancelled) {
+        setResolvedVideoUrl(url);
+        setResolvedVideoSize(Number(size) || 0);
+      }
     })
     .catch((err) => {
       if (!cancelled && err?.name !== "AbortError") {
@@ -582,6 +589,7 @@ useEffect(() => {
         keys: [fileName],
       },
       {
+        ...LONG_RUNNING_AWS_REQUEST_OPTIONS,
         headers: {
           Authorization: `Bearer ${token}`,
           "Content-Type": "application/json",
@@ -714,6 +722,7 @@ const handleMove = async (selectedOption) => {
         keys: [fileName],
       },
       {
+        ...LONG_RUNNING_AWS_REQUEST_OPTIONS,
         headers: {
           Authorization: `Bearer ${token}`,
           "Content-Type": "application/json",
@@ -1038,6 +1047,7 @@ const handleMove = async (selectedOption) => {
             key={resolvedVideoUrl}
             fitToFrame
             url={resolvedVideoUrl}
+            fileSize={resolvedVideoSize}
             fileName={fileName || videoSrc}
           />
         ) : codeFilePath ? (

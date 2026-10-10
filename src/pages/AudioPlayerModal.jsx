@@ -17,6 +17,7 @@ import {
 import { LuRepeat, LuRepeat1 } from "react-icons/lu";
 import { TbRepeatOff } from "react-icons/tb";
 import { resolveFileIconPath } from "../utils/fileIcon";
+import { PAUSE_GLOBAL_AUDIO_EVENT } from "../utils/mediaPlaybackGuard";
 import ApTooltip from "../components/ApTooltip";
 
 /** Pages that pin a table/pagination footer — player sits above it. */
@@ -194,6 +195,18 @@ const AudioPlayerModal = ({
     else audioEl.pause();
   }, []);
 
+  useEffect(() => {
+    const pauseForVideo = () => {
+      const audioEl = audioRef.current;
+      if (!audioEl) return;
+      if (!audioEl.paused) audioEl.pause();
+      setIsPlaying(false);
+    };
+    window.addEventListener(PAUSE_GLOBAL_AUDIO_EVENT, pauseForVideo);
+    return () =>
+      window.removeEventListener(PAUSE_GLOBAL_AUDIO_EVENT, pauseForVideo);
+  }, []);
+
   const handleProgressClick = useCallback(
     (event) => {
       const bar = progressRef.current;
@@ -255,6 +268,14 @@ const AudioPlayerModal = ({
   const progressPercent = duration > 0 ? Math.min(100, (currentTime / duration) * 100) : 0;
   const volumeLevel = isMuted ? 0 : volume;
   const volumePercent = Math.round(volumeLevel * 100);
+  const activeRepeat =
+    REPEAT_OPTIONS.find((opt) => opt.id === repeatMode) || REPEAT_OPTIONS[0];
+  const RepeatCycleIcon = activeRepeat.Icon;
+  const cycleRepeatMode = () => {
+    const order = REPEAT_OPTIONS.map((opt) => opt.id);
+    const next = order[(order.indexOf(repeatMode) + 1) % order.length];
+    onSetRepeatMode?.(next);
+  };
 
   const VolumeIcon =
     volumeLevel === 0 ? FaVolumeMute : volumeLevel < 0.5 ? FaVolumeDown : FaVolumeUp;
@@ -318,153 +339,216 @@ const AudioPlayerModal = ({
           role="region"
           aria-label="Audio player"
         >
-      <div className="ap-bar-track">
-        <div className="ap-bar-art">
-          <img src={fileIcon} alt="" />
-        </div>
-        <div className="ap-bar-meta">
-          <ApTooltip label={displayName}>
-            <p className="ap-bar-title">{displayNameShort}</p>
-          </ApTooltip>
-          {folderPath ? (
-            <ApTooltip label={folderPath}>
-              <p className="ap-bar-sub">{folderPath}</p>
-            </ApTooltip>
-          ) : null}
-        </div>
-      </div>
-
-      <div className="ap-bar-divider" aria-hidden="true" />
-
-      <div className="ap-bar-center">
-        <div className="ap-bar-progress">
-          <span className="ap-bar-time">{formatTime(currentTime)}</span>
-          <ApTooltip label="Seek">
-            <div
-              ref={progressRef}
-              className="ap-bar-seek"
-              onClick={handleProgressClick}
-              role="slider"
-              aria-label="Seek"
-              aria-valuemin={0}
-              aria-valuemax={duration}
-              aria-valuenow={currentTime}
-              tabIndex={0}
-            >
-              <div className="ap-bar-seek-rail">
-                <div className="ap-bar-seek-fill" style={{ width: `${progressPercent}%` }} />
-                <div className="ap-bar-seek-thumb" style={{ left: `${progressPercent}%` }} />
-              </div>
+          <div className="ap-bar-track">
+            <div className="ap-bar-art">
+              <img src={fileIcon} alt="" />
             </div>
-          </ApTooltip>
-          <span className="ap-bar-time">{formatTime(duration)}</span>
-        </div>
+            <div className="ap-bar-meta">
+              <ApTooltip label={displayName}>
+                <p className="ap-bar-title">{displayNameShort}</p>
+              </ApTooltip>
+              {folderPath ? (
+                <ApTooltip label={folderPath}>
+                  <p className="ap-bar-sub">{folderPath}</p>
+                </ApTooltip>
+              ) : null}
+            </div>
+          </div>
 
-        <div className="ap-bar-transport">
-          <div className="ap-repeat-ctrl" role="group" aria-label="Repeat mode">
-            {REPEAT_OPTIONS.map(({ id, label, shortLabel, Icon }) => (
-              <ApTooltip key={id} label={label}>
+          <div className="ap-bar-divider ap-bar-divider--start" aria-hidden="true" />
+
+          <div className="ap-bar-center">
+            <div className="ap-bar-progress">
+              <span className="ap-bar-time">{formatTime(currentTime)}</span>
+              <ApTooltip label="Seek">
+                <div
+                  ref={progressRef}
+                  className="ap-bar-seek"
+                  onClick={handleProgressClick}
+                  role="slider"
+                  aria-label="Seek"
+                  aria-valuemin={0}
+                  aria-valuemax={duration}
+                  aria-valuenow={currentTime}
+                  tabIndex={0}
+                >
+                  <div className="ap-bar-seek-rail">
+                    <div
+                      className="ap-bar-seek-fill"
+                      style={{ width: `${progressPercent}%` }}
+                    />
+                    <div
+                      className="ap-bar-seek-thumb"
+                      style={{ left: `${progressPercent}%` }}
+                    />
+                  </div>
+                </div>
+              </ApTooltip>
+              <span className="ap-bar-time ap-bar-time--end">
+                {formatTime(duration)}
+              </span>
+            </div>
+
+            <div className="ap-bar-transport">
+              <div className="ap-repeat-ctrl" role="group" aria-label="Repeat mode">
+                {REPEAT_OPTIONS.map(({ id, label, shortLabel, Icon }) => (
+                  <ApTooltip key={id} label={label}>
+                    <button
+                      type="button"
+                      className={`ap-repeat-opt${
+                        repeatMode === id ? " is-active" : ""
+                      }`}
+                      onClick={() => onSetRepeatMode(id)}
+                      aria-label={label}
+                      aria-pressed={repeatMode === id}
+                    >
+                      <Icon aria-hidden="true" />
+                      <span>{shortLabel}</span>
+                    </button>
+                  </ApTooltip>
+                ))}
+              </div>
+              <ApTooltip label={activeRepeat.label}>
                 <button
                   type="button"
-                  className={`ap-repeat-opt${repeatMode === id ? " is-active" : ""}`}
-                  onClick={() => onSetRepeatMode(id)}
-                  aria-label={label}
-                  aria-pressed={repeatMode === id}
+                  className={`ap-icon-btn ap-repeat-cycle${
+                    repeatMode !== "off" ? " is-active" : ""
+                  }`}
+                  onClick={cycleRepeatMode}
+                  aria-label={activeRepeat.label}
                 >
-                  <Icon aria-hidden="true" />
-                  <span>{shortLabel}</span>
+                  <RepeatCycleIcon aria-hidden="true" />
                 </button>
               </ApTooltip>
-            ))}
-          </div>
-          <ApTooltip label="Previous track">
-            <button type="button" className="ap-icon-btn" onClick={onPrev} aria-label="Previous track">
-              <FaStepBackward />
-            </button>
-          </ApTooltip>
-          <ApTooltip label={isPlaying ? "Pause" : "Play"}>
-            <button
-              type="button"
-              className="ap-play-btn"
-              onClick={togglePlay}
-              aria-label={isPlaying ? "Pause" : "Play"}
-            >
-              {isPlaying ? <FaPause /> : <FaPlay />}
-            </button>
-          </ApTooltip>
-          <ApTooltip label="Next track">
-            <button type="button" className="ap-icon-btn" onClick={onNext} aria-label="Next track">
-              <FaStepForward />
-            </button>
-          </ApTooltip>
-          <ApTooltip label={isShuffleEnabled ? "Shuffle on" : "Shuffle off"}>
-            <button
-              type="button"
-              className={`ap-icon-btn${isShuffleEnabled ? " is-active" : ""}`}
-              onClick={onShuffle}
-              aria-label={isShuffleEnabled ? "Shuffle on" : "Shuffle off"}
-              aria-pressed={isShuffleEnabled}
-            >
-              <FaRandom />
-            </button>
-          </ApTooltip>
-        </div>
-      </div>
-
-      <div className="ap-bar-divider" aria-hidden="true" />
-
-      <div className="ap-bar-volume-section">
-        <ApTooltip label={isMuted || volumeLevel === 0 ? "Unmute" : "Mute"}>
-          <button
-            type="button"
-            className="ap-icon-btn"
-            onClick={toggleMute}
-            aria-label={isMuted || volumeLevel === 0 ? "Unmute" : "Mute"}
-          >
-            <VolumeIcon />
-          </button>
-        </ApTooltip>
-        <ApTooltip label={`Volume ${volumePercent}%`} className="ap-volume-tip">
-          <div className="ap-volume-track">
-            <div className="ap-volume-rail" aria-hidden="true">
-              <div className="ap-volume-fill" style={{ width: `${volumePercent}%` }} />
+              <ApTooltip label="Previous track">
+                <button
+                  type="button"
+                  className="ap-icon-btn"
+                  onClick={onPrev}
+                  aria-label="Previous track"
+                >
+                  <FaStepBackward />
+                </button>
+              </ApTooltip>
+              <ApTooltip label={isPlaying ? "Pause" : "Play"}>
+                <button
+                  type="button"
+                  className="ap-play-btn"
+                  onClick={togglePlay}
+                  aria-label={isPlaying ? "Pause" : "Play"}
+                >
+                  {isPlaying ? <FaPause /> : <FaPlay />}
+                </button>
+              </ApTooltip>
+              <ApTooltip label="Next track">
+                <button
+                  type="button"
+                  className="ap-icon-btn"
+                  onClick={onNext}
+                  aria-label="Next track"
+                >
+                  <FaStepForward />
+                </button>
+              </ApTooltip>
+              <ApTooltip
+                label={isShuffleEnabled ? "Shuffle on" : "Shuffle off"}
+              >
+                <button
+                  type="button"
+                  className={`ap-icon-btn${
+                    isShuffleEnabled ? " is-active" : ""
+                  }`}
+                  onClick={onShuffle}
+                  aria-label={
+                    isShuffleEnabled ? "Shuffle on" : "Shuffle off"
+                  }
+                  aria-pressed={isShuffleEnabled}
+                >
+                  <FaRandom />
+                </button>
+              </ApTooltip>
+              <ApTooltip
+                label={isMuted || volumeLevel === 0 ? "Unmute" : "Mute"}
+              >
+                <button
+                  type="button"
+                  className="ap-icon-btn ap-mute-mobile"
+                  onClick={toggleMute}
+                  aria-label={
+                    isMuted || volumeLevel === 0 ? "Unmute" : "Mute"
+                  }
+                >
+                  <VolumeIcon />
+                </button>
+              </ApTooltip>
             </div>
-            <input
-              type="range"
-              className="ap-volume-range"
-              min="0"
-              max="1"
-              step="0.01"
-              value={volumeLevel}
-              onChange={handleVolumeChange}
-              aria-label="Volume"
-            />
           </div>
-        </ApTooltip>
-        <span className="ap-volume-pct">{volumePercent}%</span>
-        <div className="ap-bar-window-btns">
-          <ApTooltip label="Minimize">
-            <button
-              type="button"
-              className="ap-icon-btn ap-minimize-btn"
-              onClick={() => setIsMinimized(true)}
-              aria-label="Minimize player"
+
+          <div className="ap-bar-divider ap-bar-divider--end" aria-hidden="true" />
+
+          <div className="ap-bar-volume-section">
+            <ApTooltip
+              label={isMuted || volumeLevel === 0 ? "Unmute" : "Mute"}
             >
-              <FaMinus />
-            </button>
-          </ApTooltip>
-          <ApTooltip label="Close player">
-            <button
-              type="button"
-              className="ap-icon-btn ap-close-btn"
-              onClick={handleClose}
-              aria-label="Close player"
+              <button
+                type="button"
+                className="ap-icon-btn"
+                onClick={toggleMute}
+                aria-label={
+                  isMuted || volumeLevel === 0 ? "Unmute" : "Mute"
+                }
+              >
+                <VolumeIcon />
+              </button>
+            </ApTooltip>
+            <ApTooltip
+              label={`Volume ${volumePercent}%`}
+              className="ap-volume-tip"
             >
-              <FaTimes />
-            </button>
-          </ApTooltip>
-        </div>
-      </div>
+              <div className="ap-volume-track">
+                <div className="ap-volume-rail" aria-hidden="true">
+                  <div
+                    className="ap-volume-fill"
+                    style={{ width: `${volumePercent}%` }}
+                  />
+                </div>
+                <input
+                  type="range"
+                  className="ap-volume-range"
+                  min="0"
+                  max="1"
+                  step="0.01"
+                  value={volumeLevel}
+                  onChange={handleVolumeChange}
+                  aria-label="Volume"
+                />
+              </div>
+            </ApTooltip>
+            <span className="ap-volume-pct">{volumePercent}%</span>
+          </div>
+
+          <div className="ap-bar-window-btns">
+            <ApTooltip label="Minimize">
+              <button
+                type="button"
+                className="ap-icon-btn ap-minimize-btn"
+                onClick={() => setIsMinimized(true)}
+                aria-label="Minimize player"
+              >
+                <FaMinus />
+              </button>
+            </ApTooltip>
+            <ApTooltip label="Close player">
+              <button
+                type="button"
+                className="ap-icon-btn ap-close-btn"
+                onClick={handleClose}
+                aria-label="Close player"
+              >
+                <FaTimes />
+              </button>
+            </ApTooltip>
+          </div>
         </div>
       )}
     </>

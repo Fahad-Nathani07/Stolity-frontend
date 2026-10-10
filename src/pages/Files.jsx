@@ -76,6 +76,15 @@ import { isCodeFileExtension } from "../utils/codePreview";
 import { afterMinLoaderDisplay } from "../utils/actionLoaderDelay";
 import { installHashAnchorGuard } from "../utils/preventHashAnchorClicks";
 import { assertFolderNavAllowed } from "../utils/transferFolderLock";
+import {
+  softDeleteProgressLabel,
+  softDeleteSourcePaths,
+} from "../utils/softDeleteProgress";
+import {
+  captureListingContext,
+  isStillOnListingPath,
+  setLiveListingContext,
+} from "../utils/listingRefreshGuard";
 import { subscribeRootListingRefresh } from "../utils/rootListingRefresh";
 import CardFilePreview from "../components/CardFilePreview";
 import UploadFolderPanel from "../components/UploadFolderPanel";
@@ -261,6 +270,7 @@ const Files = ({setSpanExpanded}) => {
   // const [loader_Permanent_Delete, setLoader_Permanent_Delete] = useState(false);
   const [loader_Recycle, setLoader_Recycle] = useState(false);
   const [loader2, setLoader2] = useState(false);
+  const { beginZipping, endZipping, zippingModal } = useZippingProgressModal();
 
     const [showUpgradeModal, setShowUpgradeModal] = useState(false);
   const navigate = useNavigate();
@@ -865,12 +875,10 @@ const handleDragOverFolder = (e) => {
   const handleMClick = (name) => {
     setIsWhisperClicked(true);
     setMovedFile(name);
-    setCurrentPage(1);
   };
   const handleMClose = () => {
     dispatch(resetFolderList());
-    setCurrentPage(1);
-    refreshFileListWithSkeleton();
+    refreshFileListWithLoader();
     setIsWhisperClicked(false);
     clearFileSelection();
     getLatestFolderList();
@@ -940,7 +948,6 @@ const handleDragOverFolder = (e) => {
   const handleMFClick = (name) => {
     setMoveFol(true);
     setMovedFol([name]);
-    setCurrentPage(1);
   };
   const handleMFClose = () => {
     dispatch(resetFolderList());
@@ -954,7 +961,6 @@ const handleDragOverFolder = (e) => {
     setCopiedFile(name);
     setCopiedFileSize(size);
     console.log("qwerty Size:", size)
-    setCurrentPage(1);
   };
   const handleCClose = () => {
     console.log("ggggg handleCClose is being called")
@@ -1116,8 +1122,6 @@ function debounce(fn, delay) {
   const handleMulDelete = async () => {
   const keys = getFileSelectionKeys();
   const keys2 = getFolderSelectionKeys();
-  const loaderStartedAt = Date.now();
-  setLoader_Recycle(true); // Start recycle loader
   dispatch(setLoader(true)); // START loader
 
   try {
@@ -1128,7 +1132,6 @@ function debounce(fn, delay) {
 
     if (hasSharedFolders) {
       dispatch(setLoader(false));
-      setLoader_Recycle(false); // Stop recycle loader
       // showToast("error", "Shared folders cannot be deleted.");
       return;
     }
@@ -1139,62 +1142,71 @@ function debounce(fn, delay) {
 
     if (hasBlackbox) {
       dispatch(setLoader(false));
-      setLoader_Recycle(false);
       // Optional toast
       showToast("warning", "The blackbox folder cannot be deleted.");
       return;
     }
 
-    // Soft delete files if keys have items
-    if (keys.length > 0) {
-      const payload = {
-        sourceFolder: "", // empty string for root folder
-        keys: keys,
-      };
-      await axios.delete(`${apiUrl}soft-delete`, { ...LONG_RUNNING_AWS_REQUEST_OPTIONS, 
-        data: payload,
-        headers: {
-          Authorization: `Bearer ${token}`,
-          "Content-Type": "application/json",
-        },
-      });
-    }
+    const startedListing = captureListingContext();
+    beginZipping(softDeleteProgressLabel({ files: keys, folders: keys2 }), {
+      mode: "delete",
+      sourcePaths: softDeleteSourcePaths({
+        parentPath: "",
+        fileKeys: keys,
+        folderKeys: keys2,
+      }),
+    });
 
-    // Soft delete folders if keys2 have items
-    if (keys2.length > 0) {
-      await axios.delete(`${apiUrl}soft-delete-folder`, { ...LONG_RUNNING_AWS_REQUEST_OPTIONS, 
-        data: { sourceFolders: keys2 },
-        headers: {
-          Authorization: `Bearer ${token}`,
-          "Content-Type": "application/json",
-        },
-      });
-    }
+    try {
+      // Soft delete files if keys have items
+      if (keys.length > 0) {
+        const payload = {
+          sourceFolder: "", // empty string for root folder
+          keys: keys,
+        };
+        await axios.delete(`${apiUrl}soft-delete`, { ...LONG_RUNNING_AWS_REQUEST_OPTIONS, 
+          data: payload,
+          headers: {
+            Authorization: `Bearer ${token}`,
+            "Content-Type": "application/json",
+          },
+        });
+      }
 
-    // After successful delete operations, reset states and refresh data
-    getLatestFolderList();
-    setSelectStatus(false);
-    getFileData(1); // Refresh file data
-    setCurrentPage(1);
-    getRootFolderSize(); // Refresh folder size
+      // Soft delete folders if keys2 have items
+      if (keys2.length > 0) {
+        await axios.delete(`${apiUrl}soft-delete-folder`, { ...LONG_RUNNING_AWS_REQUEST_OPTIONS, 
+          data: { sourceFolders: keys2 },
+          headers: {
+            Authorization: `Bearer ${token}`,
+            "Content-Type": "application/json",
+          },
+        });
+      }
 
-    // Refresh storage info in Redux
-    dispatch(fetchUserFolderSize({ token, force: true }));
+      // After successful delete operations, reset states and refresh data
+      clearFileSelection();
+      setSelectStatus(false);
+      if (isStillOnListingPath(startedListing)) {
+        getLatestFolderList();
+        await refreshFileListWithLoader();
+        getRootFolderSize(); // Refresh folder size
+      }
 
-    clearFileSelection();
+      // Refresh storage info in Redux
+      dispatch(fetchUserFolderSize({ token, force: true }));
 
-    // Show success toast and stop recycle loader after delay
-    afterMinLoaderDisplay(loaderStartedAt, () => {
-      setLoader_Recycle(false);
       showToast(
         "success",
         "Files and folders moved to recycle bin successfully!"
       );
-    });
+    } finally {
+      endZipping();
+    }
   } catch (error) {
     showToast("error", "Some error has occurred");
     console.error("handleMulDelete error:", error);
-    afterMinLoaderDisplay(loaderStartedAt, () => setLoader_Recycle(false));
+    endZipping();
   } finally {
     dispatch(setLoader(false)); // STOP loader
   }
@@ -2091,11 +2103,17 @@ const getFileData = async () => {
 
       setAllEntries(combinedData);
       setTotalEntries(combinedData.length);
+      setCurrentPage((prev) => {
+        const maxPage = Math.max(
+          1,
+          Math.ceil(combinedData.length / itemsPerPage) || 1
+        );
+        return Math.min(prev, maxPage);
+      });
 
       console.log("combinedData ---------------->>>", combinedData);
 
       setSelectedFilter("Sort By");
-      setFileData(combinedData.slice(0, itemsPerPage));
       return combinedData;
     } catch (error) {
       console.log("Unexpected error:", error);
@@ -2115,7 +2133,9 @@ const getFileData = async () => {
   return request;
 };
 
-const refreshFileListWithSkeleton = async () => {
+const refreshFileListWithLoader = async () => {
+  // Let any modal unmount paint before the skeleton (close → then placeholder).
+  await new Promise((r) => requestAnimationFrame(() => r()));
   setPlaceholderLoading(true);
   try {
     await getFileData();
@@ -2124,8 +2144,11 @@ const refreshFileListWithSkeleton = async () => {
   }
 };
 
-  const refreshFileListRef = useRef(refreshFileListWithSkeleton);
-  refreshFileListRef.current = refreshFileListWithSkeleton;
+/** @deprecated Prefer refreshFileListWithLoader — alias for existing call sites. */
+const refreshFileListWithSkeleton = refreshFileListWithLoader;
+
+  const refreshFileListRef = useRef(refreshFileListWithLoader);
+  refreshFileListRef.current = refreshFileListWithLoader;
 
   // Copy/move to root may finish after user left NestedPage — refresh My Files listing
   useEffect(() => {
@@ -2400,6 +2423,7 @@ const chkFileorFolder = (file, size) => {
         filePath: filename,
         shared: isSharedValue,
         sharedName: filenameRedux,
+        inline: true,
       });
       await preloadStreamedImage(url);
       setImageSrc(url);
@@ -2419,6 +2443,7 @@ const chkFileorFolder = (file, size) => {
         filePath: filename,
         shared: isSharedValue,
         sharedName: filenameRedux,
+        inline: true,
       });
       setIsProgressVisible(false);
       setAudioSrc(url);
@@ -2703,8 +2728,8 @@ const chkFileorFolder = (file, size) => {
         );
         getLatestFolderList();
         handleClosePopover();
-        getFileData(currentPage);
         showToast("success", "Folder renamed successfully");
+        await refreshFileListWithLoader();
       } catch (error) {
         showToast("error", `There's an error`);
       } finally {
@@ -2727,8 +2752,8 @@ const chkFileorFolder = (file, size) => {
         );
         setExtension("");
         handleClosePopover();
-        getFileData(currentPage);
         showToast("success", "File renamed successfully");
+        await refreshFileListWithLoader();
       } catch (error) {
         console.log(error)
         // showToast("error", `There's an error while renaming file!`);
@@ -2763,11 +2788,11 @@ const chkFileorFolder = (file, size) => {
           }
         );
         //    console.log(res.data);
-        showToast("success", "Visibility has been changed!");
         setPubPri("");
         setVisiKey("");
         setIsVisibility(false);
-        getFileData(1);
+        showToast("success", "Visibility has been changed!");
+        await refreshFileListWithLoader();
       } catch (error) {
         console.error(`There's error at ${error}`);
         showToast("error", "Error while changing visibility!");
@@ -2840,44 +2865,14 @@ const chkFileorFolder = (file, size) => {
   };
 
   const handleFileDelete = async (file) => {
-    const loaderStartedAt = Date.now();
-    setLoader_Recycle(true); // Start recycle loader
     handleCloseDeletePopover();
 
-    if (file?.isFolder === true) {
-      // Soft delete folder using new API
-      try {
-        dispatch(setLoader(true));
-        const res = await axios.delete(`${apiUrl}soft-delete-folder`, { ...LONG_RUNNING_AWS_REQUEST_OPTIONS, 
-          data: { sourceFolders: [checkLastHash(file.fileName)] },
-          headers: {
-            Authorization: `Bearer ${token}`,
-            "Content-Type": "application/json",
-          },
-        });
+    let sourceFolder = "";
+    let key = file.fileName;
+    const folderKey =
+      file?.isFolder === true ? checkLastHash(file.fileName) : "";
 
-        getLatestFolderList();
-        getFileData(currentPage);
-        getRootFolderSize();
-        dispatch(setLoader(false));
-        afterMinLoaderDisplay(loaderStartedAt, () => {
-          setLoader_Recycle(false);
-          showToast("success", "Folder moved to recycle bin successfully");
-        }); // Stop recycle loader after min display
-      } catch (error) {
-        showToast("error", `There's an error while moving folder to recycle bin`);
-        dispatch(setLoader(false));
-        afterMinLoaderDisplay(loaderStartedAt, () => setLoader_Recycle(false)); // Stop recycle loader after min display
-      }
-    } else {
-      // For files, derive sourceFolder and key using relativePath if available
-      dispatch(setLoader(true));
-      let sourceFolder = "";
-      let key = file.fileName;
-
-      // Debug: Log the file object
-      console.log("File object:", file);
-
+    if (file?.isFolder !== true) {
       if (file.relativePath) {
         const lastSlashIndex = file.relativePath.lastIndexOf("/");
         if (lastSlashIndex !== -1) {
@@ -2885,43 +2880,79 @@ const chkFileorFolder = (file, size) => {
           key = file.relativePath.substring(lastSlashIndex + 1);
         }
       }
+    }
 
-      const dataToSend = {
-        sourceFolder,
-        keys: [key],
-      };
+    const startedListing = captureListingContext();
+    beginZipping(
+      softDeleteProgressLabel({
+        singleName: file?.fileName,
+        files: file?.isFolder === true ? [] : [key],
+        folders: file?.isFolder === true ? [folderKey] : [],
+      }),
+      {
+        mode: "delete",
+        sourcePaths: softDeleteSourcePaths({
+          parentPath: sourceFolder,
+          fileKeys: file?.isFolder === true ? [] : [key],
+          folderKeys: file?.isFolder === true ? [folderKey] : [],
+        }),
+      }
+    );
 
-      // Debug: Log what we're sending
-      console.log("Soft delete payload:", dataToSend);
-      console.log("Full file object:", JSON.stringify(file, null, 2));
+    try {
+      if (file?.isFolder === true) {
+        dispatch(setLoader(true));
+        await axios.delete(`${apiUrl}soft-delete-folder`, { ...LONG_RUNNING_AWS_REQUEST_OPTIONS, 
+          data: { sourceFolders: [folderKey] },
+          headers: {
+            Authorization: `Bearer ${token}`,
+            "Content-Type": "application/json",
+          },
+        });
 
-      try {
-        const res = await axios.delete(`${apiUrl}soft-delete`, { ...LONG_RUNNING_AWS_REQUEST_OPTIONS, 
+        if (isStillOnListingPath(startedListing)) {
+          getLatestFolderList();
+          await refreshFileListWithLoader();
+          getRootFolderSize();
+        }
+        showToast("success", "Folder moved to recycle bin successfully");
+      } else {
+        dispatch(setLoader(true));
+
+        const dataToSend = {
+          sourceFolder,
+          keys: [key],
+        };
+
+        console.log("Soft delete payload:", dataToSend);
+
+        await axios.delete(`${apiUrl}soft-delete`, { ...LONG_RUNNING_AWS_REQUEST_OPTIONS, 
           data: dataToSend,
           headers: {
             Authorization: `Bearer ${token}`,
             "Content-Type": "application/json",
           },
         });
-        console.log("Soft delete response:", res.data);
-        getFileData(currentPage);
-        getRootFolderSize();
-      } catch (error) {
-        console.error("Soft delete error:", error.response?.data || error.message);
-        showToast("error", `There's an error while moving file to recycle bin!`);
-      }
-
-      dispatch(setLoader(false));
-      afterMinLoaderDisplay(loaderStartedAt, () => {
-        setLoader_Recycle(false);
+        if (isStillOnListingPath(startedListing)) {
+          await refreshFileListWithLoader();
+          getRootFolderSize();
+        }
         showToast("success", "File moved to recycle bin successfully");
-      }); // Stop recycle loader after min display
-    }
-
-    // Update remaining storage after delete
-    if (token) {
-      dispatch(fetchUserFolderSize({ token, force: true }));
-      console.log("fetchUserFolderSize executed");
+      }
+    } catch (error) {
+      console.error("Soft delete error:", error.response?.data || error.message);
+      showToast(
+        "error",
+        file?.isFolder === true
+          ? "There's an error while moving folder to recycle bin"
+          : "There's an error while moving file to recycle bin!"
+      );
+    } finally {
+      endZipping();
+      dispatch(setLoader(false));
+      if (token) {
+        dispatch(fetchUserFolderSize({ token, force: true }));
+      }
     }
   };
 
@@ -2941,7 +2972,6 @@ const chkFileorFolder = (file, size) => {
     confirmDownloadBatch,
     onDownloadBatchLimitChoice,
   } = useDownloadBatchLimitGate();
-  const { beginZipping, endZipping, zippingModal } = useZippingProgressModal();
   const [createFolderButton, setCreateFolderButton] = useState(false);
   const pageFilter = (data) => {
     getFileData(currentPage, data);
@@ -3272,6 +3302,7 @@ const handleConfirmDownload = async () => {
   async function processZipFile(file, destinationPath = "") {
   if (!file?.fileName) return;
 
+  const startedListing = captureListingContext();
   const abortController = beginZipping(file.fileName, { mode: "zip" });
 
   const apiUrl1 = `${apiUrl}zip-object`;
@@ -3291,7 +3322,9 @@ const handleConfirmDownload = async () => {
 
     // console.log("Zip successful:", response.data);
     showToast("success", getZipSuccessMessage(zipResult));
-    getFileData();
+    if (isStillOnListingPath(startedListing)) {
+      getFileData();
+    }
   } catch (error) {
     if (isZipUnzipCancelled(error)) {
       showToast("info", "Zip cancelled.");
@@ -3319,6 +3352,7 @@ const handleConfirmDownload = async () => {
   async function processUnzipFile(file, destinationPath = "") {
   if (!file?.fileName) return;
 
+  const startedListing = captureListingContext();
   const abortController = beginZipping(file.fileName, { mode: "unzip" });
 
   const apiUrl1 = `${apiUrl}unzip-object`;
@@ -3338,7 +3372,9 @@ const handleConfirmDownload = async () => {
 
     // console.log("Unzip successful:", response.data);
     showToast("success", "File successfully unzipped!");
-    getFileData();
+    if (isStillOnListingPath(startedListing)) {
+      getFileData();
+    }
   } catch (error) {
     if (isZipUnzipCancelled(error)) {
       showToast("info", "Unzip cancelled.");
@@ -3445,7 +3481,7 @@ const handleConfirmDownload = async () => {
       handleCloseFileUploadModal();
       getLatestFolderList();
       getFolderList();
-      getFileData(currentPage);
+      await refreshFileListWithLoader();
       handleCloseCreateFolder();
       setOpenFileUploadModal(false);
       showToast("success", "Folder created successfully!");
@@ -3517,13 +3553,13 @@ const handleConfirmDownload = async () => {
     if (anySucceeded && !anyFailed && !anyCanceled) {
       showToast("success", `Folder "${displayName}" uploaded successfully!`);
       setCurrentPage(1);
-      getFileData(1);
+      await refreshFileListWithLoader();
     } else if (anySucceeded && anyCanceled) {
       showToast("info", "Upload stopped. Finished files are available.");
-      getFileData(1);
+      await refreshFileListWithLoader();
     } else if (anySucceeded && anyFailed) {
       showToast("warning", "Some folder files failed to upload.");
-      getFileData(1);
+      await refreshFileListWithLoader();
     } else if (allCanceled) {
       showToast("info", "Folder upload was canceled.");
     } else if (anyFailed) {
@@ -3653,6 +3689,7 @@ useEffect(()=>{
   }
 
   const path = "";
+  setLiveListingContext({ page: "files", path });
 
   const removeFile = (index) => {
     const updatedFiles = [...files];
@@ -4090,13 +4127,13 @@ useEffect(()=>{
         showToast("success", "Files uploaded successfully!");
         setCurrentPage(1);
         setPubPri("private");
-        getFileData(1);
+        await refreshFileListWithLoader();
       } else if (anySucceeded && anyCanceled) {
         // List already refreshed on cancel-all; just toast
         showToast("info", "Upload stopped. Finished files are available.");
       } else if (anySucceeded && anyFailed) {
         showToast("warning", "Some files failed to upload.");
-        getFileData(1);
+        await refreshFileListWithLoader();
       } else if (allCanceled) {
         showToast("info", "Uploads were canceled successfully.");
       } else if (anyFailed) {
@@ -4444,8 +4481,6 @@ useEffect(()=>{
   };
 
   const deleteFromModal = async (filename) => {
-    const loaderStartedAt = Date.now();
-    setLoader_Recycle(true);
     const deletedIndex = currentImageIndex;
 
     const lastSlashIndex = filename.lastIndexOf("/");
@@ -4459,6 +4494,15 @@ useEffect(()=>{
             keys: [filename.substring(lastSlashIndex + 1)],
           };
 
+    const startedListing = captureListingContext();
+    beginZipping(softDeleteProgressLabel({ singleName: filename }), {
+      mode: "delete",
+      sourcePaths: softDeleteSourcePaths({
+        parentPath: dataToSend.sourceFolder || "",
+        fileKeys: dataToSend.keys,
+      }),
+    });
+
     try {
       await axios.delete(`${apiUrl}soft-delete`, { ...LONG_RUNNING_AWS_REQUEST_OPTIONS, 
         data: dataToSend,
@@ -4468,15 +4512,15 @@ useEffect(()=>{
         },
       });
 
-      await advancePreviewAfterRemove(filename, deletedIndex);
+      if (isStillOnListingPath(startedListing)) {
+        await advancePreviewAfterRemove(filename, deletedIndex);
+      }
 
-      afterMinLoaderDisplay(loaderStartedAt, () => {
-        setLoader_Recycle(false);
-        showToast("success", "File moved to recycle bin successfully");
-      });
+      showToast("success", "File moved to recycle bin successfully");
     } catch (error) {
       showToast("error", "There's an error while moving file to recycle bin!");
-      afterMinLoaderDisplay(loaderStartedAt, () => setLoader_Recycle(false));
+    } finally {
+      endZipping();
     }
   };
 
@@ -4767,6 +4811,8 @@ useEffect(()=>{
             destinationFolder: targetFolder,
           },
           {
+            ...LONG_RUNNING_AWS_REQUEST_OPTIONS,
+
             headers: {
               Authorization: `Bearer ${token}`,
               "Content-Type": "application/json",
@@ -4794,6 +4840,8 @@ useEffect(()=>{
             keys: [filename.fileName],
           },
           {
+            ...LONG_RUNNING_AWS_REQUEST_OPTIONS,
+
             headers: {
               Authorization: `Bearer ${token}`,
               "Content-Type": "application/json",
@@ -4828,6 +4876,8 @@ useEffect(()=>{
             keys: [key],
           },
           {
+            ...LONG_RUNNING_AWS_REQUEST_OPTIONS,
+
             headers: {
               Authorization: `Bearer ${token}`,
               "Content-Type": "application/json",
@@ -4886,6 +4936,8 @@ useEffect(()=>{
           destinationFolder: folname,
         },
         {
+          ...LONG_RUNNING_AWS_REQUEST_OPTIONS,
+
           headers: {
             Authorization: `Bearer ${token}`,
             "Content-Type": "application/json",
@@ -4919,6 +4971,7 @@ useEffect(()=>{
       ...keys2,
       ...(keys.length > 0 ? [""] : []),
     ];
+    const startedListing = captureListingContext();
     beginZipping(dragLabel, {
       mode: "move",
       sourcePaths,
@@ -4938,8 +4991,9 @@ useEffect(()=>{
       }
       await Promise.all(tasks);
       clearFileSelection();
-      setCurrentPage(1);
-      await refreshFileListWithSkeleton();
+      if (isStillOnListingPath(startedListing)) {
+        await refreshFileListWithLoader();
+      }
     } catch (error) {
       console.error("Drag move failed:", error);
     } finally {
@@ -5002,6 +5056,8 @@ useEffect(()=>{
           keys: [modalFile],
         },
         {
+          ...LONG_RUNNING_AWS_REQUEST_OPTIONS,
+
           headers: {
             Authorization: `Bearer ${token}`,
             "Content-Type": "application/json",
@@ -7407,8 +7463,7 @@ useEffect(()=>{
                   onClose={handleMFClose}
                   currentP={currentPage}
                   onRenameSuccess={async () => {
-                    setCurrentPage(1);
-                    await refreshFileListWithSkeleton();
+                    await refreshFileListWithLoader();
                   }}
                   showToast={showToast}
                 />
@@ -7500,7 +7555,7 @@ useEffect(()=>{
         setModalFile={setModalFile}
         triggerUpdate={triggerUpdate}
         setTriggerUpdate={setTriggerUpdate}
-        onRenameSuccess={() => getFileData(currentPage)}
+        onRenameSuccess={() => refreshFileListWithLoader()}
         onMoveSuccess={onMoveSuccessFromModal}
         handleOpenCreateFolder={handleOpenCreateFolder}
         previewFile={previewFile}

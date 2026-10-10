@@ -88,6 +88,15 @@ import {
 import { isCodeFileExtension } from "../utils/codePreview";
 import { afterMinLoaderDisplay } from "../utils/actionLoaderDelay";
 import { assertFolderNavAllowed } from "../utils/transferFolderLock";
+import {
+  softDeleteProgressLabel,
+  softDeleteSourcePaths,
+} from "../utils/softDeleteProgress";
+import {
+  captureListingContext,
+  isStillOnListingPath,
+  setLiveListingContext,
+} from "../utils/listingRefreshGuard";
 import "../css/FilesToolbar.css";
 import "../css/FilesPage.css";
 import CardFilePreview from "../components/CardFilePreview";
@@ -732,23 +741,30 @@ const Favourites = () => {
 
 
   const handleMulDelete = async () => {
-    const loaderStartedAt = Date.now();
-    setLoader_Recycle(true); // Start recycle loader
     const keys = getFileSelectionKeys();
     const keys2 = getFolderSelectionKeys();
 
+    // Check if any selected item is a shared folder
+    const hasSharedFolders = filedata.some(
+      (file) => file.isShared && keys2.includes(file.fileName)
+    );
+
+    if (hasSharedFolders) {
+      // showToast("error", "Shared folders cannot be deleted.");
+      return;
+    }
+
+    const startedListing = captureListingContext();
+    beginZipping(softDeleteProgressLabel({ files: keys, folders: keys2 }), {
+      mode: "delete",
+      sourcePaths: softDeleteSourcePaths({
+        parentPath: path || "",
+        fileKeys: keys,
+        folderKeys: keys2,
+      }),
+    });
+
     try {
-      // Check if any selected item is a shared folder
-      const hasSharedFolders = filedata.some(
-        (file) => file.isShared && keys2.includes(file.fileName)
-      );
-
-      if (hasSharedFolders) {
-        // showToast("error", "Shared folders cannot be deleted.");
-        setLoader_Recycle(false); // Stop recycle loader
-        return;
-      }
-
       // Soft delete files if keys have items
       if (keys.length > 0) {
         const payload = {
@@ -777,22 +793,20 @@ const Favourites = () => {
         });
       }
 
-      // After successful delete, reset states and refresh data
-      getLatestFolderList();
-      setSelectStatus(false);
-      getFileData(1); // Refresh file data
-      setCurrentPage(1);
-      getRootFolderSize(); // Refresh folder size
       clearFileSelection();
+      setSelectStatus(false);
+      if (isStillOnListingPath(startedListing)) {
+        getLatestFolderList();
+        getFileData(1);
+        setCurrentPage(1);
+        getRootFolderSize();
+      }
 
-      // Show success toast and stop recycle loader after delay
-      afterMinLoaderDisplay(loaderStartedAt, () => {
-        setLoader_Recycle(false);
-        showToast("success", "Files and folders moved to recycle bin successfully!");
-      }); // Stop recycle loader and show toast after min display
+      showToast("success", "Files and folders moved to recycle bin successfully!");
     } catch (error) {
       showToast("error", "Some error has occurred");
-      afterMinLoaderDisplay(loaderStartedAt, () => setLoader_Recycle(false)); // Stop recycle loader after min display
+    } finally {
+      endZipping();
     }
   };
 
@@ -1729,6 +1743,7 @@ const Favourites = () => {
         filePath: filename,
         shared: isSharedValue,
         sharedName: filenameRedux,
+        inline: true,
       });
       await preloadStreamedImage(url);
       setImageSrc(url);
@@ -1745,6 +1760,7 @@ const Favourites = () => {
         apiUrl,
         token,
         filePath: filename,
+        inline: true,
       });
       setIsProgressVisible(false);
       setAudioSrc(url);
@@ -2221,57 +2237,63 @@ const Favourites = () => {
   // };
 
   const handleFileDelete = async (file) => {
-    const loaderStartedAt = Date.now();
-    setLoader_Recycle(true); // Start recycle loader
     handleCloseDeletePopover();
 
-    if (file?.isFolder == true) {
-      // Soft delete folder using new API
-      try {
-        const res = await axios.delete(`${apiUrl}soft-delete-folder`, {
+    let sourceFolder = "";
+    let keyOnly = file.fileName;
+    const folderKey =
+      file?.isFolder == true ? checkLastHash(file.fileName) : "";
+
+    if (file?.isFolder != true && file.relativePath) {
+      const lastSlashIndex = file.relativePath.lastIndexOf("/");
+      if (lastSlashIndex !== -1) {
+        sourceFolder = file.relativePath.substring(0, lastSlashIndex);
+        sourceFolder = sourceFolder.replace(/\/$/, "");
+        keyOnly = file.relativePath.substring(lastSlashIndex + 1);
+      }
+    }
+
+    const startedListing = captureListingContext();
+    beginZipping(
+      softDeleteProgressLabel({
+        singleName: file?.fileName,
+        files: file?.isFolder == true ? [] : [keyOnly],
+        folders: file?.isFolder == true ? [folderKey] : [],
+      }),
+      {
+        mode: "delete",
+        sourcePaths: softDeleteSourcePaths({
+          parentPath: sourceFolder || path || "",
+          fileKeys: file?.isFolder == true ? [] : [keyOnly],
+          folderKeys: file?.isFolder == true ? [folderKey] : [],
+        }),
+      }
+    );
+
+    try {
+      if (file?.isFolder == true) {
+        await axios.delete(`${apiUrl}soft-delete-folder`, {
           ...LONG_RUNNING_AWS_REQUEST_OPTIONS,
-          data: { sourceFolders: [checkLastHash(file.fileName)] },
+          data: { sourceFolders: [folderKey] },
           headers: {
             Authorization: `Bearer ${token}`,
             "Content-Type": "application/json",
           },
         });
 
-        getLatestFolderList();
-        getFileData(currentPage);
-        getRootFolderSize();
-        afterMinLoaderDisplay(loaderStartedAt, () => {
-          setLoader_Recycle(false);
-          showToast("success", "Folder moved to recycle bin successfully");
-        });
-      } catch (error) {
-        showToast("error", `There's an error while moving folder to recycle bin`);
-        afterMinLoaderDisplay(loaderStartedAt, () => setLoader_Recycle(false));
-      }
-    } else {
-      // For files, use soft-delete API
-      const deleteKey = file.fileName;
-
-      // Extract folder and filename if file is nested
-      let sourceFolder = "";
-      let keyOnly = deleteKey;
-
-      if (file.relativePath) {
-        const lastSlashIndex = file.relativePath.lastIndexOf("/");
-        if (lastSlashIndex !== -1) {
-          sourceFolder = file.relativePath.substring(0, lastSlashIndex);
-          sourceFolder = sourceFolder.replace(/\/$/, ""); // Remove trailing slash
-          keyOnly = file.relativePath.substring(lastSlashIndex + 1);
+        if (isStillOnListingPath(startedListing)) {
+          getLatestFolderList();
+          getFileData(currentPage);
+          getRootFolderSize();
         }
-      }
+        showToast("success", "Folder moved to recycle bin successfully");
+      } else {
+        const dataToSend = {
+          sourceFolder,
+          keys: [keyOnly],
+        };
 
-      const dataToSend = {
-        sourceFolder,
-        keys: [keyOnly],
-      };
-
-      try {
-        const res = await axios.delete(`${apiUrl}soft-delete`, {
+        await axios.delete(`${apiUrl}soft-delete`, {
           ...LONG_RUNNING_AWS_REQUEST_OPTIONS,
           data: dataToSend,
           headers: {
@@ -2279,16 +2301,21 @@ const Favourites = () => {
             "Content-Type": "application/json",
           },
         });
-        getFileData(currentPage);
-        getRootFolderSize();
-        afterMinLoaderDisplay(loaderStartedAt, () => {
-          setLoader_Recycle(false);
-          showToast("success", "File moved to recycle bin successfully");
-        });
-      } catch (error) {
-        showToast("error", "There's an error while moving file to recycle bin!");
-        afterMinLoaderDisplay(loaderStartedAt, () => setLoader_Recycle(false));
+        if (isStillOnListingPath(startedListing)) {
+          getFileData(currentPage);
+          getRootFolderSize();
+        }
+        showToast("success", "File moved to recycle bin successfully");
       }
+    } catch (error) {
+      showToast(
+        "error",
+        file?.isFolder == true
+          ? "There's an error while moving folder to recycle bin"
+          : "There's an error while moving file to recycle bin!"
+      );
+    } finally {
+      endZipping();
     }
   };
 
@@ -3101,6 +3128,7 @@ const Favourites = () => {
     input.click();
   };
   const path = "";
+  setLiveListingContext({ page: "favourites", path });
   const removeFile = (index) => {
     const updatedFiles = [...files];
     updatedFiles.splice(index, 1);
@@ -4566,6 +4594,8 @@ const Favourites = () => {
             destinationFolder: targetFolder,
           },
           {
+            ...LONG_RUNNING_AWS_REQUEST_OPTIONS,
+
             headers: {
               Authorization: `Bearer ${token}`,
               "Content-Type": "application/json",
@@ -4592,6 +4622,8 @@ const Favourites = () => {
             keys: [filename.fileName],
           },
           {
+            ...LONG_RUNNING_AWS_REQUEST_OPTIONS,
+
             headers: {
               Authorization: `Bearer ${token}`,
               "Content-Type": "application/json",
@@ -4624,6 +4656,8 @@ const Favourites = () => {
             keys: [key],
           },
           {
+            ...LONG_RUNNING_AWS_REQUEST_OPTIONS,
+
             headers: {
               Authorization: `Bearer ${token}`,
               "Content-Type": "application/json",
@@ -4667,6 +4701,8 @@ const Favourites = () => {
           destinationFolder: folname,
         },
         {
+          ...LONG_RUNNING_AWS_REQUEST_OPTIONS,
+
           headers: {
             Authorization: `Bearer ${token}`,
             "Content-Type": "application/json",
@@ -4702,6 +4738,7 @@ const Favourites = () => {
       ),
       ...(dragKeys.length > 0 ? [""] : []),
     ];
+    const startedListing = captureListingContext();
     beginZipping(dragLabel, {
       mode: "move",
       sourcePaths,
@@ -4713,7 +4750,9 @@ const Favourites = () => {
       if (dragKeys.length > 0) tasks.push(moveMultipleDrag(dragKeys, targetFolder));
       if (dragKeys2.length > 0) tasks.push(moveMultipleDrag2(dragKeys2, targetFolder));
       await Promise.all(tasks);
-      getFileData(currentPage);
+      if (isStillOnListingPath(startedListing)) {
+        getFileData(currentPage);
+      }
     } catch (error) {
       console.error("Drag move failed:", error);
     } finally {
@@ -4775,6 +4814,8 @@ const Favourites = () => {
           keys: [modalFile],
         },
         {
+          ...LONG_RUNNING_AWS_REQUEST_OPTIONS,
+
           headers: {
             Authorization: `Bearer ${token}`,
             "Content-Type": "application/json",

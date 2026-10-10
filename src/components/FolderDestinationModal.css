@@ -17,12 +17,13 @@
 .fdm-dialog {
   width: 100%;
   max-width: 520px;
-  /* Cap height so modal never fills / overflows short laptop screens */
+  /* Keep modal height stable (empty folders included) — same min as max */
   max-height: min(620px, calc(100vh - 24px));
   max-height: min(620px, calc(100dvh - 24px));
+  min-height: min(620px, calc(100vh - 24px));
+  min-height: min(620px, calc(100dvh - 24px));
   display: flex;
   flex-direction: column;
-  min-height: 0;
   margin: auto;
   animation: fdm-slide-up 0.28s cubic-bezier(0.22, 1, 0.36, 1);
 }
@@ -40,7 +41,8 @@
   max-height: inherit;
   min-height: 0;
   width: 100%;
-  height: auto;
+  height: 100%;
+  flex: 1 1 auto;
 }
 
 .fdm-header {
@@ -333,9 +335,10 @@ span.fdm-crumb.is-active {
   border-radius: 12px;
   overflow: hidden;
   flex: 1 1 auto;
-  min-height: 0;
-  /* ~5–6 folder rows (~52px each) */
+  /* ~5–6 folder rows — fixed height so empty folders don't shrink the modal */
   max-height: min(320px, 38vh);
+  min-height: min(320px, 38vh);
+  height: min(320px, 38vh);
   display: flex;
   flex-direction: column;
 }
@@ -347,7 +350,7 @@ span.fdm-crumb.is-active {
   flex: 1 1 auto;
   height: 100% !important;
   max-height: 100% !important;
-  min-height: 0 !important;
+  min-height: 100% !important;
 }
 
 .fdm-progress {
@@ -456,6 +459,8 @@ span.fdm-crumb.is-active {
   .fdm-dialog {
     max-height: min(580px, calc(100vh - 20px));
     max-height: min(580px, calc(100dvh - 20px));
+    min-height: min(580px, calc(100vh - 20px));
+    min-height: min(580px, calc(100dvh - 20px));
   }
 
   .fdm-header {
@@ -480,6 +485,8 @@ span.fdm-crumb.is-active {
 
   .fdm-picker-wrap {
     max-height: min(280px, 34vh);
+    min-height: min(280px, 34vh);
+    height: min(280px, 34vh);
   }
 
   .fdm-btn {
@@ -491,6 +498,8 @@ span.fdm-crumb.is-active {
   .fdm-dialog {
     max-height: calc(100vh - 16px);
     max-height: calc(100dvh - 16px);
+    min-height: calc(100vh - 16px);
+    min-height: calc(100dvh - 16px);
   }
 
   .fdm-subtitle {
@@ -502,6 +511,8 @@ span.fdm-crumb.is-active {
 
   .fdm-picker-wrap {
     max-height: min(240px, 32vh);
+    min-height: min(240px, 32vh);
+    height: min(240px, 32vh);
   }
 
   .fdm-storage-hint {
@@ -523,6 +534,8 @@ span.fdm-crumb.is-active {
   .fdm-dialog {
     max-height: min(620px, calc(100vh - 16px));
     max-height: min(620px, calc(100dvh - 16px));
+    min-height: min(620px, calc(100vh - 16px));
+    min-height: min(620px, calc(100dvh - 16px));
   }
 
   .fdm-card {
