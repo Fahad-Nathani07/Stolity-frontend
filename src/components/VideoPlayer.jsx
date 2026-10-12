@@ -115,8 +115,9 @@ const VideoPlayer = ({
 
     let vw = video?.videoWidth;
     let vh = video?.videoHeight;
-    if (!vw || !vh) {
-      if (!error) return;
+    const dimensionsPending = !vw || !vh;
+    if (dimensionsPending) {
+      // Full-stage 16:9 until metadata loads — avoids tiny box while buffering.
       vw = 16;
       vh = 9;
     }
@@ -382,12 +383,22 @@ const VideoPlayer = ({
     observer.observe(stage);
     fitPlayerToFrame();
 
-    return () => observer.disconnect();
-  }, [fitToFrame, fitPlayerToFrame, url]);
+    const video = getInternalVideo();
+    const onMeta = () => fitPlayerToFrame();
+    video?.addEventListener("loadedmetadata", onMeta);
+    video?.addEventListener("resize", onMeta);
+
+    return () => {
+      observer.disconnect();
+      video?.removeEventListener("loadedmetadata", onMeta);
+      video?.removeEventListener("resize", onMeta);
+    };
+  }, [fitToFrame, fitPlayerToFrame, url, ready, getInternalVideo]);
 
   const handleReady = useCallback(() => {
     setReady(true);
     fitPlayerToFrame();
+    requestAnimationFrame(() => fitPlayerToFrame());
     if (shouldAutoPlayRef.current) {
       shouldAutoPlayRef.current = false;
       pauseGlobalAudioPlayer();
