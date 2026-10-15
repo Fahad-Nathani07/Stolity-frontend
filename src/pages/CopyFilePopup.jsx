@@ -206,7 +206,7 @@ const handleMove = async () => {
     ? 500 * 1024 ** 3
     : (subscription && subscription.storage
         ? parseStorageToBytes(subscription.storage)
-        : 5 * 1024 ** 3);
+        : 15 * 1024 ** 3);
   console.log("ddddd: totalBytes:", totalBytes);
 
   const usedBytes = folderSize ? folderSize.sizeInBytes : 0;

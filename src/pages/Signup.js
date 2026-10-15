@@ -979,7 +979,7 @@ const Signup = ({ setSpanExpanded, spanExpanded }) => {
             <div className="login_graphic_text_inner">
               <h2>Upload Files</h2>
               <p>
-                Store upto 5GB data in a centralised location for easy access and
+                Store upto 15GB data in a centralised location for easy access and
                 management.
               </p>
             </div>

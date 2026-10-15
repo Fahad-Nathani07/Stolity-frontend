@@ -120,15 +120,15 @@ const Home1 = () => {
       idealFor: "Casual users",
       price: "0.00",
       cycle: "/year",
-      storage: "5 GB Storage",
+      storage: "15 GB Storage",
       isPremium: false,
-      boldPhrases: ["5 GB", "Upload/download", "File preview", "App Lock"],
+      boldPhrases: ["15 GB", "Upload/download", "File preview", "App Lock"],
       features: [
         "Upload/download & file management",
         "File preview & background upload",
         "Rename, create folders, move/copy files",
         "App Lock (Face ID/biometric)",
-        "Up to 5 GB free storage",
+        "Up to 15 GB free storage",
         "Profile, avatar, theme & settings",
       ],
     },
@@ -290,7 +290,7 @@ const Home1 = () => {
                 </button>
               </ScrollReveal> */}
               <ScrollReveal className="h1-feature-strip" variant="fadeSoft" delay={0.38}>
-                <span>5 GB Free Storage</span>
+                <span>15 GB Free Storage</span>
                 <span>Secure Sharing</span>
                 <span>No Ads</span>
                 <span>Web & Mobile</span>

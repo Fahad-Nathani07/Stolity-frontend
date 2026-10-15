@@ -82,7 +82,7 @@ const StorageWarningModal = () => {
       ? 500 * 1_000_000_000
       : subscription?.storage
       ? parseStorageToBytes(subscription.storage)
-      : 5 * 1_000_000_000;
+      : 15 * 1_000_000_000;
 
     const usedBytes = folderSize?.sizeInBytes || 0;
 

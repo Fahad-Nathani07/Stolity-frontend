@@ -3623,7 +3623,7 @@ const totalBytes = specialUserFlag
   ? 500 * 1_000_000_000                // 500 GB → 500 000 000 000 bytes
   : (subscription && subscription.storage
       ? parseStorageToBytes(subscription.storage)
-      : 5 * 1_000_000_000);            // default 5 GB → 5 000 000 000 bytes
+      : 15 * 1_000_000_000);           // default 15 GB free
 
 const usedBytes = folderSize ? folderSize.sizeInBytes : 0;
 const remainingBytes = totalBytes - usedBytes;

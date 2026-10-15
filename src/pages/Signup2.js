@@ -210,7 +210,7 @@ const Signup = () => {
           <div className="login_graphic_text">
             <h2>Upload Files</h2>
             <p>
-              Store upto 5GB data in a centralised location for easy access and
+              Store upto 15GB data in a centralised location for easy access and
               management.
             </p>
           </div>

@@ -354,7 +354,7 @@ export default function SupportUserDetailsModal({
   const syncPlanForm = (u) => {
     const ids = Array.isArray(u?.entitlementIds) ? u.entitlementIds : [];
     setPlanId(ids[0] || "");
-    const limit = String(u?.storageLimit || "5 GB").replace(/[^\d.]/g, "");
+    const limit = String(u?.storageLimit || "15 GB").replace(/[^\d.]/g, "");
     setStorageGb(limit || "5");
   };
 
@@ -462,7 +462,7 @@ export default function SupportUserDetailsModal({
     if (!userId || endingPremium || !isActivePremium) return;
     if (
       !window.confirm(
-        `End premium for ${user?.email || "this user"}?\n\nExpiry will be set to yesterday and storage reset to 5 GB.`
+        `End premium for ${user?.email || "this user"}?\n\nExpiry will be set to yesterday and storage reset to 15 GB.`
       )
     ) {
       return;
@@ -611,7 +611,7 @@ export default function SupportUserDetailsModal({
     parsePlanLimitBytes(user?.storageLimit) ??
     (Number(user?.storageLimitBytes) > 0
       ? Number(user.storageLimitBytes)
-      : 5 * 1024 ** 3);
+      : 15 * 1024 ** 3);
   const remainingBytes = Math.max(0, limitBytes - usedBytes);
   const overBytes = Math.max(0, usedBytes - limitBytes);
   const usagePct =

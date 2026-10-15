@@ -738,7 +738,7 @@ function parseStorageToBytes(storageStr) {
 
 const totalBytes = subscription && subscription.storage
   ? parseStorageToBytes(subscription.storage)
-  : 5 * 1_000_000_000;                    // default 5 GB in decimal bytes
+  : 15 * 1_000_000_000;                   // default 15 GB free
 
 const usedBytes = folderSize ? folderSize.sizeInBytes : 0;
 const remainingBytes = totalBytes - usedBytes;
@@ -2191,7 +2191,7 @@ const performRestore = async ({ useOriginalPath = false } = {}) => {
 
   const totalBytes = subscription && subscription.storage
     ? parseStorageToBytes(subscription.storage)
-    : 5 * 1024 ** 3;
+    : 15 * 1024 ** 3;
   const usedBytes = folderSize ? folderSize.sizeInBytes : 0;
   const remainingBytes = totalBytes - usedBytes;
 

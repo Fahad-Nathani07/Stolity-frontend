@@ -102,7 +102,7 @@ const togglePasswordVisibility = () => {
         <div className="login_left_col">
           <div className='login_graphic_text'>
             <h2>Upload Files</h2>
-            <p>Store upto 5GB data in a centralised location for easy access and management.</p>
+            <p>Store upto 15GB data in a centralised location for easy access and management.</p>
           </div>
           <div className='login_graphic'><img src={Illustration} className='img_responsive' /></div>
         </div>

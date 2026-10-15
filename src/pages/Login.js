@@ -29,7 +29,7 @@ const REMEMBER_EMAIL_KEY = "stolity_remember_email";
 const slides = [
   {
     title: "Upload Files",
-    text: "Store up to 5GB data in a centralised location for easy access and management.",
+    text: "Store up to 15GB data in a centralised location for easy access and management.",
   },
   { title: "Fast Access", text: "Experience quicker uploads for every file type — faster, smoother, better." },
   {

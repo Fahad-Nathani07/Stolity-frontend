@@ -128,13 +128,13 @@ function StorageUsageBar({ usedLabel, limitLabel, percent }) {
       title={
         pct == null
           ? "Storage unavailable"
-          : `${usedLabel || "—"} / ${limitLabel || "5 GB"} (${pct}%)`
+          : `${usedLabel || "—"} / ${limitLabel || "15 GB"} (${pct}%)`
       }
     >
       <div className="ssd-usage-bar__meta">
         <span className="ssd-usage-bar__used">{usedLabel || "—"}</span>
         <span className="ssd-usage-bar__sep">/</span>
-        <span className="ssd-usage-bar__limit">{limitLabel || "5 GB"}</span>
+        <span className="ssd-usage-bar__limit">{limitLabel || "15 GB"}</span>
         <span className="ssd-usage-bar__pct">
           {pct == null ? "—" : `${Math.round(pct)}%`}
           {over ? " over" : ""}
