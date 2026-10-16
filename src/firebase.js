@@ -23,7 +23,7 @@ import { getAnalytics, isSupported, logEvent } from "firebase/analytics";
 //   appId: "1:871312686248:web:053c0b7553aa45d3fa169d",
 // };
 
-
+// # ************************* Production Bucket Keys [15th October 2026] *******************************
 // NEW Prod [After 15th October 2026] — Analytics on (no measurementId)
 const firebaseConfig = {
   apiKey: "AIzaSyDxO6oK1rrthzW9KLote8A3Bo-gIjYMCNc",
@@ -36,8 +36,8 @@ const firebaseConfig = {
 };
 
 
-
-// UAT [Before 15th October 2026]
+// # ************************* UAT Bucket Keys [15th October 2026] *******************************
+// UAT [After 15th October 2026]
 // const firebaseConfig = {
 //   apiKey: "AIzaSyD_Y0SBJdHUt5-biumKxmlJMdmh-0mWx6E",
 //   authDomain: "nodeserver-filestorage.firebaseapp.com",
