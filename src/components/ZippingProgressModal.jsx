@@ -4,15 +4,18 @@ import "../css/UploadProgressModal.css";
 import "./ZippingProgressModal.css";
 
 /**
- * Floating panel during server-side zip.
+ * Floating panel during server-side zip / unzip.
  * Indeterminate bar: slides left → right, exits right, reappears left.
+ * @param {'zip'|'unzip'} [mode]
  */
 export default function ZippingProgressModal({
   isOpen,
   folderName = "",
+  mode = "zip",
   onCancel,
 }) {
   const [minimized, setMinimized] = useState(false);
+  const isUnzip = mode === "unzip";
 
   useEffect(() => {
     if (!isOpen) {
@@ -27,7 +30,15 @@ export default function ZippingProgressModal({
       .replace(/\\/g, "/")
       .split("/")
       .filter(Boolean)
-      .pop() || "folder";
+      .pop() || (isUnzip ? "archive" : "folder");
+
+  const title = isUnzip ? "Unzipping" : "Zipping";
+  const subtitle = isUnzip
+    ? "Unzipping files, please wait…"
+    : "Zipping files, please wait…";
+  const eta = isUnzip
+    ? "Extracting ZIP on server"
+    : "Preparing ZIP on server";
 
   return (
     <DraggableFloatShell
@@ -41,10 +52,10 @@ export default function ZippingProgressModal({
           className="tp-mini"
           onClick={() => setMinimized(false)}
           title="Expand"
-          aria-label="Expand zipping panel"
+          aria-label={`Expand ${title.toLowerCase()} panel`}
         >
           <span className="tp-mini-spinner" aria-hidden="true" />
-          <span className="tp-mini-label">Zipping</span>
+          <span className="tp-mini-label">{title}</span>
           <span className="tp-mini-expand" aria-hidden="true">
             ▢
           </span>
@@ -68,7 +79,7 @@ export default function ZippingProgressModal({
                   className="tp-window-btn tp-window-btn--close"
                   onClick={onCancel}
                   title="Cancel"
-                  aria-label="Cancel zipping"
+                  aria-label={`Cancel ${title.toLowerCase()}`}
                 >
                   ✕
                 </button>
@@ -76,8 +87,8 @@ export default function ZippingProgressModal({
             </div>
             <div className="tp-header-body">
               <div className="tp-header-text">
-                <h5 className="tp-title">Zipping</h5>
-                <p className="tp-subtitle">Zipping files, please wait…</p>
+                <h5 className="tp-title">{title}</h5>
+                <p className="tp-subtitle">{subtitle}</p>
               </div>
             </div>
           </div>
@@ -89,12 +100,12 @@ export default function ZippingProgressModal({
             <div
               className="tp-bar-wrap tp-bar-wrap--indeterminate"
               role="progressbar"
-              aria-label="Zipping in progress"
+              aria-label={`${title} in progress`}
               aria-valuetext="Indeterminate"
             >
               <div className="tp-bar tp-bar--indeterminate" />
             </div>
-            <div className="tp-eta is-empty">Preparing ZIP on server</div>
+            <div className="tp-eta is-empty">{eta}</div>
           </div>
         </div>
       )}

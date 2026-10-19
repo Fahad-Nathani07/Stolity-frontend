@@ -4,6 +4,10 @@ import { useSelector } from 'react-redux';
 import { UploadContext } from '../pages/UploadContext';
 import { useDownloadList } from '../pages/DownloadContext';
 import { endUserSession } from '../utils/endUserSession';
+import {
+  isZipUnzipBusy,
+  subscribeZipUnzipBusy,
+} from '../utils/zipUnzipSessionBusy';
 
 // TESTING: restore to 15 * 60 * 1000 and WARNING_TIMEOUT 60 * 1000 before release
 const INACTIVITY_TIMEOUT = 15 * 60 * 1000;   // 15 minutes (testing)
@@ -20,6 +24,7 @@ const InactivityHandler = () => {
 
   const [showWarning, setShowWarning] = useState(false);
   const [secondsLeft, setSecondsLeft] = useState(WARNING_SECONDS);
+  const [zipUnzipBusy, setZipUnzipBusy] = useState(() => isZipUnzipBusy());
 
   const timeoutRef = useRef(null);
   const warningRef = useRef(null);
@@ -44,6 +49,8 @@ const isProtectedRoute = !publicPaths.includes(location.pathname) &&
                          !location.pathname.endsWith('/careers') &&
                          !location.pathname.endsWith('/careers/') &&
                          !location.pathname.startsWith('/Industries');
+
+  useEffect(() => subscribeZipUnzipBusy(setZipUnzipBusy), []);
 
   // ────────────────────────────────────────────────
   // All hooks run unconditionally — ESLint happy
@@ -76,8 +83,13 @@ const isProtectedRoute = !publicPaths.includes(location.pathname) &&
   }, [isProtectedRoute, showAudioPlayer]);
 
   const isSessionBusy = useCallback(() => {
-    return isAnyTransferActive() || isAnyMediaActive();
-  }, [isAnyTransferActive, isAnyMediaActive]);
+    return (
+      isAnyTransferActive() ||
+      isAnyMediaActive() ||
+      zipUnzipBusy ||
+      isZipUnzipBusy()
+    );
+  }, [isAnyTransferActive, isAnyMediaActive, zipUnzipBusy]);
 
   const isSessionBusyRef = useRef(isSessionBusy);
   const resetTimerRef = useRef(() => {});
@@ -154,7 +166,7 @@ const isProtectedRoute = !publicPaths.includes(location.pathname) &&
     return () => clearInterval(interval);
   }, [showWarning, handleLogout, isProtectedRoute]);
 
-  // Keep session alive while uploads/downloads (incl. paused), media, or audio player
+  // Keep session alive while uploads/downloads, zip/unzip, media, or audio player
   useEffect(() => {
     if (!isProtectedRoute) return; // skip on public paths
 

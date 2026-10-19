@@ -10,10 +10,12 @@ import {
   postZipOrUnzip,
   getZipUnzipErrorMessage,
   getZipSuccessMessage,
+  isZipUnzipCancelled,
 } from "../utils/zipUnzipRequest";
 import { uploadFolderViaMultipart } from "../utils/uploadFolderViaMultipart";
 import UploadBatchLimitModal from "../components/UploadBatchLimitModal";
 import { useUploadBatchLimitGate } from "../hooks/useUploadBatchLimitGate";
+import { useZippingProgressModal } from "../hooks/useZippingProgressModal";
 import {
   UPLOAD_BATCH_CANCEL,
   UPLOAD_BATCH_ZIP_INSTEAD,
@@ -228,6 +230,7 @@ const DefaultFolder = () => {
     confirmUploadBatch,
     onBatchLimitChoice,
   } = useUploadBatchLimitGate();
+  const { beginZipping, endZipping, zippingModal } = useZippingProgressModal();
 
   //Anurag Declaration
   const token = sessionStorage.getItem("number");
@@ -1771,6 +1774,9 @@ const DefaultFolder = () => {
   }
 
   async function processZipFile(file, destinationPath = "") {
+    if (!file?.fileName) return;
+
+    const abortController = beginZipping(file.fileName, { mode: "zip" });
     const apiUrl1 = `${apiUrl}zip-object`;
 
     const requestData = {
@@ -1783,16 +1789,23 @@ const DefaultFolder = () => {
         headers: {
           Authorization: `Bearer ${token}`,
         },
+        signal: abortController?.signal,
       });
 
       console.log("Zip successful");
       showToast("success", getZipSuccessMessage(zipResult));
     } catch (error) {
+      if (isZipUnzipCancelled(error)) {
+        showToast("info", "Zip cancelled.");
+        return;
+      }
       console.error("Error zipping file:", error);
       showToast(
         "error",
         getZipUnzipErrorMessage(error, "Failed to zip file.")
       );
+    } finally {
+      endZipping();
     }
   }
 
@@ -1806,6 +1819,9 @@ const DefaultFolder = () => {
   }
 
   async function processUnzipFile(file, destinationPath = "") {
+    if (!file?.fileName) return;
+
+    const abortController = beginZipping(file.fileName, { mode: "unzip" });
     const apiUrl1 = `${apiUrl}unzip-object`;
 
     const requestData = {
@@ -1818,16 +1834,23 @@ const DefaultFolder = () => {
         headers: {
           Authorization: `Bearer ${token}`,
         },
+        signal: abortController?.signal,
       });
 
       console.log("Unzip successful");
       showToast("success", "File successfully unzipped!");
     } catch (error) {
+      if (isZipUnzipCancelled(error)) {
+        showToast("info", "Unzip cancelled.");
+        return;
+      }
       console.error("Error unzipping file:", error);
       showToast(
         "error",
         getZipUnzipErrorMessage(error, "Failed to unzip file.")
       );
+    } finally {
+      endZipping();
     }
   }
 
@@ -5391,6 +5414,7 @@ const DefaultFolder = () => {
         source={batchLimitPrompt?.source}
         onChoice={onBatchLimitChoice}
       />
+      {zippingModal}
     </>
   );
 };

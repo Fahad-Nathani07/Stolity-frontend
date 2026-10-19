@@ -328,10 +328,28 @@ export async function ensureDownloadWritable({
   return writable;
 }
 
+/** Max bytes per write() — keeps Chrome from queuing huge network chunks. */
+const WRITE_CHUNK_BYTES = 1024 * 1024; // 1 MiB
+
+/**
+ * Close + reopen the writable every N bytes so Chromium flushes to disk.
+ * Without this, createWritable() often stages hundreds of MB–GB in RAM and
+ * the next large file in a batch can stall mid-stream under memory pressure.
+ */
+const FLUSH_EVERY_BYTES = 32 * 1024 * 1024; // 32 MiB
+
+async function reopenWritableAt(fileHandle, offset) {
+  const next = await fileHandle.createWritable({ keepExistingData: true });
+  if (offset > 0 && typeof next.seek === "function") {
+    await next.seek(offset);
+  }
+  return next;
+}
+
 async function pipeResponseToWritable(
   response,
   writable,
-  { totalBytes, onProgress, signal }
+  { totalBytes, onProgress, signal, fileHandle = null }
 ) {
   const reader = response.body?.getReader?.();
   if (!reader) {
@@ -339,6 +357,8 @@ async function pipeResponseToWritable(
   }
 
   let loaded = 0;
+  let sinceFlush = 0;
+  let currentWritable = writable;
   const progress = createThrottledProgress(onProgress);
 
   try {
@@ -350,14 +370,40 @@ async function pipeResponseToWritable(
       if (done) break;
       if (!value || !(value.byteLength || value.length)) continue;
 
-      // Await each write so Chrome applies backpressure (no TransformStream queue).
-      await writable.write(value);
-      loaded += value.byteLength || value.length || 0;
-      // Drop reference promptly; do not keep chunk arrays.
-      progress.report(progressFromBytes(loaded, totalBytes), loaded, totalBytes);
+      const bytes =
+        value instanceof Uint8Array ? value : new Uint8Array(value);
+      let offset = 0;
+      while (offset < bytes.byteLength) {
+        if (signal?.aborted) {
+          throw new DOMException("Aborted", "AbortError");
+        }
+        const end = Math.min(offset + WRITE_CHUNK_BYTES, bytes.byteLength);
+        const piece = bytes.subarray(offset, end);
+        await currentWritable.write(piece);
+        const n = piece.byteLength;
+        loaded += n;
+        sinceFlush += n;
+        offset = end;
+        progress.report(
+          progressFromBytes(loaded, totalBytes),
+          loaded,
+          totalBytes
+        );
+
+        if (
+          fileHandle &&
+          sinceFlush >= FLUSH_EVERY_BYTES
+        ) {
+          await currentWritable.close();
+          currentWritable = await reopenWritableAt(fileHandle, loaded);
+          sinceFlush = 0;
+          // Let Chrome reclaim staging buffers before more network data.
+          await new Promise((r) => setTimeout(r, 0));
+        }
+      }
     }
 
-    await writable.close();
+    await currentWritable.close();
     progress.end(loaded, totalBytes);
     return loaded;
   } catch (err) {
@@ -365,7 +411,7 @@ async function pipeResponseToWritable(
       await reader.cancel();
     } catch (_) {}
     try {
-      await writable.abort();
+      await currentWritable.abort();
     } catch (_) {}
     throw err;
   }
@@ -377,6 +423,7 @@ async function pipeResponseToWritable(
  * @param {string} opts.fileName
  * @param {boolean} [opts.isFolder] folder zip → disk (picker); files → Blob (no picker)
  * @param {FileSystemWritableFileStream|null} [opts.writable]
+ * @param {FileSystemFileHandle|null} [opts.fileHandle] enables periodic disk flush (multi-GB)
  * @param {(percent: number, loaded: number, total: number|null) => void} [opts.onProgress]
  */
 export async function streamDownloadResponse({
@@ -384,6 +431,7 @@ export async function streamDownloadResponse({
   fileName,
   isFolder = false,
   writable: existingWritable = null,
+  fileHandle = null,
   onProgress,
   signal,
 }) {
@@ -419,6 +467,7 @@ export async function streamDownloadResponse({
         totalBytes,
         onProgress,
         signal,
+        fileHandle,
       });
       return { loaded, totalBytes, streamedToDisk: true };
     }

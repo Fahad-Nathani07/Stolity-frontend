@@ -665,6 +665,26 @@ const SideNav = () => {
                       letterSpacing: "-0.03em",
                       transition: "background .16s, color .16s"
                     }}
+                    onClick={() => { navigate("/SupportTickets"); setShowSettingsMenu(false); }}
+                    onMouseOver={e => (e.currentTarget.style.color = "#E5660F")}
+                    onMouseOut={e => (e.currentTarget.style.color = "#222")}
+                  >
+                    Support Tickets
+                  </button>
+                  <button
+                    className="settings-menu-item"
+                    style={{
+                      background: "none",
+                      border: "none",
+                      padding: "13px 28px",
+                      fontSize: "15px",
+                      color: "#222",
+                      cursor: "pointer",
+                      textAlign: "left",
+                      fontWeight: 500,
+                      letterSpacing: "-0.03em",
+                      transition: "background .16s, color .16s"
+                    }}
                     onClick={() => { navigate("/FAQPage"); setShowSettingsMenu(false); }}
                     onMouseOver={e => (e.currentTarget.style.color = "#E5660F")}
                     onMouseOut={e => (e.currentTarget.style.color = "#222")}

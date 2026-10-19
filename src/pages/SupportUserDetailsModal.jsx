@@ -33,6 +33,63 @@ function formatBytes(bytes) {
   return `${v < 10 && i > 0 ? v.toFixed(2) : v < 100 && i > 0 ? v.toFixed(1) : Math.round(v)} ${units[i]}`;
 }
 
+/** Parse plan label ("50 GB") with same 1024 base as formatBytes / formatFileSize. */
+function parsePlanLimitBytes(label) {
+  if (typeof label === "number" && Number.isFinite(label) && label > 0) {
+    return label;
+  }
+  const s = String(label || "").trim().toUpperCase();
+  const m = s.match(/^([\d.]+)\s*(B|BYTES|KB|MB|GB|TB)?$/);
+  if (!m) return null;
+  const n = parseFloat(m[1]);
+  if (!Number.isFinite(n) || n < 0) return null;
+  let unit = m[2] || "GB";
+  if (unit === "BYTES") unit = "B";
+  const mult = {
+    B: 1,
+    KB: 1024,
+    MB: 1024 ** 2,
+    GB: 1024 ** 3,
+    TB: 1024 ** 4,
+  };
+  return n * (mult[unit] || 1024 ** 3);
+}
+
+function formatDateKeyPretty(key) {
+  if (!key || !/^\d{4}-\d{2}-\d{2}$/.test(key)) return key || "—";
+  const [y, m, d] = key.split("-").map(Number);
+  try {
+    return new Date(y, m - 1, d).toLocaleDateString("en-IN", {
+      day: "2-digit",
+      month: "short",
+      year: "numeric",
+    });
+  } catch {
+    return key;
+  }
+}
+
+function todayKey() {
+  const d = new Date();
+  const y = d.getFullYear();
+  const m = String(d.getMonth() + 1).padStart(2, "0");
+  const day = String(d.getDate()).padStart(2, "0");
+  return `${y}-${m}-${day}`;
+}
+
+function formatActivityRange(from, to) {
+  const today = todayKey();
+  if (!from && !to) return "—";
+  if (from && to && from === to) {
+    const pretty = formatDateKeyPretty(from);
+    return from === today ? `Today · ${pretty}` : pretty;
+  }
+  if (from && to) {
+    return `${formatDateKeyPretty(from)} → ${formatDateKeyPretty(to)}`;
+  }
+  return formatDateKeyPretty(from || to);
+}
+
 function sanitizeSharedFolderInput(value) {
   return String(value || "")
     .trim()
@@ -548,25 +605,46 @@ export default function SupportUserDetailsModal({
   );
   const totals = usage?.totals || {};
 
-  const usedBytes = Number(user?.storageUsedBytes) || 0;
-  const limitBytes = Number(user?.storageLimitBytes) || 5e9;
-  const freeBytes = Math.max(0, limitBytes - usedBytes);
+  const usedBytes = Math.max(0, Number(user?.storageUsedBytes) || 0);
+  // Prefer re-parsing plan label so Used/Remaining/Limit share one byte base.
+  const limitBytes =
+    parsePlanLimitBytes(user?.storageLimit) ??
+    (Number(user?.storageLimitBytes) > 0
+      ? Number(user.storageLimitBytes)
+      : 5 * 1024 ** 3);
+  const remainingBytes = Math.max(0, limitBytes - usedBytes);
+  const overBytes = Math.max(0, usedBytes - limitBytes);
   const usagePct =
-    user?.usagePercent != null
-      ? Number(user.usagePercent)
-      : limitBytes > 0
-        ? Math.round((usedBytes / limitBytes) * 1000) / 10
-        : 0;
+    limitBytes > 0
+      ? Math.round((usedBytes / limitBytes) * 1000) / 10
+      : 0;
   const overQuota = usedBytes > limitBytes;
+
+  const usedLabel = formatBytes(usedBytes);
+  const remainingLabel = formatBytes(remainingBytes);
+  const limitLabel = formatBytes(limitBytes);
+  const overLabel = formatBytes(overBytes);
 
   const storageSegments = overQuota
     ? [
-        { label: "Used", value: usedBytes, color: "#dc2626" },
-        { label: "Over limit", value: 0.0001, color: "#fecaca" },
+        { label: "Plan limit", value: limitBytes || 0.0001, color: "#e5660f" },
+        { label: "Over", value: overBytes || 0.0001, color: "#dc2626" },
       ]
     : [
-        { label: "Used", value: usedBytes || 0.0001, color: "#e5660f" },
-        { label: "Free", value: freeBytes || 0.0001, color: "#e8dccb" },
+        { label: "Used", value: usedBytes || 0.0001, color: "#16a34a" },
+        { label: "Remaining", value: remainingBytes || 0.0001, color: "#e8dccb" },
+      ];
+
+  const storageLegend = overQuota
+    ? [
+        { label: "Used", value: usedLabel, color: "#dc2626" },
+        { label: "Plan limit", value: limitLabel, color: "#e5660f" },
+        { label: "Over by", value: overLabel, color: "#fecaca" },
+      ]
+    : [
+        { label: "Used", value: usedLabel, color: "#16a34a" },
+        { label: "Remaining", value: remainingLabel, color: "#e8dccb" },
+        { label: "Plan limit", value: limitLabel, color: "#a8a29e" },
       ];
 
   const upBytes = Number(totals.uploadedBytes) || 0;
@@ -667,23 +745,32 @@ export default function SupportUserDetailsModal({
               <div className="sud-hero-main">
                 <div className="sud-hero-badges">
                   <span
-                    className={`sud-badge ${
+                    className={`sud-badge sud-badge--labeled ${
                       user.accountType === "Premium"
                         ? "sud-badge--premium"
                         : "sud-badge--free"
                     }`}
                   >
-                    {user.accountType || "Free"}
+                    <em>Account</em>
+                    <span className="sud-badge__value">
+                      {user.accountType || "Free"}
+                    </span>
                   </span>
                   <span
-                    className={`sud-badge ${
+                    className={`sud-badge sud-badge--labeled ${
                       user.isSoftBan ? "sud-badge--ban" : "sud-badge--ok"
                     }`}
                   >
-                    {user.status}
+                    <em>Status</em>
+                    <span className="sud-badge__value">
+                      {user.status || "Active"}
+                    </span>
                   </span>
-                  <span className="sud-badge sud-badge--plan">
-                    {user.plan || "Free"}
+                  <span className="sud-badge sud-badge--labeled sud-badge--plan">
+                    <em>Plan</em>
+                    <span className="sud-badge__value">
+                      {user.plan || "Free"}
+                    </span>
                   </span>
                 </div>
                 <h2>{user.name || user.email?.split("@")[0] || "User"}</h2>
@@ -705,13 +792,13 @@ export default function SupportUserDetailsModal({
                   <div>
                     <span>Storage</span>
                     <strong>
-                      {user.storageUsed || "0 B"}
-                      <em> / {user.storageLimit || "5 GB"}</em>
+                      {usedLabel}
+                      <em> / {limitLabel}</em>
                     </strong>
                   </div>
                 </div>
                 <p className="sud-range">
-                  Activity · {fromDate} → {toDate}
+                  Activity · {formatActivityRange(fromDate, toDate)}
                 </p>
               </div>
             </header>
@@ -726,22 +813,7 @@ export default function SupportUserDetailsModal({
                       centerTitle={`${Math.min(usagePct, 999)}%`}
                       centerSub={overQuota ? "Over" : "Used"}
                     />
-                    <Legend
-                      items={[
-                        {
-                          label: "Used",
-                          value: user.storageUsed || formatBytes(usedBytes),
-                          color: overQuota ? "#dc2626" : "#e5660f",
-                        },
-                        {
-                          label: overQuota ? "Limit" : "Available",
-                          value: overQuota
-                            ? user.storageLimit || formatBytes(limitBytes)
-                            : formatBytes(freeBytes),
-                          color: "#e8dccb",
-                        },
-                      ]}
-                    />
+                    <Legend items={storageLegend} />
                   </div>
                 </div>
 
@@ -919,7 +991,7 @@ export default function SupportUserDetailsModal({
                     {emailDomain && !sharedFolders.includes(emailDomain) && (
                       <button
                         type="button"
-                        className="ssd-btn ssd-btn-ghost ssd-btn-xs"
+                        className="sud-folder-add-btn"
                         onClick={() => addSharedFolder(emailDomain)}
                         disabled={savingFolders}
                       >
@@ -972,7 +1044,7 @@ export default function SupportUserDetailsModal({
                     />
                     <button
                       type="button"
-                      className="ssd-btn ssd-btn-ghost ssd-btn-xs"
+                      className="sud-folder-add-btn"
                       onClick={() => addSharedFolder(newSharedFolder)}
                       disabled={savingFolders || !newSharedFolder.trim()}
                     >
