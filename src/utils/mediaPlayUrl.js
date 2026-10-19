@@ -29,9 +29,9 @@ function normalizeApiBase(apiUrl) {
  * @param {string} [opts.sharedName]
  * @param {boolean} [opts.inline] - Content-Disposition: inline (PDF iframe)
  * @param {AbortSignal} [opts.signal]
- * @returns {Promise<string>} Spaces signed URL or proxy getFileDefault URL
+ * @returns {Promise<{ url: string, size: number }>}
  */
-export async function resolveMediaPlayUrl({
+export async function resolveMediaPlayDetails({
   apiUrl,
   token,
   filePath,
@@ -47,14 +47,16 @@ export async function resolveMediaPlayUrl({
   const key = cacheKey(path, sharedParam, inline);
   const hit = urlCache.get(key);
   if (hit && hit.expiresAt > Date.now() + 60_000) {
-    return hit.url;
+    return { url: hit.url, size: Number(hit.size) || 0 };
   }
 
-  const proxyFallback = () =>
-    buildFileStreamUrl(apiUrl, token, path, {
+  const proxyFallback = () => ({
+    url: buildFileStreamUrl(apiUrl, token, path, {
       shared: Boolean(sharedParam),
       sharedName: sharedParam,
-    });
+    }),
+    size: 0,
+  });
 
   try {
     const params = new URLSearchParams({ filePath: path });
@@ -75,11 +77,13 @@ export async function resolveMediaPlayUrl({
     if (!data?.url) throw new Error("download-file-url missing url");
 
     const expiresIn = Number(data.expiresIn) || 3600;
+    const size = Number(data.size) || 0;
     urlCache.set(key, {
       url: data.url,
+      size,
       expiresAt: Date.now() + expiresIn * 1000,
     });
-    return data.url;
+    return { url: data.url, size };
   } catch (err) {
     if (err?.name === "AbortError") throw err;
     console.warn(
@@ -88,6 +92,15 @@ export async function resolveMediaPlayUrl({
     );
     return proxyFallback();
   }
+}
+
+/**
+ * @param {object} opts — same as resolveMediaPlayDetails
+ * @returns {Promise<string>} Spaces signed URL or proxy getFileDefault URL
+ */
+export async function resolveMediaPlayUrl(opts) {
+  const { url } = await resolveMediaPlayDetails(opts);
+  return url;
 }
 
 export function clearMediaPlayUrlCache() {

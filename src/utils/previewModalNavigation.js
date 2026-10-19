@@ -1,3 +1,5 @@
+import { CODE_FILE_EXTENSIONS } from "./codePreview";
+
 /** File types the preview modal can navigate (audio is skipped like handleNext). */
 const AUDIO_TYPES = new Set([
   "mp3", "m4a", "wav", "ogg", "aac",
@@ -15,6 +17,8 @@ export const DOC_TYPES = new Set([
   "doc", "docx", "ppt", "pptx", "pptm", "pps", "ppsx",
   "xls", "xlsx", "xlsm", "csv", "ods",
 ]);
+
+export const CODE_TYPES = new Set(CODE_FILE_EXTENSIONS);
 
 const extensionFromFileName = (name) => {
   const base = String(name || "").split("/").pop() || "";
@@ -98,6 +102,7 @@ export const openPreviewFile = (file, index, actions) => {
     setAudioSrc,
     setPdfSrc,
     setDocSrc,
+    setCodeFilePath,
     getImageInfo,
     getPdfInfo,
     getDocInfo,
@@ -119,6 +124,7 @@ export const openPreviewFile = (file, index, actions) => {
   setAudioSrc?.("");
   setPdfSrc?.("");
   setDocSrc?.("");
+  setCodeFilePath?.("");
 
   if (IMAGE_TYPES.has(ft)) {
     setIsProgressVisible?.(false);
@@ -141,6 +147,12 @@ export const openPreviewFile = (file, index, actions) => {
   if (DOC_TYPES.has(ft)) {
     setIsProgressVisible?.(false);
     getDocInfo?.(fileName);
+    return;
+  }
+
+  if (CODE_TYPES.has(ft)) {
+    setIsProgressVisible?.(false);
+    setCodeFilePath?.(fileName);
     return;
   }
 

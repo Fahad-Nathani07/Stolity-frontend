@@ -1,0 +1,118 @@
+/* Shared empty state — Files / Favourites / Recycle Bin / Nested */
+
+.files-empty-state {
+  width: 100%;
+  box-sizing: border-box;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 32px 16px;
+  background: linear-gradient(135deg, #fafbff 0%, #f5f7fb 100%);
+  border-radius: 16px;
+  border: 1px solid rgba(15, 23, 42, 0.06);
+  /* Fill remaining scrollport without forcing page scroll when empty */
+  flex: 1 1 auto;
+  min-height: 240px;
+  height: auto;
+}
+
+.files-empty-state__inner {
+  text-align: center;
+  max-width: 320px;
+}
+
+.files-empty-state__art {
+  width: 195px;
+  height: 120px;
+  margin: 0 auto 16px;
+  border-radius: 999px;
+  background: rgba(59, 130, 246, 0.06);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #2563eb;
+  font-size: 22px;
+  font-weight: 600;
+}
+
+.files-empty-state__art img {
+  max-width: 100%;
+  height: auto;
+}
+
+.files-empty-state__title {
+  font-size: 18px;
+  font-weight: 600;
+  color: #0f172a;
+  margin-bottom: 6px;
+}
+
+.files-empty-state__desc {
+  font-size: 13px;
+  color: #64748b;
+  line-height: 1.6;
+}
+
+/* Desktop: keep a taller empty panel without overflowing the flex shell */
+@media (min-width: 768px) {
+  .files-empty-state {
+    min-height: min(520px, calc(100vh - 260px));
+  }
+}
+
+/* Mobile: compact padding; flex fill handled when parent is empty-layout */
+@media (max-width: 767px) {
+  .files-empty-state {
+    padding: 24px 14px;
+    min-height: 0;
+  }
+
+  .files-empty-state__art {
+    width: 160px;
+    height: 100px;
+    margin-bottom: 12px;
+  }
+
+  .files-empty-state__title {
+    font-size: 16px;
+  }
+
+  .files-empty-state__desc {
+    font-size: 12px;
+  }
+}
+
+/*
+  When empty state is present, fill the scrollport and hide the peek scrollbar.
+*/
+@media (max-width: 767px) {
+  .files-layout .files-page > .content-wrapper:has(.files-empty-state) {
+    display: flex !important;
+    flex-direction: column !important;
+    overflow-y: hidden !important;
+  }
+
+  .files-layout .files-page .table_box:has(.files-empty-state),
+  .files-layout .files-page #dataView:has(.files-empty-state) {
+    display: flex;
+    flex-direction: column;
+    flex: 1 1 auto;
+    min-height: 0;
+  }
+
+  /* Pages wrap EmptyFilesState in margin:20px — flatten that for flex fill */
+  .files-layout .files-page #dataView:has(.files-empty-state) > div {
+    flex: 1 1 auto;
+    display: flex;
+    flex-direction: column;
+    min-height: 0;
+    margin: 8px 0 !important;
+  }
+
+  .files-layout .files-page .files-empty-state {
+    height: auto;
+    max-height: none;
+    flex: 1 1 auto;
+    min-height: 0;
+  }
+}

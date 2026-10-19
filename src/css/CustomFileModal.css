@@ -433,6 +433,34 @@
   box-shadow: 0 12px 40px rgba(0, 0, 0, 0.35);
 }
 
+.cfm-code-wrap {
+  width: min(88%, 1100px);
+  height: 70vh;
+  overflow: auto;
+  background: #fafafa;
+  border-radius: 10px;
+  box-shadow: 0 12px 40px rgba(0, 0, 0, 0.35);
+  text-align: left;
+}
+
+.cfm-code-wrap .cfm-code-highlighter {
+  margin: 0 !important;
+  border-radius: 0 !important;
+  font-size: 13px !important;
+  background: transparent !important;
+}
+
+.cfm-code-loading {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 16px;
+  color: #6b7280;
+  font-size: 13px;
+}
+
 .cfm-doc-wrap {
   width: min(88%, 1000px);
   height: 70vh;
@@ -720,43 +748,43 @@
   margin: 0 2px;
 }
 
-@media (max-width: 768px) {
-  .cfm-top {
-    left: 12px;
-    right: 56px;
-    max-width: none;
-  }
-
-  .cfm-filename {
-    max-width: 36vw;
+/* Mobile — keep here so it wins over base rules (this file loads after FilesModalsMobile.css) */
+@media screen and (max-width: 991px) {
+  .custom-file-modal {
+    height: 100dvh;
+    height: 100vh;
+    max-height: 100dvh;
+    max-height: 100vh;
+    overflow: hidden;
   }
 
   .cfm-stage {
-    margin: 54px 12px 0;
-    height: calc(100vh - 220px);
+    flex: 1 1 auto;
+    min-height: 0;
+    height: auto;
+    max-height: none;
+    margin: 54px 8px 0;
   }
 
   .cfm-image-outer {
-    height: calc(100% - 80px);
-    max-height: calc(100% - 80px);
-    margin: 6px auto 12px;
-  }
-
-  .cfm-image-viewport {
     height: 100%;
-    max-height: none;
-    margin: 0;
+    max-height: 100%;
+    margin: 0 auto;
   }
 
-  .cfm-move-pill {
+  .cfm-filename {
+    max-width: none;
+  }
+
+  .cfm-footer {
+    flex: 0 0 auto;
+    padding: 8px 12px max(12px, env(safe-area-inset-bottom, 0px));
+  }
+
+  .cfm-move-pill,
+  .cfm-move-pill--chips {
     width: 100%;
     min-width: 0;
-    flex-direction: column;
-    align-items: stretch;
     border-radius: 16px;
-  }
-
-  .cfm-move-label {
-    text-align: center;
   }
 }

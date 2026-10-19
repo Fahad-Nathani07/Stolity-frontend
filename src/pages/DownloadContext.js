@@ -36,7 +36,8 @@ export const DownloadProvider = ({ children }) => {
   const [downloads, setDownloads] = useState([]);
 
   const addDownload = useCallback(
-    (id, fileName, abortController, isFolder = false) => {
+    (id, fileName, abortController, isFolder = false, extras = {}) => {
+      const sizeInBytes = Math.max(0, Number(extras.sizeInBytes) || 0);
       setDownloads((prev) => [
         ...prev,
         {
@@ -45,6 +46,8 @@ export const DownloadProvider = ({ children }) => {
           isFolder: Boolean(isFolder),
           progress: 0,
           abortController,
+          batchAbortController: extras.batchAbortController || null,
+          sizeInBytes,
           paused: false,
           operation: "download",
         },
@@ -60,7 +63,9 @@ export const DownloadProvider = ({ children }) => {
         download?.abortController &&
         Math.round(download.progress || 0) < 100
       ) {
-        download.abortController.abort();
+        try {
+          download.abortController.abort();
+        } catch (_) {}
       }
       return prev.filter((d) => d.id !== id);
     });
@@ -72,10 +77,12 @@ export const DownloadProvider = ({ children }) => {
       prev.forEach((d) => {
         try {
           if (d.paused) return;
-          const ac = d.abortController;
-          if (!ac || seen.has(ac)) return;
-          seen.add(ac);
-          ac.abort?.();
+          const controllers = [d.abortController, d.batchAbortController];
+          controllers.forEach((ac) => {
+            if (!ac || seen.has(ac)) return;
+            seen.add(ac);
+            ac.abort?.();
+          });
         } catch (e) {}
       });
       return [];

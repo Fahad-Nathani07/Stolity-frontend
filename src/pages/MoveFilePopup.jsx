@@ -1,14 +1,7 @@
-import React, { useContext, useState, useEffect } from "react";
-import { UploadContext } from "./UploadContext";
+import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { useSelector, useDispatch } from "react-redux";
 import { handleS3CopyError } from "../utils/handleS3CopyError";
-import {
-  startMoveTransfer,
-  finishMoveTransfer,
-  failMoveTransfer,
-} from "../utils/moveTransferProgress";
-import { afterLoaderComplete } from "../utils/actionLoaderDelay";
 import {
   normalizeFolderPath,
   normalizeMovePath,
@@ -28,7 +21,6 @@ import {
 } from "../store/fileSlicer";
 import axios from "axios";
 
-import LoaderDualRing from "../components/LoaderDualRing";
 import FolderPickerListPanel from "../components/FolderPickerListPanel";
 import FolderDestinationModal, {
   formatModalItemSummary,
@@ -39,6 +31,13 @@ import {
 } from "../utils/getFolderParams";
 import { fetchFolderListing } from "../utils/fetchFolderListing";
 import { showToast as globalShowToast } from "../components/ToastProvider";
+import { useZippingProgressModal } from "../hooks/useZippingProgressModal";
+import { refreshRootListingIfDestinationIsRoot } from "../utils/rootListingRefresh";
+import { LONG_RUNNING_AWS_REQUEST_OPTIONS } from "../utils/longRunningAwsRequest";
+import {
+  captureListingContext,
+  isStillOnListingPath,
+} from "../utils/listingRefreshGuard";
 
 const MoveFilePopup = ({
   moveKey,
@@ -49,8 +48,7 @@ const MoveFilePopup = ({
   reloadAfterTast,
   showToast: showToastProp,
 }) => {
-  const { addUpload, updateUploadProgress, removeUpload } =
-    useContext(UploadContext);
+  const { beginZipping, endZipping, zippingModal } = useZippingProgressModal();
   const [isRadioChecked, setIsRadioChecked] = useState(false);
   const [locationPath, setLocationPath] = useState("");
   const apiUrl = process.env.REACT_APP_API_ENDPOINT;
@@ -339,21 +337,32 @@ const handleMove = async () => {
     return;
   }
 
+  const progressLabel =
+    fileKeys.length + folderKeys.length > 1
+      ? `${fileKeys.length + folderKeys.length} items`
+      : fileKeys[0] ||
+        folderKeys[0]?.split("/").filter(Boolean).pop() ||
+        "items";
+
+  const { sourceFolder: adjustedSourceFolder, keys: apiFileKeys } =
+    resolveSourceFolderAndKeys(fileKeys, sourceFol, movePathOptions);
+
+  // Lock From (source folder + folders being moved) and To (destination)
+  const sourcePaths = [
+    ...folderKeys,
+    ...(apiFileKeys.length > 0 ? [adjustedSourceFolder] : []),
+  ];
+
   setLoading2(true);
-  setProgress(0);
-  let uploadId = null;
+  const startedListing = captureListingContext();
+  beginZipping(progressLabel, {
+    mode: "move",
+    sourcePaths,
+    destinationPath: selectedPath,
+  });
 
   try {
     const sharedParams = isSharedValue ? { shared: filenameRedux } : {};
-
-    const { sourceFolder: adjustedSourceFolder, keys: apiFileKeys } =
-      resolveSourceFolderAndKeys(fileKeys, sourceFol, movePathOptions);
-
-    uploadId = startMoveTransfer(
-      addUpload,
-      updateUploadProgress,
-      "Moving items…"
-    );
 
     if (apiFileKeys.length > 0) {
       await axios.post(
@@ -364,6 +373,7 @@ const handleMove = async () => {
           keys: apiFileKeys,
         },
         {
+          ...LONG_RUNNING_AWS_REQUEST_OPTIONS,
           headers: {
             Authorization: `Bearer ${token}`,
             "Content-Type": "application/json",
@@ -381,6 +391,7 @@ const handleMove = async () => {
           destinationFolder: selectedPath,
         },
         {
+          ...LONG_RUNNING_AWS_REQUEST_OPTIONS,
           headers: {
             Authorization: `Bearer ${token}`,
             "Content-Type": "application/json",
@@ -390,35 +401,30 @@ const handleMove = async () => {
       );
     }
 
-    setProgress(100);
-    finishMoveTransfer(updateUploadProgress, removeUpload, uploadId);
-    uploadId = null;
-
     const parts = [];
     if (apiFileKeys.length) parts.push(`${apiFileKeys.length} file(s)`);
     if (folderKeys.length) parts.push(`${folderKeys.length} folder(s)`);
     showToast("success", `Moved ${parts.join(" and ")} successfully!`);
 
-    if (typeof reloadAfterTast === "function") {
-      setTimeout(() => {
-        reloadAfterTast();
-      }, 300);
+    endZipping();
+    setLoading2(false);
+    onClose();
+    // Only refresh if user is still on the same page/folder as when move started
+    if (isStillOnListingPath(startedListing)) {
+      refreshRootListingIfDestinationIsRoot(selectedPath);
+      if (typeof reloadAfterTast === "function") {
+        await reloadAfterTast();
+      }
     }
-    afterLoaderComplete(() => {
-      setLoading2(false);
-      onClose();
-    });
   } catch (error) {
     console.error("wwwww: Error moving items:", error);
-    setProgress(0);
-    failMoveTransfer(removeUpload, uploadId);
-    uploadId = null;
+    endZipping();
     handleS3CopyError(
       error,
       showToast,
       "Failed to move selected items. Please try again."
     );
-    afterLoaderComplete(() => setLoading2(false));
+    setLoading2(false);
   }
 };
 
@@ -513,34 +519,43 @@ const handleCreateFolder = async () => {
 
   return (
     <>
-      <FolderDestinationModal
-        variant="move"
-        title="Move to"
-        itemSummary={formatModalItemSummary(keys)}
-        selectedPath={selectedPath ?? ""}
-        onClose={handleClose}
-        onConfirm={handleMove}
-        confirmLabel="Move here"
-        confirmLoading={loading2}
-        locationPath={locationPath}
-        counter={counter}
-        onRootClick={handleRootClick}
-        onBack={handleBack}
-        newFolderName={newFolderName}
-        onNewFolderNameChange={setNewFolderName}
-        onCreateFolder={handleCreateFolder}
-        creatingFolder={creatingFolder}
-      >
-        <FolderPickerListPanel
-          loading={loadingFolders}
-          folders={folders1}
+      {!loading2 && (
+        <FolderDestinationModal
+          variant="move"
+          title="Move to"
+          itemSummary={formatModalItemSummary(keys)}
+          selectedPath={selectedPath ?? ""}
+          onClose={handleClose}
+          onConfirm={handleMove}
+          confirmLabel="Move here"
+          confirmLoading={false}
+          locationPath={locationPath}
           counter={counter}
-          getTextAfterSlashes={getTextAfterSlashes}
-          onOpenFolder={handleItemClick}
-        />
-      </FolderDestinationModal>
-
-      {loading2 && <LoaderDualRing />}
+          onRootClick={handleRootClick}
+          onBack={handleBack}
+          newFolderName={newFolderName}
+          onNewFolderNameChange={setNewFolderName}
+          onCreateFolder={handleCreateFolder}
+          creatingFolder={creatingFolder}
+        >
+          <FolderPickerListPanel
+            loading={loadingFolders}
+            folders={folders1}
+            counter={counter}
+            getTextAfterSlashes={getTextAfterSlashes}
+            onOpenFolder={handleItemClick}
+            // Only lock folders being moved — not the source parent (e.g. Movies),
+            // so users can still open Movies → English as destination.
+            disabledFolderPaths={(Array.isArray(folders) ? folders : []).map(
+              (f) =>
+                typeof f === "string"
+                  ? f
+                  : f?.filePath || f?.fileName || f?.path || ""
+            )}
+          />
+        </FolderDestinationModal>
+      )}
+      {zippingModal}
     </>
   );
 };

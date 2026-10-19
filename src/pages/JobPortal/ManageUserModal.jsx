@@ -247,7 +247,7 @@ const handleUpgradePlan = async () => {
       ? `${storageValue.trim()} GB`
       : planGrant
         ? "50 GB"
-        : "5 GB";
+        : "15 GB";
 
     await updateDoc(userRef, {
       "subscription.entitlement_ids": planGrant
@@ -278,7 +278,7 @@ const handleEndPremium = async () => {
   if (!isActivePremium || endingPremium) return;
 
   const confirmed = window.confirm(
-    `End premium for ${userEmail || "this user"}?\n\nExpiration will be set to yesterday and storage will reset to 5 GB.`
+    `End premium for ${userEmail || "this user"}?\n\nExpiration will be set to yesterday and storage will reset to 15 GB.`
   );
   if (!confirmed) return;
 
@@ -303,7 +303,7 @@ const handleEndPremium = async () => {
     await updateDoc(userRef, {
       "subscription.entitlement_ids": [],
       "subscription.expiration_at": yesterdayMs,
-      "subscription.storage": "5 GB",
+      "subscription.storage": "15 GB",
       "subscription.firebase_updated_time": firebaseUpdatedTimeStr,
       "subscription.storageUpdatedAt": serverTimestamp(),
       "subscription.subscriptionUpdatedAt": serverTimestamp(),
@@ -313,7 +313,7 @@ const handleEndPremium = async () => {
       ...(prev || {}),
       entitlement_ids: [],
       expiration_at: yesterdayMs,
-      storage: "5 GB",
+      storage: "15 GB",
       firebase_updated_time: firebaseUpdatedTimeStr,
     }));
     setEntitlementIds([]);
@@ -675,7 +675,7 @@ const handleCreateCompany = async () => {
                     if (isExpired) {
                       return (
                         <div className="mum-card mum-card--danger">
-                          Free User (Expired) — 5 GB storage
+                          Free User (Expired) — 15 GB storage
                           <div className="mum-hint" style={{ marginTop: 8, color: "inherit", opacity: 0.9 }}>
                             Expired on{" "}
                             {new Date(expirationTime).toLocaleDateString("en-IN", {
@@ -729,7 +729,7 @@ const handleCreateCompany = async () => {
                               {endingPremium ? "Ending Premium…" : "End Premium"}
                             </button>
                             <div className="mum-hint" style={{ marginTop: 8, textAlign: "center" }}>
-                              Sets expiry to yesterday and resets storage to 5 GB
+                              Sets expiry to yesterday and resets storage to 15 GB
                             </div>
                           </div>
                         )}
@@ -737,7 +737,7 @@ const handleCreateCompany = async () => {
                     );
                   })()
                 ) : (
-                  <div className="mum-card mum-card--ok">Free User — 5 GB storage</div>
+                  <div className="mum-card mum-card--ok">Free User — 15 GB storage</div>
                 )}
               </div>
 

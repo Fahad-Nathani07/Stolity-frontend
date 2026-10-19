@@ -26,7 +26,7 @@ import { IoIosInformationCircle } from "react-icons/io";
 const slides = [
   {
     title: "Upload Files",
-    text: "Store up to 5GB data in a centralised location for easy access and management.",
+    text: "Keep your files in one secure place for easy access and management.",
   },
   { title: "Fast Access", text: "Experience quicker uploads for every file type — faster, smoother, better." },
   {

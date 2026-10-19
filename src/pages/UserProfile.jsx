@@ -1,21 +1,14 @@
 import React, { useEffect, useRef, useState } from "react";
-import Logo from "../images/logo.png";
 import SideNav from "../components/SideNav";
 import Footer from "../components/Footer";
-import ToggleNav from "../components/ToggleNav";
 import ImgProfile from "../images/img-profile.svg";
-import fullscreeen from "../images/fullscreen.png";
-import zoomin from "../images/zoomin.png";
-import zoomout from "../images/zoomout.png";
 import iconCalendar from "../images/iconCalendar.svg";
 import IconExcel from "../images/IconExcel.svg";
 import IconPPT from "../images/IconPPT.svg";
 import IconAI from "../images/IconAI.svg";
 import IconFigma from "../images/IconFigma.svg";
 import IconFolder from "../images/folder.svg";
-import VideoPlayer from "../components/VideoPlayer";
-import { resolveVideoPlayUrl } from "../utils/videoPlayer";
-import { buildFileStreamUrl, preloadStreamedImage } from "../utils/fileStream";
+import { preloadStreamedImage } from "../utils/fileStream";
 import { resolveMediaPlayUrl } from "../utils/mediaPlayUrl";
 import { resolveDocumentBlobUrl } from "../utils/documentPreview";
 import Avatar1 from "../images/Avatar1.svg";
@@ -24,6 +17,7 @@ import Avatar2 from "../images/Avatar2.svg";
 import Avatar3 from "../images/Avatar3.svg";
 import Avatar4 from "../images/Avatar4.svg";
 import deleteIcon3 from "../images/mediaPlayer/trash1.svg";
+import deleteIcon from "../images/deleteIcon2.svg";
 import DeletePopup from "../images/deletePopup.svg";
 import ImgStolityApp from "../images/img-stolity-app.png";
 import { ReactComponent as PasswordShow } from "../images/icon-eye.svg";
@@ -31,6 +25,7 @@ import { ReactComponent as PasswordHide } from "../images/icon-eye-hide.svg";
 import axios from "axios";
 import { Modal as RsuiteModal } from "rsuite";
 import { useNavigate } from "react-router-dom";
+import { FiLifeBuoy } from "react-icons/fi";
 import loaderGif from "../images/Loaders/Animation4.gif";
 import svgDoc from "../images/TypesDoc.svg"
 import svgFolder from "../images/TypesFolder.svg"
@@ -47,6 +42,11 @@ import { setUserProfile, normalizeAvatarUrl } from "../store/userProfileSlice";
 import { usePlayAudio } from "../hooks/usePlayAudio";
 import { useSessionEndCleanup } from "../hooks/useSessionEndCleanup";
 import { isAudioExtension } from "../utils/audioPlayer";
+import { LONG_RUNNING_AWS_REQUEST_OPTIONS } from "../utils/longRunningAwsRequest";
+import CustomFileModal from "./CustomFileModal";
+import "../css/FilesToolbar.css";
+import "../css/FilesPage.css";
+import "../css/UserProfile.css";
 
 import { Progress, Modal } from "antd";
 
@@ -89,6 +89,20 @@ const months = [
 const UserProfile = () => {
   const dispatch = useDispatch();
   const { playAudioFile } = usePlayAudio();
+  const FILES_MOBILE_BP = 767;
+  const [isMobile, setIsMobile] = useState(
+    () =>
+      typeof window !== "undefined" && window.innerWidth <= FILES_MOBILE_BP
+  );
+
+  useEffect(() => {
+    const mq = window.matchMedia(`(max-width: ${FILES_MOBILE_BP}px)`);
+    const onChange = () => setIsMobile(mq.matches);
+    onChange();
+    mq.addEventListener("change", onChange);
+    return () => mq.removeEventListener("change", onChange);
+  }, []);
+
   const apiUrl = process.env.REACT_APP_API_ENDPOINT;
   const userProfile = useSelector((state) => state.userProfile);
   const email = userProfile.email || sessionStorage.getItem("email");
@@ -334,7 +348,7 @@ const maskEmail = (value) => {
     ? 500 * 1_000_000_000           // 500 GB = 500,000,000,000 bytes
     : (subscription && subscription.storage
       ? parseStorageToBytes(subscription.storage)
-      : 5 * 1_000_000_000);       // 5 GB = 5,000,000,000 bytes
+      : 15 * 1_000_000_000);      // 15 GB free default
 
   const usedBytes = folderSize ? folderSize.sizeInBytes : 0;
   // const usedBytes = 0;
@@ -368,33 +382,97 @@ const maskEmail = (value) => {
   const [firstPopup, setFirstPopup] = useState(false);
   const [secondPopup, setSecondPopup] = useState(false);
   const [isDeletingAccount, setIsDeletingAccount] = useState(false);
+  const [deleteOtp, setDeleteOtp] = useState("");
+  const [deleteOtpSending, setDeleteOtpSending] = useState(false);
+  const [deleteOtpResendTimer, setDeleteOtpResendTimer] = useState(0);
   const isDeletingAccountRef = useRef(false);
 
   const navigate = useNavigate();
+
+  useEffect(() => {
+    if (deleteOtpResendTimer <= 0) return undefined;
+    const id = setInterval(() => {
+      setDeleteOtpResendTimer((t) => (t <= 1 ? 0 : t - 1));
+    }, 1000);
+    return () => clearInterval(id);
+  }, [deleteOtpResendTimer]);
 
   const closeDeleteModals = () => {
     if (isDeletingAccountRef.current) return;
     setFirstPopup(false);
     setSecondPopup(false);
+    setDeleteOtp("");
+    setDeleteOtpSending(false);
+    setDeleteOtpResendTimer(0);
+  };
+
+  const sendDeleteAccountOtp = async () => {
+    try {
+      setDeleteOtpSending(true);
+      await axios.post(
+        `${apiUrl}send-delete-otp`,
+        {},
+        {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        }
+      );
+      showToast("success", "OTP sent to your email.");
+      setDeleteOtpResendTimer(60);
+      return true;
+    } catch (err) {
+      showToast(
+        "error",
+        err?.response?.data?.message || "Failed to send OTP. Please try again."
+      );
+      return false;
+    } finally {
+      setDeleteOtpSending(false);
+    }
+  };
+
+  const handleContinueToOtp = async () => {
+    const sent = await sendDeleteAccountOtp();
+    if (!sent) return;
+    setFirstPopup(false);
+    setSecondPopup(true);
+    setDeleteOtp("");
   };
 
   const handleFinalDelete = async () => {
     if (isDeletingAccountRef.current) return;
 
+    const code = String(deleteOtp || "").trim();
+    if (!/^\d{6}$/.test(code)) {
+      showToast("warning", "Enter the 6-digit OTP sent to your email.");
+      return;
+    }
+
     isDeletingAccountRef.current = true;
     setIsDeletingAccount(true);
 
     try {
-      await axios.get(`${apiUrl}delete-account`, {
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
-        responseType: "arraybuffer",
-      });
+      await axios.post(
+        `${apiUrl}delete-account-verified`,
+        { otp: code },
+        {
+          headers: {
+            Authorization: `Bearer ${token}`,
+            "Content-Type": "application/json",
+          },
+        }
+      );
 
       showToast("success", "Account deleted successfully.");
       setFirstPopup(false);
       setSecondPopup(false);
+      setDeleteOtp("");
+
+      try {
+        sessionStorage.clear();
+        localStorage.removeItem("stolity_remember_email");
+      } catch (_) {}
 
       setTimeout(() => {
         navigate("/Login");
@@ -402,7 +480,10 @@ const maskEmail = (value) => {
     } catch (err) {
       isDeletingAccountRef.current = false;
       setIsDeletingAccount(false);
-      showToast("error", "Failed to delete account.");
+      showToast(
+        "error",
+        err?.response?.data?.message || "Failed to delete account."
+      );
     }
   };
 
@@ -661,15 +742,15 @@ const maskEmail = (value) => {
     e?.preventDefault?.();
     if (!newPassword || !confirmPassword) {
       showToast("error", "Please fill out the password fields.");
-      return;
+      return false;
     }
     if (newPassword !== confirmPassword) {
       showToast("error", "Passwords do not match.");
-      return;
+      return false;
     }
     if (!otp || otp.length < 6) {
       showToast("error", "OTP is required to reset password.");
-      return;
+      return false;
     }
     setOtpBusy(true);
     try {
@@ -682,13 +763,10 @@ const maskEmail = (value) => {
         headers: { "Content-Type": "application/json" },
       });
       showToast("success", "Password has been reset successfully!");
-      setOtpFlowStep(0);
-      setOtp("");
-      setNewPassword("");
-      setConfirmPassword("");
-      setResendTimer(0);
+      return true;
     } catch (error) {
       showToast("error", error.response?.data?.message || "Failed to reset password!");
+      return false;
     } finally {
       setOtpBusy(false);
     }
@@ -1019,12 +1097,16 @@ const maskEmail = (value) => {
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
   const [showImage, setShowImage] = useState(false);
   const [videoSrc, setVideoSrc] = useState("");
-  const [resolvedVideoUrl, setResolvedVideoUrl] = useState("");
   const [imageSrc, setImageSrc] = useState("");
   const [pdfSrc, setPdfSrc] = useState("");
+  const [docSrc, setDocSrc] = useState("");
   const [audioSrc, setAudioSrc] = useState("");
   const [isProgressVisible, setIsProgressVisible] = useState(false);
   const [modalFile, setModalFile] = useState("");
+  const [folders, setFolders] = useState([]);
+  const [selectedFolder, setSelectedFolder] = useState(null);
+  const [triggerUpdate, setTriggerUpdate] = useState(false);
+  const [previewFile, setPreviewFile] = useState(null);
 
   useSessionEndCleanup(() => {
     setShowImage(false);
@@ -1033,34 +1115,37 @@ const maskEmail = (value) => {
   });
 
   useEffect(() => {
-    if (!videoSrc || !apiUrl || !token) {
-      setResolvedVideoUrl("");
-      return undefined;
-    }
-    if (String(videoSrc).startsWith("blob:")) {
-      setResolvedVideoUrl(videoSrc);
-      return undefined;
-    }
-    let cancelled = false;
-    const controller =
-      typeof AbortController !== "undefined" ? new AbortController() : null;
-    setResolvedVideoUrl("");
-    resolveVideoPlayUrl(apiUrl, token, videoSrc, {
-      signal: controller?.signal,
-    })
-      .then((url) => {
-        if (!cancelled) setResolvedVideoUrl(url);
-      })
-      .catch((err) => {
-        if (!cancelled && err?.name !== "AbortError") {
-          console.error("Video play URL failed", err);
-        }
-      });
-    return () => {
-      cancelled = true;
-      controller?.abort?.();
+    if (!showImage) return undefined;
+    const fetchInitialFolders = async () => {
+      try {
+        const res = await axios.get(`${apiUrl}get-recent-folders`, {
+          headers: {
+            Authorization: `Bearer ${token}`,
+            "Content-Type": "application/json",
+          },
+        });
+        setFolders(res.data.result || []);
+      } catch (error) {
+        console.error("There is a error at", error);
+      }
     };
-  }, [videoSrc, apiUrl, token]);
+    fetchInitialFolders();
+    return undefined;
+  }, [showImage, apiUrl, token]);
+
+  function getModifiedRecentFolderText(input) {
+    const index = input.indexOf("/");
+    if (index !== -1 && index < input.length - 1) {
+      const textAfterSlash = input.substring(index + 1);
+      return textAfterSlash.replace(/\//g, "<");
+    }
+    return "";
+  }
+
+  const folderOptions = folders.map((folder) => ({
+    value: getModifiedRecentFolderText(folder.folder),
+    label: getModifiedRecentFolderText(folder.folder),
+  }));
 
   //Image getting function
   const getImageInfo = async (filename) => {
@@ -1133,60 +1218,66 @@ const maskEmail = (value) => {
     };
   }, [audioSrc]);
 
-  const zoomIn = () => setZoomLevel((prevZoom) => Math.min(prevZoom + 0.2, 3));
-  const zoomOut = () => setZoomLevel((prevZoom) => Math.max(prevZoom - 0.2, 1));
   const toggleFullscreen = () => {
-    const modalElement = document.getElementById("modal-container");
-
-    if (!isFullscreen) {
-      if (modalElement.requestFullscreen) {
-        modalElement.requestFullscreen();
-      } else if (modalElement.mozRequestFullScreen) {
-        // Firefox
-        modalElement.mozRequestFullScreen();
-      } else if (modalElement.webkitRequestFullscreen) {
-        // Chrome, Safari, and Opera
-        modalElement.webkitRequestFullscreen();
-      } else if (modalElement.msRequestFullscreen) {
-        // IE/Edge
-        modalElement.msRequestFullscreen();
-      }
-    } else {
-      if (document.exitFullscreen) {
-        document.exitFullscreen();
-      } else if (document.mozCancelFullScreen) {
-        // Firefox
-        document.mozCancelFullScreen();
-      } else if (document.webkitExitFullscreen) {
-        // Chrome, Safari, and Opera
-        document.webkitExitFullscreen();
-      } else if (document.msExitFullscreen) {
-        // IE/Edge
-        document.msExitFullscreen();
-      }
-    }
-
     setIsFullscreen((prev) => !prev);
   };
 
   const handleImageShow = () => setShowImage(true);
   const handleImageClose = () => {
-    // console.log("Close button clicked!");
-
-    // Exit fullscreen if currently in fullscreen mode
     if (document.fullscreenElement) {
       document.exitFullscreen();
     }
 
-    setIsFullscreen(false); // Reset fullscreen state
-    setZoomLevel(1); // Reset zoom level to default
+    setIsFullscreen(false);
+    setZoomLevel(1);
     setShowImage(false);
     setCurrentImageIndex(0);
     setImageSrc("");
     setVideoSrc("");
     setAudioSrc("");
     setPdfSrc("");
+    setDocSrc("");
+    setErrorMessage2("");
+    setSelectedFolder(null);
+    setPreviewFile(null);
   };
+
+  const deleteFromModal = async (filename) => {
+    const lastSlashIndex = filename.lastIndexOf("/");
+    const dataToSend =
+      lastSlashIndex === -1
+        ? { sourceFolder: "", keys: [filename] }
+        : {
+            sourceFolder: filename
+              .substring(0, lastSlashIndex)
+              .replace(/\/$/, ""),
+            keys: [filename.substring(lastSlashIndex + 1)],
+          };
+
+    try {
+      await axios.delete(`${apiUrl}soft-delete`, {
+        ...LONG_RUNNING_AWS_REQUEST_OPTIONS,
+        data: dataToSend,
+        headers: {
+          Authorization: `Bearer ${token}`,
+          "Content-Type": "application/json",
+        },
+      });
+      showToast("success", "File moved to recycle bin successfully");
+      handleImageClose();
+      await getRecentFiles();
+    } catch (error) {
+      showToast("error", "There's an error while moving file to recycle bin!");
+    }
+  };
+
+  const onMoveSuccessFromModal = async () => {
+    handleImageClose();
+    await getRecentFiles();
+  };
+
+  const handleChange = () => {};
+  const handleOpenCreateFolder = () => {};
 
   // Add this helper function at the top of your component file, outside the component
   const getFileIcon = (file) => {
@@ -1470,25 +1561,60 @@ const maskEmail = (value) => {
 
   return (
     <>
-<SideNav />
-      <div className="container-fluid page-body-wrapper">
-        <nav className="navbar p-0 fixed-top d-flex flex-row">
-          <div className="navbar-brand-wrapper d-flex d-lg-none align-items-center justify-content-center">
-            <a className="navbar-brand brand-logo-mini" href="#">
-              <img src={Logo} alt="logo" />
-            </a>
-          </div>
-          <div className="navbar-menu-wrapper flex-grow d-flex align-items-stretch">
-            <ToggleNav />
-            <div className="navbar-nav page_title">
-              <h1>User Profile</h1>
-            </div>
+      <SideNav />
+      <div
+        className={`container-fluid page-body-wrapper files-layout user-profile-layout${
+          isMobile ? " files-layout--mobile" : ""
+        }`}
+      >
+        <nav className="navbar p-0 fixed-top d-flex flex-row files-navbar">
+          <div className="navbar-menu-wrapper flex-grow files-navbar__shell">
+            <header className="files-app-header">
+              <div className="files-app-header__titles">
+                <h1 className="files-app-header__title">User Profile</h1>
+                <div className="files-app-header__end">
+                  <button
+                    type="button"
+                    className="files-app-header__support"
+                    title="Support"
+                    aria-label="Support"
+                    onClick={() => navigate("/SupportTickets")}
+                  >
+                    <FiLifeBuoy aria-hidden="true" />
+                    Support
+                  </button>
+                  <div className="files-app-header__welcome files-nav-welcome">
+                    <span className="files-nav-welcome__greet">Welcome back</span>
+                    <span className="files-nav-welcome__name">
+                      {name || userProfile.name || finalName || "User"}
+                    </span>
+                  </div>
+                </div>
+              </div>
+
+              <button
+                type="button"
+                className="files-app-header__profile"
+                title="Edit profile"
+                aria-label="Open profile"
+                onClick={showModal}
+              >
+                <img
+                  src={avatar || AvatarDefault}
+                  alt=""
+                  onError={(e) => {
+                    e.target.onerror = null;
+                    e.target.src = AvatarDefault;
+                  }}
+                />
+              </button>
+            </header>
           </div>
         </nav>
 
         {/* Main Content */}
-        <div className="main-panel">
-          <div className="content-wrapper" style={{ padding: "15px" }}>
+        <div className="main-panel user-profile-page">
+          <div className="content-wrapper">
             <div className="row">
               <ScrollReveal as="div" className="col-lg-6 mt-2" variant="fadeUp" delay={0.1} duration={0.85}>
                 <div className="profile_box">
@@ -1549,7 +1675,7 @@ const maskEmail = (value) => {
                   <div className="profile_row">
                     <div
                       className="CircularProgress_bar"
-                      style={{ textAlign: "center", paddingLeft: 30 }}
+                      style={{ textAlign: "center", paddingLeft: isMobile ? 0 : 30 }}
                     >
                       {/* <Progress
                         type="circle"
@@ -1608,7 +1734,7 @@ const maskEmail = (value) => {
                             </div>
                           );
                         }}
-                        size={180}
+                        size={isMobile ? 140 : 180}
                       />
 
                     </div>
@@ -1844,10 +1970,7 @@ const maskEmail = (value) => {
         {/* main-panel ends */}
       </div>
 
-      {/* First Confirmation Modal */}
-      {/* Delete Account Button */}
-
-      {/* First Confirmation Modal */}
+      {/* Delete Account — confirm, then OTP (same email path as signup OTP) */}
       {firstPopup && (
         <div className="rename_popup_wrapper">
           <div className="rename_modal">
@@ -1863,13 +1986,16 @@ const maskEmail = (value) => {
             <h2 className="rename_title2">
               Are you sure you want to delete your account?
             </h2>
-            <p className="rename_subtext">This action cannot be undone.</p>
+            <p className="rename_subtext">
+              We’ll email a one-time code to{" "}
+              <strong>{email || "your account email"}</strong> to confirm.
+            </p>
             <div className="rename_buttons">
               <button
                 type="button"
                 className="rename_btn cancel"
                 onClick={closeDeleteModals}
-                disabled={isDeletingAccount}
+                disabled={isDeletingAccount || deleteOtpSending}
               >
                 No
               </button>
@@ -1877,20 +2003,16 @@ const maskEmail = (value) => {
                 type="button"
                 className="rename_btn ok"
                 style={{ backgroundColor: "#FF0000" }}
-                disabled={isDeletingAccount}
-                onClick={() => {
-                  setFirstPopup(false);
-                  setSecondPopup(true);
-                }}
+                disabled={isDeletingAccount || deleteOtpSending}
+                onClick={handleContinueToOtp}
               >
-                Yes, Continue
+                {deleteOtpSending ? "Sending OTP…" : "Yes, send OTP"}
               </button>
             </div>
           </div>
         </div>
       )}
 
-      {/* Second (Final) Confirmation Modal */}
       {secondPopup && (
         <div className="rename_popup_wrapper">
           <div
@@ -1906,8 +2028,86 @@ const maskEmail = (value) => {
             >
               <img src={DeletePopup} alt="Delete Icon" />
             </div>
-            <h2 className="rename_title2">Your data will be lost forever.</h2>
-            <p className="rename_subtext">This action cannot be reversed.</p>
+            <h2 className="rename_title2">Enter verification code</h2>
+            <p className="rename_subtext">
+              Your data will be lost forever. Enter the 6-digit OTP sent to your
+              email.
+            </p>
+            <div style={{ margin: "16px 0 8px", textAlign: "left" }}>
+              <label
+                htmlFor="delete-account-otp"
+                style={{
+                  display: "block",
+                  marginBottom: 6,
+                  fontSize: 13,
+                  fontWeight: 600,
+                  color: "#475569",
+                }}
+              >
+                OTP
+              </label>
+              <input
+                id="delete-account-otp"
+                type="text"
+                inputMode="numeric"
+                autoComplete="one-time-code"
+                maxLength={6}
+                value={deleteOtp}
+                onChange={(e) =>
+                  setDeleteOtp(e.target.value.replace(/\D/g, "").slice(0, 6))
+                }
+                placeholder="6-digit code"
+                disabled={isDeletingAccount}
+                style={{
+                  width: "100%",
+                  height: 44,
+                  padding: "0 12px",
+                  borderRadius: 10,
+                  border: "1px solid #e2e8f0",
+                  fontSize: 16,
+                  letterSpacing: "0.2em",
+                  textAlign: "center",
+                  boxSizing: "border-box",
+                }}
+              />
+              <div
+                style={{
+                  marginTop: 10,
+                  display: "flex",
+                  justifyContent: "flex-end",
+                }}
+              >
+                <button
+                  type="button"
+                  onClick={sendDeleteAccountOtp}
+                  disabled={
+                    isDeletingAccount ||
+                    deleteOtpSending ||
+                    deleteOtpResendTimer > 0
+                  }
+                  style={{
+                    border: "none",
+                    background: "transparent",
+                    color:
+                      deleteOtpResendTimer > 0 ? "#94a3b8" : "#c4231c",
+                    fontSize: 12,
+                    fontWeight: 600,
+                    cursor:
+                      deleteOtpResendTimer > 0 || deleteOtpSending
+                        ? "not-allowed"
+                        : "pointer",
+                    textDecoration: "underline",
+                    padding: 0,
+                  }}
+                >
+                  {deleteOtpSending
+                    ? "Sending…"
+                    : deleteOtpResendTimer > 0
+                      ? `Resend in ${deleteOtpResendTimer}s`
+                      : "Resend OTP"}
+                </button>
+              </div>
+            </div>
             <div className="rename_buttons">
               <button
                 type="button"
@@ -1915,14 +2115,16 @@ const maskEmail = (value) => {
                 onClick={closeDeleteModals}
                 disabled={isDeletingAccount}
               >
-                No
+                Cancel
               </button>
               <button
                 type="button"
                 className="rename_btn ok"
                 style={{ backgroundColor: "#FF0000" }}
                 onClick={handleFinalDelete}
-                disabled={isDeletingAccount}
+                disabled={
+                  isDeletingAccount || String(deleteOtp).trim().length !== 6
+                }
                 aria-busy={isDeletingAccount}
               >
                 {isDeletingAccount ? "Deleting..." : "Delete Permanently"}
@@ -1939,10 +2141,16 @@ const maskEmail = (value) => {
         open={isModalOpen}
         footer={null}
         onCancel={handleCancel}
-        width={760}
+        width={isMobile ? "calc(100vw - 24px)" : 760}
         centered
         destroyOnClose
         wrapClassName="edit-profile-modal-wrap"
+        rootClassName="edit-profile-modal-root"
+        zIndex={2100}
+        styles={{
+          mask: { zIndex: 2100 },
+          wrapper: { zIndex: 2100 },
+        }}
       >
         <div className="edit-profile-modal">
           <div className="edit-profile-header">
@@ -2066,7 +2274,7 @@ const maskEmail = (value) => {
               </div>
             )}
 
-            <div className="row">
+            <div className="row edit-profile-fields-row">
               {/* First Name */}
               <div className="col-6">
                 <div className="form-group">
@@ -2140,7 +2348,7 @@ const maskEmail = (value) => {
               </div>
 
               {/* Mobile */}
-              <div className="col-6">
+              <div className="col-12">
                 <div className="form-group">
                   <label className="form-label">
                     Mobile <span style={{ color: "#dc3545" }}>*</span>
@@ -2231,7 +2439,7 @@ const maskEmail = (value) => {
 
                 <div className="row">
                   {/* Current Password */}
-                  <div className="col-4">
+                  <div className="col-12 col-md-4">
                     <div className="form-group">
                       <label className="form-label">Current Password</label>
                       <div style={{ position: 'relative' }}>
@@ -2287,7 +2495,7 @@ const maskEmail = (value) => {
                   </div>
 
                   {/* New Password */}
-                  <div className="col-4">
+                  <div className="col-12 col-md-4">
                     <div className="form-group">
                       <label className="form-label">New Password</label>
                       <div style={{ position: 'relative' }}>
@@ -2404,7 +2612,7 @@ const maskEmail = (value) => {
                   </div>
 
                   {/* Confirm Password */}
-                  <div className="col-4">
+                  <div className="col-12 col-md-4">
                     <div className="form-group">
                       <label className="form-label">Confirm Password</label>
                       <div style={{ position: 'relative' }}>
@@ -2711,7 +2919,10 @@ const maskEmail = (value) => {
                 <button
                   className="btn-save"
                   onClick={async () => {
-                    await handleResetPassword();
+                    const ok = await handleResetPassword();
+                    if (ok) {
+                      handleCancel();
+                    }
                   }}
                   disabled={
                     otpBusy ||
@@ -2732,271 +2943,38 @@ const maskEmail = (value) => {
         </div>
       </Modal>
 
-      {/*All files Shower */}
-      {showImage && (
-        <div
-          style={{
-            position: "fixed",
-            inset: 0,
-            backgroundColor: "rgba(0, 0, 0, 0.6)",
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "center",
-            zIndex: 1300,
-            padding: "16px",
-            overflow: "auto",
-          }}
-          onClick={handleImageClose}           // click outside → close
-        >
-          {/* Inner container - stops click propagation */}
-          <div
-            style={{
-              width: isFullscreen ? "100vw" : "100vw",
-              // maxWidth: isFullscreen ? "none" : "800px",
-              height: isFullscreen ? "100vh" : "90vh",
-              // backgroundColor: "white",
-              borderRadius: isFullscreen ? "0" : "12px",
-              overflow: "hidden",
-              // boxShadow: "0 10px 40px rgba(0,0,0,0.4)",
-              display: "flex",
-              flexDirection: "column",
-              position: "relative",
-            }}
-            onClick={(e) => e.stopPropagation()}   // prevent close when clicking inside
-          >
-            {/* Close button */}
-            <button
-              onClick={handleImageClose}
-              style={{
-                position: "absolute",
-                top: "16px",
-                right: "16px",
-                background: "rgba(0,0,0,0.5)",
-                color: "white",
-                border: "none",
-                borderRadius: "50%",
-                width: "40px",
-                height: "40px",
-                fontSize: "28px",
-                lineHeight: "40px",
-                textAlign: "center",
-                cursor: "pointer",
-                zIndex: 10,
-              }}
-            >
-              ×
-            </button>
+      <CustomFileModal
+        show={showImage}
+        onClose={handleImageClose}
+        isFullscreen={isFullscreen}
+        videoSrc={videoSrc}
+        pdfSrc={pdfSrc}
+        imageSrc={imageSrc}
+        audioSrc={audioSrc}
+        errorMessage2={errorMessage2}
+        isProgressVisible={isProgressVisible}
+        apiUrl={apiUrl}
+        token={token}
+        toggleFullscreen={toggleFullscreen}
+        handlePrev={handlePrev}
+        handleNext={handleNext}
+        folderOptions={folderOptions}
+        selectedFolder={selectedFolder}
+        handleChange={handleChange}
+        deleteFromModal={deleteFromModal}
+        modalFile={modalFile}
+        deleteIcon={deleteIcon}
+        docSrc={docSrc}
+        fileName={modalFile}
+        setModalFile={setModalFile}
+        triggerUpdate={triggerUpdate}
+        setTriggerUpdate={setTriggerUpdate}
+        onRenameSuccess={getRecentFiles}
+        onMoveSuccess={onMoveSuccessFromModal}
+        handleOpenCreateFolder={handleOpenCreateFolder}
+        previewFile={previewFile}
+      />
 
-            {/* Loader overlay when loading */}
-            {isProgressVisible && (
-              <div
-                style={{
-                  position: "absolute",
-                  inset: 0,
-                  background: "rgba(255, 255, 255, 0)",
-                  // background: "rgba(255,255,255,0.7)",
-                  display: "flex",
-                  alignItems: "center",
-                  justifyContent: "center",
-                  zIndex: 20,
-                }}
-              >
-                {/* <img src={loaderGif} alt="Loading..." style={{ width: "80px" }} /> */}
-                <Loader2 />
-              </div>
-            )}
-
-            {/* Main content area */}
-            <div
-              style={{
-                flex: 1,
-                position: "relative",
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "center",
-                overflow: "auto",
-                padding: isFullscreen ? "0" : "20px",
-                background: isFullscreen ? "#000" : "#ffffff00",
-              }}
-            >
-              {/* Prev button */}
-              <button
-                onClick={handlePrev}
-                style={{
-                  position: "absolute",
-                  left: "20px",
-                  top: "50%",
-                  transform: "translateY(-50%)",
-                  background: "rgba(0, 0, 0, 0.28)",
-                  border: "none",
-                  borderRadius: "50%",
-                  width: "50px",
-                  height: "50px",
-                  fontSize: "28px",
-                  cursor: "pointer",
-                  color: "white",
-                  zIndex: 5,
-                  // boxShadow: "0 2px 10px rgba(0,0,0,0.2)",
-                }}
-              >
-                ❮
-              </button>
-
-              {/* Content */}
-              <div
-                style={{
-                  width: "90%",
-                  height: "100%",
-                  display: "flex",
-                  alignItems: "center",
-                  justifyContent: "center",
-                  transform: `scale(${zoomLevel})`,
-                  transition: "transform 0.25s ease",
-                }}
-              >
-                {videoSrc && resolvedVideoUrl ? (
-                  <VideoPlayer
-                    key={resolvedVideoUrl}
-                    url={resolvedVideoUrl}
-                    fileName={videoSrc}
-                  />
-                ) : videoSrc ? (
-                  <Loader2 />
-                ) : pdfSrc ? (
-                  <iframe
-                    src={pdfSrc}
-                    title="PDF Preview"
-                    style={{
-                      width: "100%",
-                      height: "100%",
-                      border: "none",
-                      background: "white",
-                    }}
-                  />
-                ) : imageSrc ? (
-                  <img
-                    src={imageSrc}
-                    alt="Preview"
-                    decoding="async"
-                    style={{
-                      maxWidth: "100%",
-                      maxHeight: "100%",
-                      objectFit: "contain",
-                      borderRadius: "8px",
-                    }}
-                  />
-                ) : audioSrc ? (
-                  <audio
-                    controls
-                    autoPlay
-                    style={{ width: "80%", maxWidth: "600px" }}
-                  >
-                    <source src={audioSrc} type="audio/mpeg" />
-                    <source src={audioSrc} type="audio/ogg" />
-                    <source src={audioSrc} type="audio/wav" />
-                    Your browser does not support the audio element.
-                  </audio>
-                ) : errorMessage2 ? (
-                  <div style={{
-                    textAlign: "center", color: "#d32f2f", fontSize: "18px", background: "white",
-                    padding: " 5px 15px", borderRadius: "7px"
-                  }}>
-                    {errorMessage2}
-                  </div>
-                ) : (
-                  <div style={{ color: "#666", fontSize: "18px" }}>
-                    No preview available
-                  </div>
-                )}
-              </div>
-
-              {/* Next button */}
-              <button
-                onClick={handleNext}
-                style={{
-                  position: "absolute",
-                  right: "20px",
-                  top: "50%",
-                  transform: "translateY(-50%)",
-                  background: "rgba(0, 0, 0, 0.27)",
-                  color: "white",
-                  border: "none",
-                  borderRadius: "50%",
-                  width: "50px",
-                  height: "50px",
-                  fontSize: "28px",
-                  cursor: "pointer",
-                  zIndex: 5,
-                  // boxShadow: "0 2px 10px rgba(0,0,0,0.2)",
-                }}
-              >
-                ❯
-              </button>
-            </div>
-
-            {/* Footer controls */}
-            <div
-              style={{
-                padding: "12px 20px",
-                // borderTop: "1px solid #000000",
-                // background: "white",
-                display: "flex",
-                justifyContent: "center",
-                gap: "16px",
-                flexWrap: "wrap",
-              }}
-            >
-              {/* <div
-          style={{
-            display: "flex",
-            alignItems: "center",
-            gap: "8px",
-            background: "#f5f5f5",
-            padding: "8px 16px",
-            borderRadius: "6px",
-            border: "1px solid #ddd",
-          }}
-        >
-          <button
-            onClick={zoomIn}
-            style={{ background: "none", border: "none", cursor: "pointer" }}
-          >
-            <img src={zoomin} alt="Zoom In" style={{ width: "20px" }} />
-          </button>
-          <span style={{ fontWeight: 500 }}>Zoom</span>
-          <button
-            onClick={zoomOut}
-            style={{ background: "none", border: "none", cursor: "pointer" }}
-          >
-            <img src={zoomout} alt="Zoom Out" style={{ width: "20px" }} />
-          </button>
-        </div> */}
-
-              {/* <button
-          onClick={toggleFullscreen}
-          style={{
-            display: "flex",
-            alignItems: "center",
-            gap: "8px",
-            padding: "8px 16px",
-            background: "#f5f5f5",
-            border: "1px solid #ddd",
-            borderRadius: "6px",
-            cursor: "pointer",
-            fontSize: "14px",
-          }}
-        >
-          <img
-            src={fullscreeen}
-            alt="Fullscreen"
-            style={{ width: "18px", height: "18px" }}
-          />
-          {isFullscreen ? "Exit Fullscreen" : "Fullscreen"}
-        </button> */}
-            </div>
-          </div>
-        </div>
-      )}
 
     </>
   );

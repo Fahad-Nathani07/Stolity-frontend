@@ -21,6 +21,7 @@ export function useStickyListHeader(view, hasBulkSelection = false) {
     if (!bar || !box) return undefined;
 
     let rafId = null;
+    const mq = window.matchMedia(MOBILE_MQ);
 
     const syncFilterBarHeight = () => {
       const height = bar.offsetHeight;
@@ -41,9 +42,13 @@ export function useStickyListHeader(view, hasBulkSelection = false) {
 
     scheduleSync();
     window.addEventListener("resize", scheduleSync);
-
-    const mq = window.matchMedia(MOBILE_MQ);
     mq.addEventListener("change", scheduleSync);
+
+    let ro = null;
+    if (typeof ResizeObserver !== "undefined") {
+      ro = new ResizeObserver(scheduleSync);
+      ro.observe(bar);
+    }
 
     return () => {
       if (rafId != null) {
@@ -52,6 +57,7 @@ export function useStickyListHeader(view, hasBulkSelection = false) {
       }
       window.removeEventListener("resize", scheduleSync);
       mq.removeEventListener("change", scheduleSync);
+      ro?.disconnect();
     };
   }, [view]);
 

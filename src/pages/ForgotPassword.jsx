@@ -85,13 +85,13 @@ const ForgotPassword = () => {
 
 
 
+  // Keep first char of local part; preserve full domain (do not hardcode .com)
   function maskEmail(email) {
-  if (!email) return "";
-  const [user, domain] = email.split("@");
-  const maskedUser = user ? user[0] + "xxx" : "";
-  const domainPart = domain ? domain.split(".")[0] : "";
-  return maskedUser + domainPart + ".com";
-}
+    if (!email || !email.includes("@")) return email || "";
+    const [user, domain] = email.split("@");
+    const maskedUser = user ? `${user[0]}xxx` : "";
+    return `${maskedUser}@${domain}`;
+  }
 
 
   useEffect(() => {
@@ -798,7 +798,7 @@ if (step === 3) {
             <div className="login_graphic_text_inner">
               <h2>Upload Files</h2>
               <p>
-                Store upto 5GB data in a centralised location for easy access and
+                Keep your files in one secure place for easy access and
                 management.
               </p>
             </div>

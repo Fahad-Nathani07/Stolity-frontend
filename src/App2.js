@@ -25,10 +25,6 @@ import PreLogin from './pages/PreLogin';
 import { DownloadProvider } from './pages/DownloadContext';
 import { Download } from 'lucide-react';
 import DownloadProgressModal from './pages/DownloadProgressModal';
-import DefaultFolder from './pages/DefaultFolder';
-
-
-
 const App = () => {
 
   const clientid = process.env.REACT_APP_GOOGLE_AUTH_CLIENT_ID;
@@ -63,7 +59,6 @@ const App = () => {
               <Route path="/SignupWithGoogle" element={<SignupWithGoogle />} />
               <Route path="/UserProfile" element={<UserProfile />} />
               <Route path="/nested/:folderId" element={<NestedPage />} />
-              <Route path="/folder/:folderName" element={<DefaultFolder />} />
               <Route path="/Loader" element={<Loader />} />
               <Route path="/pre-login" element={<PreLogin />} />
               

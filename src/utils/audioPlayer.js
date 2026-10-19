@@ -43,6 +43,8 @@ export async function resolveAudioPlayUrl(
     filePath,
     shared,
     sharedName,
+    // inline → Content-Disposition + proper audio MIME on Spaces (not attachment/octet-stream)
+    inline: true,
     signal,
   });
 }

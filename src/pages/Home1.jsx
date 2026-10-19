@@ -91,7 +91,7 @@ const Home1 = () => {
     setMenuOpen(false);
     if (to.includes("#")) {
       const [pathPart, hashPart] = to.split("#");
-      const targetPath = pathPart || "/Home1";
+      const targetPath = pathPart || "/";
       const hash = hashPart || "";
       if (location.pathname === targetPath) {
         scrollToHash(hash);
@@ -120,15 +120,15 @@ const Home1 = () => {
       idealFor: "Casual users",
       price: "0.00",
       cycle: "/year",
-      storage: "5 GB Storage",
+      storage: "15 GB Storage",
       isPremium: false,
-      boldPhrases: ["5 GB", "Upload/download", "File preview", "App Lock"],
+      boldPhrases: ["15 GB", "Upload/download", "File preview", "App Lock"],
       features: [
         "Upload/download & file management",
         "File preview & background upload",
         "Rename, create folders, move/copy files",
         "App Lock (Face ID/biometric)",
-        "Up to 5 GB free storage",
+        "Up to 15 GB free storage",
         "Profile, avatar, theme & settings",
       ],
     },
@@ -176,14 +176,14 @@ const Home1 = () => {
 
   const navLinks = [
     { label: "Industries", to: "/Industries" },
-    { label: "Pricing", to: "/Home1#pricing" },
+    { label: "Pricing", to: "/#pricing" },
   ];
 
   return (
     <div className="home1-page">
       <header className={menuOpen ? "h1-header is-menu-open" : "h1-header"}>
         <div className="h1-header-inner">
-          <a href="/Home1" onClick={go("/Home1")} className="h1-logo-link">
+          <a href="/" onClick={go("/")} className="h1-logo-link">
             <img src={LogoImg} alt="Stolity" className="h1-logo" />
           </a>
 
@@ -290,7 +290,7 @@ const Home1 = () => {
                 </button>
               </ScrollReveal> */}
               <ScrollReveal className="h1-feature-strip" variant="fadeSoft" delay={0.38}>
-                <span>5 GB Free Storage</span>
+                <span>15 GB Free Storage</span>
                 <span>Secure Sharing</span>
                 <span>No Ads</span>
                 <span>Web & Mobile</span>

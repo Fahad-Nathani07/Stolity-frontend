@@ -5,6 +5,11 @@ import {
   DIRECT_PART_SIZE,
   DIRECT_UPLOAD_GAP_MS,
 } from "./uploadFileDirect";
+import {
+  startActivityBatch,
+  finishActivityBatch,
+  resolveBatchStatus,
+} from "./activityBatch";
 
 export { buildAwsUrl };
 export const FOLDER_UPLOAD_PART_SIZE = DIRECT_PART_SIZE;
@@ -142,6 +147,19 @@ export async function uploadFolderViaMultipart({
   const results = [];
   let batchCanceled = false;
 
+  const activityBatchId =
+    uploadEntries.length >= 2
+      ? await startActivityBatch({
+          apiUrl,
+          token,
+          action: "UPLOAD",
+          fileCount: uploadEntries.length,
+          estimatedBytes: totalSize || undefined,
+          source: "folder-upload",
+          apis: ["presign-put-object", "complete-multipart-upload-direct"],
+        })
+      : null;
+
   for (let i = 0; i < uploadEntries.length; i++) {
     const { file, uploadUiId, sanitizedName, folderPathForFile, controller } =
       uploadEntries[i];
@@ -209,6 +227,7 @@ export async function uploadFolderViaMultipart({
         visibility,
         shared,
         partSize,
+        batchId: activityBatchId || undefined,
         getSignal: () => getUpload?.(uploadUiId)?.controller?.signal,
         onProgress: (pct) => updateUploadProgress(uploadUiId, pct),
         onMeta: ({ key, uploadId, mode, needsNewController }) => {
@@ -312,6 +331,47 @@ export async function uploadFolderViaMultipart({
   const anyCanceled = results.some(
     (r) => r.status === "fulfilled" && r.value === "canceled"
   );
+
+  if (activityBatchId) {
+    const successCount = results.filter(
+      (r) => r.status === "fulfilled" && r.value === "success"
+    ).length;
+    const cancelCount = results.filter(
+      (r) => r.status === "fulfilled" && r.value === "canceled"
+    ).length;
+    const failCount = results.filter((r) => r.status === "rejected").length;
+    let sizeBytes = 0;
+    results.forEach((r, idx) => {
+      if (r.status === "fulfilled" && r.value === "success") {
+        sizeBytes += Number(uploadEntries[idx]?.file?.size) || 0;
+      }
+    });
+    const failedPaths = results
+      .map((r, idx) =>
+        r.status === "rejected"
+          ? uploadEntries[idx]?.sanitizedName || `file-${idx}`
+          : null
+      )
+      .filter(Boolean)
+      .slice(0, 50);
+    finishActivityBatch({
+      apiUrl,
+      token,
+      batchId: activityBatchId,
+      status: resolveBatchStatus({
+        fileCount: uploadEntries.length,
+        successCount,
+        failCount,
+        cancelCount,
+        cancelled: batchCanceled || allCanceled,
+      }),
+      successCount,
+      failCount: failCount + cancelCount,
+      sizeBytes,
+      failedPaths,
+      apis: ["presign-put-object", "complete-multipart-upload-direct"],
+    });
+  }
 
   return {
     status: "done",

@@ -266,6 +266,19 @@
   margin-left: 1px;
 }
 
+.tp-summary-size {
+  margin: -2px 0 8px;
+  font-size: 12px;
+  font-weight: 600;
+  color: #64748b;
+  font-variant-numeric: tabular-nums;
+}
+
+.tp-item-size {
+  font-weight: 500;
+  color: #64748b;
+}
+
 .tp-bar-wrap {
   width: 100%;
   height: 6px;

@@ -1,5 +1,6 @@
 import React from "react";
 import empty_folder from "../images/empty_folder.svg";
+import "./EmptyFilesState.css";
 
 const EMPTY_COPY = {
   files: {
@@ -37,57 +38,17 @@ const EmptyFilesState = ({ isFiltered = false, variant = "files" }) => {
   const copy = EMPTY_COPY[variant] || EMPTY_COPY.files;
 
   return (
-    <div
-      style={{
-        width: "100%",
-        height: "calc(72vh - 20px)",
-        display: "flex",
-        alignItems: "center",
-        justifyContent: "center",
-        padding: "32px 16px",
-        background: "linear-gradient(135deg, #fafbff 0%, #f5f7fb 100%)",
-        borderRadius: "16px",
-        border: "1px solid rgba(15, 23, 42, 0.06)",
-        boxSizing: "border-box",
-      }}
-    >
-      <div style={{ textAlign: "center", maxWidth: "320px" }}>
-        <div
-          style={{
-            width: 195,
-            height: 120,
-            margin: "0 auto 16px",
-            borderRadius: "999px",
-            background: "rgba(59, 130, 246, 0.06)",
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "center",
-            color: "#2563eb",
-            fontSize: 22,
-            fontWeight: 600,
-          }}
-        >
+    <div className="files-empty-state">
+      <div className="files-empty-state__inner">
+        <div className="files-empty-state__art" aria-hidden="true">
           <img src={empty_folder} alt="" />
         </div>
 
-        <div
-          style={{
-            fontSize: 18,
-            fontWeight: 600,
-            color: "#0f172a",
-            marginBottom: 6,
-          }}
-        >
+        <div className="files-empty-state__title">
           {isFiltered ? copy.filteredTitle : copy.title}
         </div>
 
-        <div
-          style={{
-            fontSize: 13,
-            color: "#64748b",
-            lineHeight: 1.6,
-          }}
-        >
+        <div className="files-empty-state__desc">
           {isFiltered ? copy.filteredDescription : copy.description}
         </div>
       </div>

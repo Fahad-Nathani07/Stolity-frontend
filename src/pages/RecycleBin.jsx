@@ -17,7 +17,6 @@ import {
 } from "../utils/zipUnzipRequest";
 import { Prism as SyntaxHighlighter } from "react-syntax-highlighter";
 import { oneLight } from "react-syntax-highlighter/dist/esm/styles/prism";
-import Logo from "../images/logo.png";
 import AvatarDefault from "../images/AvatarDefault.jpg";
 import sharedIcon from "../images/shared_icon.svg";
 import { resolveFileIconPath } from "../utils/fileIcon";
@@ -31,6 +30,7 @@ import SortByDropdown from "../components/SortByDropdown";
 import { FiLifeBuoy } from "react-icons/fi";
 import { gatePremiumSort } from "../utils/premiumSort";
 import "../css/FilesToolbar.css";
+import "../css/FilesPage.css";
 import "../css/FolderDestModalViewport.css";
 import CardFilePreview from "../components/CardFilePreview";
 import FilesPaginationFooter from "../components/FilesPaginationFooter";
@@ -69,6 +69,7 @@ import IconList from "../images/list.svg";
 import IconHomeW from "../images/GridWhite.svg";
 import IconListW from "../images/listWhite.svg";
 import DeletePopup from "../images/deletePopup.svg";
+import warningIcon from "../images/warningIcon.svg";
 import SortHome from "../images/SortHome.svg";
 import { ChevronDown, History as RotateCcwClock, SlidersHorizontal } from "lucide-react";
 import SortIcon from "../images/sort-style-1.svg";
@@ -101,10 +102,9 @@ import { UploadContext } from "./UploadContext";
 import { Modal as BootstrapModal } from "react-bootstrap";
 
 import VideoPlayer from "../components/VideoPlayer";
-import { resolveVideoPlayUrl } from "../utils/videoPlayer";
+import { resolveVideoPlayDetails } from "../utils/videoPlayer";
 import SideNav from "../components/SideNav";
 import Footer from "../components/Footer";
-import ToggleNav from "../components/ToggleNav";
 import TruncatedTooltip from "../components/TruncatedTooltip";
 
 //LIGHTBOX
@@ -211,11 +211,13 @@ const [creatingFolder, setCreatingFolder] = useState(false);
   const [errorMessage, setErrorMessage] = useState("");
   const [videoSrc, setVideoSrc] = useState("");
   const [resolvedVideoUrl, setResolvedVideoUrl] = useState("");
+  const [resolvedVideoSize, setResolvedVideoSize] = useState(0);
   const [isProgressVisible, setIsProgressVisible] = useState(false);
 
   
 
   const [showDeleteModal, setShowDeleteModal] = useState(false);
+  const [showExpiryWarning, setShowExpiryWarning] = useState(true);
 
   const [folderFieldError, setFolderFieldError] = useState("");
   const [showDropdown, setShowDropdown] = useState(false);
@@ -297,7 +299,6 @@ const [showMultiRestoreModal, setShowMultiRestoreModal] = useState(false);
   });
   const [show, setShow] = useState(false);
   const [showImage, setShowImage] = useState(false);
-  const [codePopup, setCodePopup] = useState(false);
 
   useEffect(() => {
     const lockScroll = () => {
@@ -312,14 +313,14 @@ const [showMultiRestoreModal, setShowMultiRestoreModal] = useState(false);
       document.body.style.width = "";
     };
 
-    if (showImage || codePopup) {
+    if (showImage) {
       lockScroll();
     } else {
       unlockScroll();
     }
 
     return () => unlockScroll(); // cleanup
-  }, [showImage, codePopup]);
+  }, [showImage]);
 
   const [endIndex, setEndIndex] = useState(0);
   const [filedata, setFileData] = useState([]);
@@ -490,7 +491,31 @@ useEffect(() => {
   const [moveFol, setMoveFol] = useState(false);
 
   const [view, setView] = useState(localStorage.getItem("view") || "list");
-  const { filterBarRef, tableBoxRef, tableBoxClassName } = useStickyListHeader(view, false);
+  const FILES_MOBILE_BP = 767;
+  const [isMobile, setIsMobile] = useState(
+    () =>
+      typeof window !== "undefined" && window.innerWidth <= FILES_MOBILE_BP
+  );
+
+  useEffect(() => {
+    const mq = window.matchMedia(`(max-width: ${FILES_MOBILE_BP}px)`);
+    const onChange = () => setIsMobile(mq.matches);
+    onChange();
+    mq.addEventListener("change", onChange);
+    return () => mq.removeEventListener("change", onChange);
+  }, []);
+
+  useEffect(() => {
+    if (isMobile && view !== "list") {
+      setView("list");
+    }
+  }, [isMobile, view]);
+
+  const displayView = isMobile ? "list" : view;
+  const { filterBarRef, tableBoxRef, tableBoxClassName } = useStickyListHeader(
+    displayView,
+    false
+  );
 
   useEffect(() => {
     syncSelectionDomClass();
@@ -517,8 +542,9 @@ useEffect(() => {
   }, []);
 
   const toggleView = (selectedView) => {
+    if (isMobile && selectedView === "grid") return;
     setView(selectedView);
-    localStorage.setItem("view", selectedView); // Save selection in localStorage
+    localStorage.setItem("view", selectedView);
   };
 
   const runOnce = useRef(false);
@@ -541,6 +567,15 @@ useEffect(() => {
     toggleFileSelection(file.fileName, !!file.isFolder);
     return true;
   };
+
+const isRecycleNotFoundError = (error) => {
+  const status = error?.response?.status;
+  const msg =
+    error?.response?.data?.error ||
+    error?.response?.data?.message ||
+    "";
+  return status === 404 || /not found/i.test(String(msg));
+};
 
 const handleMulDelete = async () => {
   const loaderStartedAt = Date.now();
@@ -565,17 +600,22 @@ const handleMulDelete = async () => {
     // ────────────────────────────────────────────────
     if (keys.length > 0) {
       const dataToSend = {
-        keys: keys,               // these should be the original file keys/names
+        keys: keys.map((name) => resolveRecycleFileKey(name)),
         fromRecycleBin: true,
       };
 
-      await axios.delete(`${apiUrl}delete-file`, {
-        data: dataToSend,
-        headers: {
-          Authorization: `Bearer ${token}`,
-          "Content-Type": "application/json",
-        },
-      });
+      try {
+        await axios.delete(`${apiUrl}delete-file?fromRecycleBin=true`, {
+          data: dataToSend,
+          headers: {
+            Authorization: `Bearer ${token}`,
+            "Content-Type": "application/json",
+          },
+        });
+      } catch (fileErr) {
+        if (!isRecycleNotFoundError(fileErr)) throw fileErr;
+      }
+      removeRecycleEntriesLocally(keys);
     }
 
     // ────────────────────────────────────────────────
@@ -583,16 +623,21 @@ const handleMulDelete = async () => {
     // ────────────────────────────────────────────────
     if (keys2.length > 0) {
       // Assuming your backend now expects the same format as single delete
-      await axios.delete(`${apiUrl}delete-folder`, { ...LONG_RUNNING_AWS_REQUEST_OPTIONS, 
-        data: {
-          folderName: keys2.map((name) => resolveRecycleFolderKey(name)),
-          fromRecycleBin: true,
-        },
-        headers: {
-          Authorization: `Bearer ${token}`,
-          "Content-Type": "application/json",
-        },
-      });
+      try {
+        await axios.delete(`${apiUrl}delete-folder?fromRecycleBin=true`, { ...LONG_RUNNING_AWS_REQUEST_OPTIONS, 
+          data: {
+            folderName: keys2.map((name) => resolveRecycleFolderKey(name)),
+            fromRecycleBin: true,
+          },
+          headers: {
+            Authorization: `Bearer ${token}`,
+            "Content-Type": "application/json",
+          },
+        });
+      } catch (folderErr) {
+        if (!isRecycleNotFoundError(folderErr)) throw folderErr;
+      }
+      removeRecycleEntriesLocally(keys2);
     }
 
     // ────────────────────────────────────────────────
@@ -621,9 +666,26 @@ const handleMulDelete = async () => {
   } catch (error) {
     console.error("Multi permanent delete failed:", error);
 
+    if (isRecycleNotFoundError(error)) {
+      removeRecycleEntriesLocally([...keys, ...keys2]);
+      getLatestFolderList();
+      setSelectStatus(false);
+      getFileData(1);
+      setCurrentPage(1);
+      getRootFolderSize();
+      clearFileSelection();
+      afterMinLoaderDisplay(loaderStartedAt, () => {
+        setLoader_Permanent_Delete(false);
+        showToast("success", "Items permanently deleted");
+      });
+      return;
+    }
+
     showToast(
       "error",
-      error?.response?.data?.message || "Error during permanent deletion"
+      error?.response?.data?.message ||
+        error?.response?.data?.error ||
+        "Error during permanent deletion"
     );
 
     afterMinLoaderDisplay(loaderStartedAt, () => {
@@ -676,7 +738,7 @@ function parseStorageToBytes(storageStr) {
 
 const totalBytes = subscription && subscription.storage
   ? parseStorageToBytes(subscription.storage)
-  : 5 * 1_000_000_000;                    // default 5 GB in decimal bytes
+  : 15 * 1_000_000_000;                   // default 15 GB free
 
 const usedBytes = folderSize ? folderSize.sizeInBytes : 0;
 const remainingBytes = totalBytes - usedBytes;
@@ -1190,6 +1252,7 @@ const getFileData = async () => {
         apiUrl,
         token,
         filePath: filename,
+        inline: true,
       });
       await preloadStreamedImage(url);
       setImageSrc(url);
@@ -1203,21 +1266,27 @@ const getFileData = async () => {
   useEffect(() => {
     if (!videoSrc || !apiUrl || !token) {
       setResolvedVideoUrl("");
+      setResolvedVideoSize(0);
       return undefined;
     }
     if (String(videoSrc).startsWith("blob:")) {
       setResolvedVideoUrl(videoSrc);
+      setResolvedVideoSize(0);
       return undefined;
     }
     let cancelled = false;
     const controller =
       typeof AbortController !== "undefined" ? new AbortController() : null;
     setResolvedVideoUrl("");
-    resolveVideoPlayUrl(apiUrl, token, videoSrc, {
+    setResolvedVideoSize(0);
+    resolveVideoPlayDetails(apiUrl, token, videoSrc, {
       signal: controller?.signal,
     })
-      .then((url) => {
-        if (!cancelled) setResolvedVideoUrl(url);
+      .then(({ url, size }) => {
+        if (!cancelled) {
+          setResolvedVideoUrl(url);
+          setResolvedVideoSize(Number(size) || 0);
+        }
       })
       .catch((err) => {
         if (!cancelled && err?.name !== "AbortError") {
@@ -1237,6 +1306,7 @@ const getFileData = async () => {
         apiUrl,
         token,
         filePath: filename,
+        inline: true,
       });
       setIsProgressVisible(false);
       setAudioSrc(url);
@@ -1448,6 +1518,39 @@ const getFileData = async () => {
     return checkLastHash(match?.recycleStorageName || name);
   };
 
+  /** Drop rows from local recycle list so UI clears even if S3 object was already gone. */
+  const removeRecycleEntriesLocally = (fileOrNames = []) => {
+    const matchSet = new Set();
+    for (const item of fileOrNames) {
+      if (item == null) continue;
+      if (typeof item === "object") {
+        matchSet.add(checkLastHash(item.fileName || ""));
+        matchSet.add(checkLastHash(item.recycleStorageName || ""));
+        matchSet.add(resolveRecycleFileKey(item));
+        matchSet.add(resolveRecycleFolderKey(item));
+      } else {
+        const raw = checkLastHash(String(item));
+        matchSet.add(raw);
+        matchSet.add(resolveRecycleFileKey(raw));
+        matchSet.add(resolveRecycleFolderKey(raw));
+      }
+    }
+    matchSet.delete("");
+
+    const keep = (entry) => {
+      const name = checkLastHash(entry?.fileName || "");
+      const storage = checkLastHash(entry?.recycleStorageName || "");
+      return !matchSet.has(name) && !matchSet.has(storage);
+    };
+
+    setAllEntries((prev) => {
+      const next = (prev || []).filter(keep);
+      setTotalEntries(next.length);
+      return next;
+    });
+    setFileData((prev) => (prev || []).filter(keep));
+  };
+
   const getRecycleOriginalPath = (item) => {
     if (!item) return null;
     const fromMeta = String(item.originalPath || "").trim();
@@ -1496,7 +1599,6 @@ const getFileData = async () => {
 
   useSessionEndCleanup(() => {
     setShowImage(false);
-    setCodePopup(false);
     setIsCWhisperClicked(false);
     setMoveFol(false);
     setInfoShower(false);
@@ -1504,16 +1606,26 @@ const getFileData = async () => {
     setDeletepop(false);
   });
 
-  
+const finishPermanentDeleteSuccess = (file, loaderStartedAt, successMessage) => {
+  removeRecycleEntriesLocally([file]);
+  getLatestFolderList();
+  handleCloseDeletePopover();
+  getFileData(currentPage);
+  getRootFolderSize();
+  afterMinLoaderDisplay(loaderStartedAt, () => {
+    setLoader_Permanent_Delete(false);
+    showToast("success", successMessage);
+  });
+};
 
 const handleFileDelete = async (file) => {
   const loaderStartedAt = Date.now();
   setLoader_Permanent_Delete(true); // Start permanent delete loader
 
-  if (file?.isFolder === true) {
+  if (file?.isFolder === true || file?.fileType === "Folder") {
     // Permanent folder delete
     try {
-      const res = await axios.delete(`${apiUrl}delete-folder`, { ...LONG_RUNNING_AWS_REQUEST_OPTIONS, 
+      await axios.delete(`${apiUrl}delete-folder?fromRecycleBin=true`, { ...LONG_RUNNING_AWS_REQUEST_OPTIONS, 
         data: { folderName: [resolveRecycleFolderKey(file)], fromRecycleBin: true },
         headers: {
           Authorization: `Bearer ${token}`,
@@ -1521,15 +1633,12 @@ const handleFileDelete = async (file) => {
         },
       });
 
-      getLatestFolderList();
-      handleCloseDeletePopover();
-      getFileData(currentPage);
-      getRootFolderSize();
-      afterMinLoaderDisplay(loaderStartedAt, () => {
-        setLoader_Permanent_Delete(false);
-        showToast("success", "Folder permanently deleted");
-      });
+      finishPermanentDeleteSuccess(file, loaderStartedAt, "Folder permanently deleted");
     } catch (error) {
+      if (isRecycleNotFoundError(error)) {
+        finishPermanentDeleteSuccess(file, loaderStartedAt, "Folder permanently deleted");
+        return;
+      }
       showToast("error", `There's an error while deleting folder`);
       afterMinLoaderDisplay(loaderStartedAt, () => setLoader_Permanent_Delete(false));
     }
@@ -1543,21 +1652,19 @@ const handleFileDelete = async (file) => {
     };
 
     try {
-      const res = await axios.delete(`${apiUrl}delete-file`, {
+      await axios.delete(`${apiUrl}delete-file?fromRecycleBin=true`, {
         data: dataToSend,
         headers: {
           Authorization: `Bearer ${token}`,
           "Content-Type": "application/json",
         },
       });
-      handleCloseDeletePopover();
-      getFileData(currentPage);
-      getRootFolderSize();
-      afterMinLoaderDisplay(loaderStartedAt, () => {
-        setLoader_Permanent_Delete(false);
-        showToast("success", "File permanently deleted");
-      });
+      finishPermanentDeleteSuccess(file, loaderStartedAt, "File permanently deleted");
     } catch (error) {
+      if (isRecycleNotFoundError(error)) {
+        finishPermanentDeleteSuccess(file, loaderStartedAt, "File permanently deleted");
+        return;
+      }
       showToast("error", "There's an error while permanently deleting file!");
       afterMinLoaderDisplay(loaderStartedAt, () => setLoader_Permanent_Delete(false));
     }
@@ -2084,7 +2191,7 @@ const performRestore = async ({ useOriginalPath = false } = {}) => {
 
   const totalBytes = subscription && subscription.storage
     ? parseStorageToBytes(subscription.storage)
-    : 5 * 1024 ** 3;
+    : 15 * 1024 ** 3;
   const usedBytes = folderSize ? folderSize.sizeInBytes : 0;
   const remainingBytes = totalBytes - usedBytes;
 
@@ -3294,35 +3401,48 @@ const isMultiSizeExceeded = selectedTotalBytes > remainingBytes;
   };
 
   const deleteFromModal = async (filename) => {
-    // console.log("Deleting file", filename);
+    const deleteKey = resolveRecycleFileKey(filename);
     const dataToSend = {
-      keys: [filename],
+      keys: [deleteKey],
+      fromRecycleBin: true,
     };
+
+    const finishAfterDelete = async () => {
+      showToast("success", "File permanently deleted");
+
+      const remainingCount = (filedata || []).filter((f) => {
+        const key = resolveRecycleFileKey(f);
+        return key !== deleteKey && f.fileName !== filename;
+      }).length;
+
+      removeRecycleEntriesLocally([filename, deleteKey]);
+      await getFileData(currentPage);
+      try {
+        await getRootFolderSize();
+      } catch (_) {}
+
+      if (remainingCount <= 0) {
+        handleImageClose();
+        return;
+      }
+      handleNext();
+    };
+
     try {
-      const res = await axios.delete(`${apiUrl}delete-file`, {
+      await axios.delete(`${apiUrl}delete-file?fromRecycleBin=true`, {
         data: dataToSend,
         headers: {
           Authorization: `Bearer ${token}`,
-          "Content-Type": "application/x-www-form-urlencoded",
+          "Content-Type": "application/json",
         },
       });
-      // console.log(res);
-      async function executeFunctionsInOrder() {
-        try {
-          showToast("success", "File deleted successfully");
-
-          await getFileData(currentPage);
-
-          await getRootFolderSize();
-
-          handleNext();
-        } catch (error) {
-          console.error("Error executing functions:", error);
-        }
-      }
-
-      executeFunctionsInOrder();
+      await finishAfterDelete();
     } catch (error) {
+      // Missing object → treat as deleted so UI advances / drops the name
+      if (isRecycleNotFoundError(error)) {
+        await finishAfterDelete();
+        return;
+      }
       showToast("error", `There's an error while deleting file!`);
     }
   };
@@ -3418,6 +3538,8 @@ const isMultiSizeExceeded = selectedTotalBytes > remainingBytes;
           keys: [modalFile],
         },
         {
+          ...LONG_RUNNING_AWS_REQUEST_OPTIONS,
+
           headers: {
             Authorization: `Bearer ${token}`,
             "Content-Type": "application/json",
@@ -3488,85 +3610,54 @@ const isMultiSizeExceeded = selectedTotalBytes > remainingBytes;
       {/* // Modal component */}
 
       <SideNav />
-      <div className="container-fluid page-body-wrapper">
+      <div className={`container-fluid page-body-wrapper files-layout${isMobile ? " files-layout--mobile" : ""}`}>
         {/* partial:partials/_navbar.html */}
-        <nav className="navbar p-0 fixed-top d-flex flex-row">
-          <div className="navbar-brand-wrapper d-flex d-lg-none align-items-center justify-content-center">
-            <a className="navbar-brand brand-logo-mini" href="#">
-              <img src={Logo} alt="logo" />
-            </a>
-          </div>
-          <div className="navbar-menu-wrapper flex-grow d-flex align-items-stretch">
-            <ToggleNav />
-            <div className="navbar-nav page_title">
-              <div style={{
-                    display: "flex",
-                    alignItems: "center",
-                    justifyContent: "space-between",
-                    width: "100%",
-              }}>
-                <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-                  <h1>Recycle Bin</h1>
-                </div>
-
-                <div style={{
-                  display:'flex',
-                  alignItems:"center",
-                  gap:"10px"
-                }}>
+        <nav className="navbar p-0 fixed-top d-flex flex-row files-navbar">
+          <div className="navbar-menu-wrapper flex-grow files-navbar__shell">
+            <header className="files-app-header">
+              <div className="files-app-header__titles">
+                <h1 className="files-app-header__title">Recycle Bin</h1>
+                <div className="files-app-header__end">
                   <button
                     type="button"
-                    className="page_title-support-btn"
+                    className="files-app-header__support"
+                    title="Support"
+                    aria-label="Support"
                     onClick={() => nav("/SupportTickets")}
                   >
                     <FiLifeBuoy aria-hidden="true" />
                     Support
                   </button>
-                  <div style={{
-                    color: "#494949",
-                    fontWeight:"510"
-                  }}>
-                    <div style={{fontSize:"12px"}}>Welcome, Back!</div>
-                    <div style={{fontSize:"16px"}}>{userProfile.name || userData?.userData?.name || userData?.name || name}</div>
-                  </div>
-
-                  <div
-                    role="button"
-                    tabIndex={0}
-                    title="Edit profile"
-                    aria-label="Open profile"
-                    onClick={() => nav("/UserProfile")}
-                    onKeyDown={(e) => {
-                      if (e.key === "Enter" || e.key === " ") {
-                        e.preventDefault();
-                        nav("/UserProfile");
-                      }
-                    }}
-                    style={{
-                    height: "45px",
-                    width: "45px",
-                    borderRadius: "100px",
-                    overflow: "hidden",
-                    cursor: "pointer",
-                    flexShrink: 0,
-                  }}>
-                    <img
-                      src={avatarUrl || AvatarDefault}
-                      alt="Profile"
-                      style={{ width: "100%", height: "100%", objectFit: "cover" }}
-                      onError={(e) => {
-                        e.target.onerror = null;
-                        e.target.src = AvatarDefault;
-                      }}
-                    />
+                  <div className="files-app-header__welcome files-nav-welcome">
+                    <span className="files-nav-welcome__greet">Welcome back</span>
+                    <span className="files-nav-welcome__name">
+                      {userProfile.name || userData?.userData?.name || userData?.name || name}
+                    </span>
                   </div>
                 </div>
               </div>
-            </div>
+
+              <button
+                type="button"
+                className="files-app-header__profile"
+                title="Edit profile"
+                aria-label="Open profile"
+                onClick={() => nav("/UserProfile")}
+              >
+                <img
+                  src={avatarUrl || AvatarDefault}
+                  alt=""
+                  onError={(e) => {
+                    e.target.onerror = null;
+                    e.target.src = AvatarDefault;
+                  }}
+                />
+              </button>
+            </header>
           </div>
         </nav>
         {/* partial */}
-        <div className="main-panel"> 
+        <div className="main-panel files-page">
           <div className="content-wrapper">
             <div className={tableBoxClassName} ref={tableBoxRef}>
               <div className="filerbar_row" ref={filterBarRef}>
@@ -3582,6 +3673,7 @@ const isMultiSizeExceeded = selectedTotalBytes > remainingBytes;
 
                 <div className="files-toolbar filter-row-new">
                   <div className="files-toolbar__main">
+                    {!isMobile && (
                     <div className="files-toolbar__view">
                   <div
                     className={`switcher-container ${
@@ -3607,6 +3699,7 @@ const isMultiSizeExceeded = selectedTotalBytes > remainingBytes;
                     />
                   </div>
                     </div>
+                    )}
 
                     <div className="files-toolbar__filters">
                       <div className="files-toolbar__sort">
@@ -3638,9 +3731,16 @@ const isMultiSizeExceeded = selectedTotalBytes > remainingBytes;
                               aria-hidden
                             />
                             <span className="sort-filter-label">
-                              {selectedFileTypes.length > 0
-                                ? `File Type (${selectedFileTypes.length})`
-                                : "File Type"}
+                              <span className="sort-filter-label--full">
+                                {selectedFileTypes.length > 0
+                                  ? `File Type (${selectedFileTypes.length})`
+                                  : "File Type"}
+                              </span>
+                              <span className="sort-filter-label--short" aria-hidden="true">
+                                {selectedFileTypes.length > 0
+                                  ? `Type (${selectedFileTypes.length})`
+                                  : "Type"}
+                              </span>
                             </span>
                             {!isPremium && (
                               <img
@@ -3815,11 +3915,9 @@ const isMultiSizeExceeded = selectedTotalBytes > remainingBytes;
                 }}
               />
 
-             
-              
-                <div id="dataView">
+                <div id="dataView" style={{ position: "relative", zIndex: 30 }}>
 
-                  {view === "list" ? (
+                  {displayView === "list" ? (
                     placeholderLoading ? (
                       <div
                         className="table-responsive"
@@ -4525,6 +4623,7 @@ const isMultiSizeExceeded = selectedTotalBytes > remainingBytes;
                   <VideoPlayer
                     key={resolvedVideoUrl}
                     url={resolvedVideoUrl}
+                    fileSize={resolvedVideoSize}
                     fileName={videoSrc}
                   />
                 ) : videoSrc ? (
@@ -5366,6 +5465,38 @@ const isMultiSizeExceeded = selectedTotalBytes > remainingBytes;
         onClose={() => setShowUpgradeModal(false)}
         onUpgrade={() => nav("/Payment")}
       />
+
+      {showExpiryWarning && (
+        <div className="rename_popup_wrapper">
+          <div className="rename_modal">
+            <div
+              style={{
+                display: "flex",
+                justifyContent: "center",
+                marginBottom: "15px",
+              }}
+            >
+              <img src={warningIcon} alt="" style={{ height: "48px" }} />
+            </div>
+            <h2 className="rename_title2">Recycle Bin retention</h2>
+            <p className="rename_subtext">
+              Items in the Recycle Bin are kept for{" "}
+              <strong>7 days</strong> from the date they were deleted. After
+              that they are permanently removed and cannot be recovered.
+              Restore anything you still need before it expires.
+            </p>
+            <div className="rename_buttons">
+              <button
+                type="button"
+                className="rename_btn ok"
+                onClick={() => setShowExpiryWarning(false)}
+              >
+                Got it
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {showDeleteModal && (
        <>

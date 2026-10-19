@@ -67,6 +67,12 @@ function getBottomLimit(dropdown) {
   const footer = document.querySelector(".files-pagination-footer");
   if (footer) bottom = Math.min(bottom, footer.getBoundingClientRect().top);
 
+  const mobileNav = document.querySelector(".sidebar.sidebar--mobile");
+  if (mobileNav) {
+    const navTop = mobileNav.getBoundingClientRect().top;
+    if (navTop > 0) bottom = Math.min(bottom, navTop);
+  }
+
   const scrollParent = getScrollParent(dropdown);
   if (scrollParent) {
     bottom = Math.min(bottom, scrollParent.getBoundingClientRect().bottom);
@@ -75,15 +81,27 @@ function getBottomLimit(dropdown) {
   return bottom;
 }
 
-/** Left edge the menu must stay clear of (viewport pad + visible sidebar). */
+/** Left edge the menu must stay clear of (viewport pad + visible left sidebar rail). */
 function getLeftLimit() {
   let left = EDGE_PAD;
   const sidebar = document.querySelector(".sidebar.sidebar-offcanvas, .sidebar");
-  if (sidebar) {
-    const rect = sidebar.getBoundingClientRect();
-    if (rect.width > 8 && rect.right > 4) {
-      left = Math.max(left, Math.ceil(rect.right) + EDGE_PAD);
-    }
+  if (!sidebar) return left;
+
+  // Mobile/tablet bottom nav is full-width — not a left rail. Treating it as one
+  // pushed menus off-screen (preferredLeft never fit → left ≈ viewport width).
+  if (sidebar.classList.contains("sidebar--mobile")) {
+    return left;
+  }
+
+  const rect = sidebar.getBoundingClientRect();
+  const isLeftRail =
+    rect.width > 8 &&
+    rect.left <= 4 &&
+    rect.right > 4 &&
+    rect.height > Math.min(240, window.innerHeight * 0.35);
+
+  if (isLeftRail) {
+    left = Math.max(left, Math.ceil(rect.right) + EDGE_PAD);
   }
   return left;
 }

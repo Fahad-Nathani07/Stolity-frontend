@@ -12,11 +12,16 @@ export default function SupportFilterSelect({
   ariaLabel,
   placeholder = "Select…",
   className = "",
+  disabled = false,
 }) {
   const [open, setOpen] = useState(false);
   const rootRef = useRef(null);
   const selected = options.find((opt) => opt.id === value);
   const displayLabel = selected?.label || placeholder;
+
+  useEffect(() => {
+    if (disabled) setOpen(false);
+  }, [disabled]);
 
   useEffect(() => {
     if (!open) return undefined;
@@ -37,8 +42,8 @@ export default function SupportFilterSelect({
   return (
     <div
       className={`ssd-filter-select${open ? " is-open" : ""}${
-        className ? ` ${className}` : ""
-      }`}
+        disabled ? " is-disabled" : ""
+      }${className ? ` ${className}` : ""}`}
       ref={rootRef}
     >
       {label ? <span className="ssd-filter-select-label">{label}</span> : null}
@@ -50,7 +55,11 @@ export default function SupportFilterSelect({
         aria-haspopup="listbox"
         aria-expanded={open}
         aria-label={ariaLabel || label || "Filter"}
-        onClick={() => setOpen((v) => !v)}
+        disabled={disabled}
+        onClick={() => {
+          if (disabled) return;
+          setOpen((v) => !v);
+        }}
       >
         <span>{displayLabel}</span>
         <FiChevronDown aria-hidden="true" />

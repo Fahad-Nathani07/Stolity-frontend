@@ -36,6 +36,9 @@ function progressFromBytes(loaded, totalBytes) {
   return Math.min(95, Math.floor(loaded / (5 * 1024 * 1024)));
 }
 
+/** Exported for Range-chunk Direct Stream progress. */
+export { progressFromBytes };
+
 /** Min gap between UI progress callbacks during streaming (ms). */
 export const PROGRESS_THROTTLE_MS = 200;
 
@@ -184,6 +187,33 @@ export function isDownloadCancelledError(error) {
     msg.includes("user canceled") ||
     msg.includes("the user aborted")
   );
+}
+
+/**
+ * Combine AbortSignals (batch cancel + per-file cancel).
+ * AbortSignal.any when available; otherwise a linked AbortController.
+ */
+export function mergeAbortSignals(...signals) {
+  const list = (signals || []).filter(Boolean);
+  if (!list.length) return undefined;
+  if (list.length === 1) return list[0];
+  if (typeof AbortSignal !== "undefined" && typeof AbortSignal.any === "function") {
+    return AbortSignal.any(list);
+  }
+  const controller = new AbortController();
+  const onAbort = () => {
+    try {
+      controller.abort();
+    } catch (_) {}
+  };
+  for (const s of list) {
+    if (s.aborted) {
+      controller.abort();
+      return controller.signal;
+    }
+    s.addEventListener("abort", onAbort, { once: true });
+  }
+  return controller.signal;
 }
 
 export function scheduleDownloadRemoval(
@@ -336,7 +366,7 @@ const WRITE_CHUNK_BYTES = 1024 * 1024; // 1 MiB
  * Without this, createWritable() often stages hundreds of MB–GB in RAM and
  * the next large file in a batch can stall mid-stream under memory pressure.
  */
-const FLUSH_EVERY_BYTES = 32 * 1024 * 1024; // 32 MiB
+const FLUSH_EVERY_BYTES = 64 * 1024 * 1024; // 64 MiB
 
 async function reopenWritableAt(fileHandle, offset) {
   const next = await fileHandle.createWritable({ keepExistingData: true });

@@ -1,4 +1,5 @@
 import React from "react";
+import { createPortal } from "react-dom";
 import { FiX, FiUploadCloud, FiArchive, FiAlertTriangle } from "react-icons/fi";
 import {
   UPLOAD_BATCH_CANCEL,
@@ -61,7 +62,7 @@ export default function UploadBatchLimitModal({
     tone = "danger";
   }
 
-  return (
+  return createPortal(
     <div className="ublm-overlay" role="presentation">
       <div
         className="ublm-dialog"
@@ -184,6 +185,7 @@ export default function UploadBatchLimitModal({
           </div>
         </div>
       </div>
-    </div>
+    </div>,
+    document.body
   );
 }

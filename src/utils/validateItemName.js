@@ -28,12 +28,12 @@ export function validateItemName(rawName) {
     };
   }
 
-  // Same allowlist as create-folder
-  if (!/^[a-zA-Z0-9_\- ]+$/.test(name)) {
+  // Same allowlist as create-folder (includes round brackets)
+  if (!/^[a-zA-Z0-9_\- ()]+$/.test(name)) {
     return {
       ok: false,
       message:
-        "Name can only contain letters, numbers, underscores, hyphens, and spaces.",
+        "Name can only contain letters, numbers, underscores, hyphens, spaces, and ( ).",
     };
   }
 

@@ -10,6 +10,7 @@ import {
   FiSend,
   FiSearch,
   FiX,
+  FiTrash2,
 } from "react-icons/fi";
 import { showToast } from "../components/ToastProvider";
 import {
@@ -152,6 +153,7 @@ function ticketUpdatedMs(item) {
 
 const LIST_FILTERS = [
   { id: "all", label: "All" },
+  { id: "active", label: "Active" },
   { id: "unassigned", label: "Unassigned" },
   { id: "in_progress", label: "In Progress" },
   { id: "completed", label: "Completed" },
@@ -164,18 +166,22 @@ export default function SupportQuestionsPane({
   myId,
   token,
   onItemCountChange,
+  onUnassignedCountChange,
 }) {
   const [items, setItems] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
-  const [listFilter, setListFilter] = useState("all");
+  const [listFilter, setListFilter] = useState("active");
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedId, setSelectedId] = useState(null);
   const [selected, setSelected] = useState(null);
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [claiming, setClaiming] = useState(false);
   const [releasing, setReleasing] = useState(false);
+  const [deleting, setDeleting] = useState(false);
   const [saving, setSaving] = useState(false);
+  const canHardDelete =
+    String(email || "").trim().toLowerCase() === "fahad@infomanav.in";
   const [sendingReply, setSendingReply] = useState(false);
   const [noteDraft, setNoteDraft] = useState("");
   const [replyDraft, setReplyDraft] = useState("");
@@ -207,6 +213,15 @@ export default function SupportQuestionsPane({
   useEffect(() => {
     onItemCountChange?.(items.length);
   }, [items.length, onItemCountChange]);
+
+  const unassignedCount = useMemo(
+    () => items.filter((item) => adminTicketBucket(item) === "unassigned").length,
+    [items]
+  );
+
+  useEffect(() => {
+    onUnassignedCountChange?.(unassignedCount);
+  }, [unassignedCount, onUnassignedCountChange]);
 
   const syncSelectedFromList = useCallback((list) => {
     const id = selectedIdRef.current;
@@ -322,22 +337,30 @@ export default function SupportQuestionsPane({
   const filterCounts = useMemo(() => {
     const counts = {
       all: items.length,
+      active: 0,
       unassigned: 0,
       in_progress: 0,
       completed: 0,
     };
     for (const item of items) {
-      counts[adminTicketBucket(item)] += 1;
+      const bucket = adminTicketBucket(item);
+      counts[bucket] += 1;
+      if (bucket !== "completed") counts.active += 1;
     }
     return counts;
   }, [items]);
 
   const filteredRows = useMemo(() => {
     let list = items.filter(matchesSearch);
-    if (listFilter !== "all") {
+    if (listFilter === "active") {
+      list = list.filter((item) => adminTicketBucket(item) !== "completed");
+    } else if (listFilter !== "all") {
       list = list.filter((item) => adminTicketBucket(item) === listFilter);
     }
     list = [...list].sort((a, b) => {
+      const unreadDiff =
+        (b.hasUnreadForAgent ? 1 : 0) - (a.hasUnreadForAgent ? 1 : 0);
+      if (unreadDiff !== 0) return unreadDiff;
       const rankDiff =
         adminBucketRank(adminTicketBucket(a)) -
         adminBucketRank(adminTicketBucket(b));
@@ -403,6 +426,41 @@ export default function SupportQuestionsPane({
     setActionMsg(null);
   };
 
+  const patchListItem = (result) => {
+    if (!result?.id) return;
+    setItems((prev) =>
+      prev.map((item) =>
+        item.id === result.id ? { ...item, ...result } : item
+      )
+    );
+  };
+
+  const markTicketReadForAgent = async (ticket) => {
+    if (!ticket?.id || !isTicketItem(ticket) || !ticket.hasUnreadForAgent) {
+      return;
+    }
+    try {
+      const res = await axios.post(
+        `${apiUrl}support/questions/${ticket.id}/read`,
+        {},
+        { headers: authHeaders }
+      );
+      const result = res.data?.result;
+      if (result?.id) {
+        setSelected((prev) =>
+          prev?.id === result.id
+            ? { ...prev, ...result, hasUnreadForAgent: false }
+            : prev
+        );
+        patchListItem({ ...result, hasUnreadForAgent: false });
+      } else {
+        patchListItem({ ...ticket, hasUnreadForAgent: false });
+      }
+    } catch {
+      /* non-blocking */
+    }
+  };
+
   const openTicket = (item) => {
     setSelectedId(item.id);
     setSelected(item);
@@ -424,6 +482,9 @@ export default function SupportQuestionsPane({
         text: "Assigned to you.",
       });
     }
+    if (isTicketItem(item) && item.hasUnreadForAgent) {
+      void markTicketReadForAgent(item);
+    }
   };
 
   const claimTicket = async () => {
@@ -437,23 +498,30 @@ export default function SupportQuestionsPane({
         {},
         { headers: authHeaders }
       );
-      setSelected(res.data?.result || ticket);
+      const result = res.data?.result || ticket;
+      setSelected(result);
+      patchListItem(result);
       if (res.data?.claimed) {
         showToast("success", "Ticket assigned to you.", "Claimed");
         setActionMsg({ type: "success", text: "You are assigned." });
       }
-      await fetchList({ soft: true });
+      if (result?.hasUnreadForAgent) {
+        await markTicketReadForAgent(result);
+      }
+      // force: soft refresh otherwise skips while claimingRef is still true
+      await fetchList({ soft: true, force: true });
     } catch (err) {
       if (err.response?.status === 409) {
         const result = err.response?.data?.result || ticket;
         setSelected(result);
+        patchListItem(result);
         const ownerEmail =
           result?.assignedTo?.email ||
           result?.assignedTo?.name ||
           "another agent";
         showToast("warning", `Already under ${ownerEmail}.`, "Taken");
         setActionMsg({ type: "error", text: `Under ${ownerEmail}.` });
-        await fetchList({ soft: true });
+        await fetchList({ soft: true, force: true });
       } else {
         const msg =
           err.response?.data?.message || "Could not claim this ticket.";
@@ -462,6 +530,39 @@ export default function SupportQuestionsPane({
       }
     } finally {
       setClaiming(false);
+    }
+  };
+
+  const deleteTicketPermanently = async () => {
+    if (!selected?.id || deleting || !canHardDelete) return;
+    const kind = isTicketItem(selected) ? "ticket" : "question";
+    const code = ticketCode(selected.id, isTicketItem(selected) ? "T" : "Q");
+    if (
+      !window.confirm(
+        `Permanently delete ${kind} ${code}?\n\nThis removes the document and all messages from Firebase. This cannot be undone.`
+      )
+    ) {
+      return;
+    }
+    setDeleting(true);
+    setActionMsg(null);
+    try {
+      await axios.delete(`${apiUrl}support/questions/${selected.id}`, {
+        headers: authHeaders,
+      });
+      setItems((prev) => prev.filter((item) => item.id !== selected.id));
+      showToast("success", `${kind === "ticket" ? "Ticket" : "Question"} deleted.`, "Deleted");
+      closeDrawer();
+      await fetchList({ soft: true, force: true });
+    } catch (err) {
+      const msg =
+        err.response?.data?.message ||
+        err.response?.data?.error ||
+        "Could not delete this ticket.";
+      setActionMsg({ type: "error", text: msg });
+      showToast("error", msg, "Delete failed");
+    } finally {
+      setDeleting(false);
     }
   };
 
@@ -475,11 +576,13 @@ export default function SupportQuestionsPane({
         {},
         { headers: authHeaders }
       );
-      setSelected(res.data?.result || selected);
+      const result = res.data?.result || selected;
+      setSelected(result);
+      patchListItem(result);
       setNoteDraft("");
       showToast("success", "Ticket is available again.", "Released");
       setActionMsg({ type: "success", text: "Released." });
-      await fetchList({ soft: true });
+      await fetchList({ soft: true, force: true });
     } catch (err) {
       const msg =
         err.response?.data?.message || "Could not release this ticket.";
@@ -589,59 +692,77 @@ export default function SupportQuestionsPane({
   return (
     <div className="sta-root">
       <div className="sta-toolbar">
-        <div className="sta-toolbar-left">
-          <div className="sta-filters" role="tablist" aria-label="Ticket filters">
+        <div className="sta-toolbar-primary">
+          <div className="sta-seg" role="tablist" aria-label="Ticket filters">
             {LIST_FILTERS.map((f) => (
               <button
                 key={f.id}
                 type="button"
                 role="tab"
                 aria-selected={listFilter === f.id}
-                className={`sta-filter-chip${
+                className={`sta-seg-btn${
                   listFilter === f.id ? " is-active" : ""
                 }`}
                 onClick={() => setListFilter(f.id)}
               >
-                {f.label}
-                <em>{filterCounts[f.id] ?? 0}</em>
+                <span className="sta-seg-label">{f.label}</span>
+                <span className="sta-seg-count">{filterCounts[f.id] ?? 0}</span>
               </button>
             ))}
           </div>
-          <label className="sta-field sta-field--search">
-            <span>Search</span>
-            <span className="sta-search">
-              <FiSearch aria-hidden="true" />
-              <input
-                type="search"
-                placeholder="Name, email, ID, category…"
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-              />
-            </span>
-          </label>
-        </div>
-        <div className="sta-toolbar-right">
-          <div className="sta-stats">
-            <span>
-              Available <strong>{counts.available}</strong>
-            </span>
-            <span>
-              Mine <strong>{counts.mine}</strong>
-            </span>
-            <span>
-              Taken <strong>{counts.taken}</strong>
-            </span>
+
+          <div className="sta-find">
+            <FiSearch className="sta-find-icon" aria-hidden="true" />
+            <input
+              type="search"
+              className="sta-find-input"
+              placeholder="Search name, email, ID, category…"
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              aria-label="Search tickets"
+            />
+            {searchQuery ? (
+              <button
+                type="button"
+                className="sta-find-clear"
+                onClick={() => setSearchQuery("")}
+                aria-label="Clear search"
+              >
+                <FiX aria-hidden="true" />
+              </button>
+            ) : null}
           </div>
+        </div>
+
+        <div className="sta-toolbar-aside">
+          <div className="sta-meters" aria-label="Queue ownership">
+            <div className="sta-meter">
+              <span className="sta-meter-label">Available</span>
+              <strong className="sta-meter-value">{counts.available}</strong>
+            </div>
+            <div className="sta-meter">
+              <span className="sta-meter-label">Mine</span>
+              <strong className="sta-meter-value">{counts.mine}</strong>
+            </div>
+            <div className="sta-meter">
+              <span className="sta-meter-label">Taken</span>
+              <strong className="sta-meter-value">{counts.taken}</strong>
+            </div>
+          </div>
+
           <button
             type="button"
-            className="sta-btn sta-btn--ghost"
+            className={`sta-sync${loading ? " is-busy" : ""}`}
             onClick={() => {
               fetchList({ soft: false });
               setRefreshIn(SOFT_REFRESH_MS / 1000);
             }}
             disabled={loading}
+            title="Refresh queue"
+            aria-label={`Refresh queue, next auto-refresh in ${refreshIn} seconds`}
           >
-            <FiRefreshCw /> Refresh {refreshIn}s
+            <FiRefreshCw aria-hidden="true" />
+            <span className="sta-sync-timer">{refreshIn}s</span>
           </button>
         </div>
       </div>
@@ -673,15 +794,27 @@ export default function SupportQuestionsPane({
                 const code = ticketCode(item.id, ticket ? "T" : "Q");
                 const state = ownershipState(item, email, myId);
                 const preview = String(item.question || "").slice(0, 64);
+                const unread = Boolean(ticket && item.hasUnreadForAgent);
                 return (
                   <tr
                     key={item.id}
                     className={`sta-row${
                       selectedId === item.id ? " is-active" : ""
-                    } sta-row--${state}`}
+                    }${unread ? " is-unread" : ""} sta-row--${state}`}
                     onClick={() => openTicket(item)}
                   >
-                    <td className="sta-mono">{code}</td>
+                    <td>
+                      <span className="sta-mono">
+                        {unread ? (
+                          <span
+                            className="sta-unread-dot"
+                            title="Customer replied"
+                            aria-label="Customer replied"
+                          />
+                        ) : null}
+                        {code}
+                      </span>
+                    </td>
                     <td>
                       <span
                         className={`sta-type ${
@@ -782,10 +915,26 @@ export default function SupportQuestionsPane({
                   <button
                     type="button"
                     className="sta-btn sta-btn--ghost sta-btn--sm"
-                    disabled={releasing || claiming}
+                    disabled={releasing || claiming || deleting}
                     onClick={releaseTicket}
                   >
                     <FiUnlock /> Release
+                  </button>
+                ) : null}
+                {canHardDelete ? (
+                  <button
+                    type="button"
+                    className="sta-btn sta-btn--danger sta-btn--sm"
+                    disabled={deleting || claiming || releasing}
+                    onClick={deleteTicketPermanently}
+                    title="Permanently delete from Firebase"
+                  >
+                    <FiTrash2 />
+                    {deleting
+                      ? "Deleting…"
+                      : isTicketSelected
+                        ? "Delete Ticket"
+                        : "Delete Question"}
                   </button>
                 ) : null}
                 <button
@@ -793,6 +942,7 @@ export default function SupportQuestionsPane({
                   className="sta-icon-btn"
                   onClick={closeDrawer}
                   aria-label="Close"
+                  disabled={deleting}
                 >
                   <FiX />
                 </button>

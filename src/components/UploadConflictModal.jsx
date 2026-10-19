@@ -1,4 +1,5 @@
 import React from "react";
+import { createPortal } from "react-dom";
 import {
   FiX,
   FiRefreshCw,
@@ -52,7 +53,7 @@ export default function UploadConflictModal({
   const namesPreview = conflictingNames.slice(0, 6);
   const hiddenCount = Math.max(0, conflictingNames.length - namesPreview.length);
 
-  return (
+  return createPortal(
     <div className="ucm-overlay" role="presentation">
       <div
         className="ucm-dialog"
@@ -161,6 +162,7 @@ export default function UploadConflictModal({
           </footer>
         </div>
       </div>
-    </div>
+    </div>,
+    document.body
   );
 }

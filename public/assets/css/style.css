@@ -33997,16 +33997,19 @@ th.dropdown-processed button {
 }
 
 .expanded {
-  width: 200%;
-  padding-bottom: 200%;
-  height: auto;
+  /* Portrait phones are taller than wide — % of width left top/bottom gaps.
+     vmax uses the larger viewport side so the circle always covers the screen
+     (including mobile bottom SideNav). */
+  width: 250vmax;
+  height: 250vmax;
+  padding-bottom: 0;
 }
 
 .animate_logo_loader {
   background: var(--Base-Gradient-Gradient-1, linear-gradient(90deg, rgba(228, 98, 30, 0.89) 0%, #D2364C 25%, #A72669 50%, #6A2C72 75%, #232C64 100%));
   transition-delay: 0.25s;
   opacity: 1;
-  z-index: 2;
+  z-index: 100000;
 }
 
 .logo__load {
@@ -35630,7 +35633,22 @@ ol {
 }
 
 .stolity-google-btn-wrap.is-disabled .stolity-google-btn {
-  opacity: 0.7;
+  background: #f3f4f6;
+  border-color: #e5e7eb;
+  color: #9ca3af;
+  box-shadow: none;
+  cursor: not-allowed;
+  opacity: 1;
+  filter: grayscale(0.35);
+}
+
+.btn_login:disabled,
+.btn_login[disabled] {
+  background: #e5e7eb !important;
+  box-shadow: none !important;
+  color: #9ca3af !important;
+  cursor: not-allowed !important;
+  opacity: 1 !important;
 }
 
 
@@ -37192,7 +37210,8 @@ ol {
   display: flex;
   justify-content: center;
   align-items: center;
-  z-index: 1021;
+  /* Above files-navbar (1050) and mobile sidenav (~1200) */
+  z-index: 2100;
 }
 
 .rename_modal {
@@ -38961,14 +38980,15 @@ ol {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  gap: 20px;
+  gap: 12px;
   width: 100%;
+  min-width: 0;
   padding: 6px 0;
   font-family: sans-serif;
 }
 
 .file-name {
-  max-width: 85%;
+  max-width: 100%;
   font-family: "Plus Jakarta Sans", "SF Pro", "SFProText", -apple-system, BlinkMacSystemFont, sans-serif !important;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -38976,7 +38996,9 @@ ol {
 }
 
 .file-path {
-  max-width: 48%;
+  flex: 0 1 auto;
+  max-width: 36%;
+  min-width: 0;
   overflow: hidden;
   font-family: "Plus Jakarta Sans", "SF Pro", "SFProText", -apple-system, BlinkMacSystemFont, sans-serif !important;
   text-overflow: ellipsis;

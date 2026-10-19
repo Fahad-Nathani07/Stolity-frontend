@@ -154,6 +154,10 @@
   cursor: default;
 }
 
+.bulk-selection-float__text-short {
+  display: none;
+}
+
 .bulk-selection-float .bulk-selection-slot__actions {
   margin: 0 !important;
 }
@@ -183,28 +187,154 @@
   cursor: default;
 }
 
-@media (max-width: 640px) {
+/*
+  ≤991px: float above pagination footer + bottom SideNav.
+  Panel shell is already shortened by --sidenav-mobile-offset; footer sits
+  on top of that. Dock clears both with a small gap.
+*/
+@media (max-width: 991px) {
   .bulk-selection-float {
-    left: 12px;
-    right: 12px;
-    bottom: 16px;
-    transform: translateY(12px);
-    width: auto;
+    /* Closer to footer so the last list row isn’t covered */
+    --bulk-float-footer-clearance: 72px;
+    left: 50%;
+    right: auto;
+    width: min(340px, calc(100% - 48px));
+    bottom: calc(
+      var(--sidenav-mobile-offset, 0px) + var(--bulk-float-footer-clearance) +
+        4px
+    );
+    transform: translateX(-50%) translateY(10px);
+    z-index: 1080; /* below bottom SideNav (1100), above page chrome */
+  }
+
+  body:not(.sidenav-mobile) .bulk-selection-float {
+    bottom: calc(var(--bulk-float-footer-clearance) + 6px);
   }
 
   .bulk-selection-float.is-open {
-    transform: translateY(0);
+    transform: translateX(-50%) translateY(0);
   }
 
   .bulk-selection-float__pill {
     width: 100%;
+    max-width: 100%;
+    min-height: 42px;
     justify-content: space-between;
-    border-radius: 16px;
-    padding: 8px 10px;
+    gap: 0;
+    border-radius: 14px;
+    padding: 4px 6px 4px 10px;
+    box-sizing: border-box;
+  }
+
+  .bulk-selection-float__count {
+    flex: 0 0 auto;
+    padding: 0 4px 0 2px;
+    gap: 4px;
+  }
+
+  .bulk-selection-float__count-num {
+    font-size: 0.8125rem;
   }
 
   .bulk-selection-float__count-label {
     display: none;
+  }
+
+  .bulk-selection-float__divider {
+    height: 18px;
+    margin: 0 2px;
+  }
+
+  .bulk-selection-float__text-btn {
+    flex: 0 0 auto;
+    font-size: 0.75rem;
+    font-weight: 650;
+    padding: 6px 8px;
+  }
+
+  .bulk-selection-float .bulk-selection-slot__actions {
+    flex: 1 1 auto;
+    display: flex !important;
+    justify-content: space-evenly !important;
+    align-items: center;
+    gap: 0 !important;
+    min-width: 0;
+    margin: 0 !important;
+  }
+
+  .bulk-selection-float .bulk-selection-slot__actions > li {
+    flex: 1 1 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 0;
+  }
+
+  .bulk-selection-float .bulk-selection-toolbar__whisper-anchor {
+    width: 100%;
+    justify-content: center;
+  }
+
+  .bulk-selection-float .bulk-selection-toolbar__action-btn {
+    width: 32px;
+    height: 32px;
+    font-size: 14px;
+  }
+
+  .bulk-selection-float .bulk-selection-toolbar__action-btn svg {
+    width: 15px;
+    height: 15px;
+  }
+
+  .bulk-selection-float__clear {
+    flex: 0 0 auto;
+    width: 32px;
+    height: 32px;
+  }
+}
+
+@media (max-width: 420px) {
+  .bulk-selection-float {
+    --bulk-float-footer-clearance: 68px;
+    width: min(300px, calc(100% - 40px));
+    bottom: calc(
+      var(--sidenav-mobile-offset, 0px) + var(--bulk-float-footer-clearance) +
+        2px
+    );
+  }
+
+  .bulk-selection-float__pill {
+    min-height: 40px;
+    padding: 3px 4px 3px 8px;
+    border-radius: 12px;
+  }
+
+  .bulk-selection-float__text-btn {
+    font-size: 0.6875rem;
+    padding: 5px 6px;
+  }
+
+  .bulk-selection-float__text-full {
+    display: none;
+  }
+
+  .bulk-selection-float__text-short {
+    display: inline;
+  }
+
+  .bulk-selection-float .bulk-selection-toolbar__action-btn {
+    width: 30px;
+    height: 30px;
+  }
+
+  .bulk-selection-float__clear {
+    width: 28px;
+    height: 28px;
+  }
+
+  .bulk-selection-float__divider {
+    height: 16px;
+    margin: 0 1px;
   }
 }
 

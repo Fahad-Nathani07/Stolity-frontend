@@ -117,7 +117,8 @@ const generatePaymentQR = async () => {
       body: JSON.stringify({
         amount: amount,
         name: userName,                    // ← now dynamic!
-        upiId: "7030734568@ybl",
+        // upiId: "7030734568@ybl",
+        upiId: "9403856909@ybl",
         userId: userId     
       })
     }
@@ -569,7 +570,7 @@ letterSpacing: "0%",
       <span className="plan-card-price-cycle">/year</span>
     </div>
 
-    <div className="plan-card-subline">5 GB Storage</div>
+    <div className="plan-card-subline">15 GB Storage</div>
 
     {activePlan === "free" && (
       <div className="plan-card-footer plan-card-footer-muted">
@@ -770,14 +771,14 @@ letterSpacing: "0%",
 
         <div className="plans-compare-row">
           <div className="plans-compare-feature-col">Free Storage</div>
-          <div className="plans-compare-plan-col">Up to 5GB</div>
+          <div className="plans-compare-plan-col">Up to 15GB</div>
           <div className="plans-compare-plan-col"> - </div>
           <div className="plans-compare-plan-col"> - </div>
         </div>
   
         <div className="plans-compare-row">
           <div className="plans-compare-feature-col">Total Storage</div>
-          <div className="plans-compare-plan-col">5 GB</div>
+          <div className="plans-compare-plan-col">15 GB</div>
           <div className="plans-compare-plan-col">50 GB</div>
           <div className="plans-compare-plan-col">50 GB</div>
         </div>

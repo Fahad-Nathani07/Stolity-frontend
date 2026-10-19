@@ -1,5 +1,4 @@
-import React, { useContext, useState, useEffect } from "react";
-import { UploadContext } from "./UploadContext";
+import React, { useState, useEffect } from "react";
 import { useSelector, useDispatch } from "react-redux";
 import {
   incrementFCounter,
@@ -7,10 +6,8 @@ import {
   decrementFCounter,
   removeLastFolder2,
   resetFCounter,
-  setLoader,
 } from "../store/fileSlicer";
 import axios from "axios";
-import LoaderDualRing from "../components/LoaderDualRing";
 import FolderPickerListPanel from "../components/FolderPickerListPanel";
 import FolderDestinationModal, {
   formatModalItemSummary,
@@ -22,9 +19,39 @@ import {
   parseFolderListingItems,
   shouldUseGetFolderForListing,
 } from "../utils/getFolderParams";
+import { useZippingProgressModal } from "../hooks/useZippingProgressModal";
+import { refreshRootListingIfDestinationIsRoot } from "../utils/rootListingRefresh";
+import { LONG_RUNNING_AWS_REQUEST_OPTIONS } from "../utils/longRunningAwsRequest";
+import {
+  captureListingContext,
+  isStillOnListingPath,
+} from "../utils/listingRefreshGuard";
 
-function CopyFilePopup({ moveKey, source, onClose, files, fileSize, setTriggerUpdate, onCopySuccess, showToast }) {
-  const { addUpload, updateUploadProgress, removeUpload } = useContext(UploadContext);
+function progressLabelFromItems(files, moveKey) {
+  if (Array.isArray(files) && files.length > 1) {
+    return `${files.length} files`;
+  }
+  const first =
+    (Array.isArray(files) && files[0]) ||
+    (Array.isArray(moveKey) ? moveKey[0] : moveKey) ||
+    "";
+  const raw =
+    typeof first === "string"
+      ? first
+      : first?.fileName || first?.filePath || first?.path || "";
+  return String(raw).replace(/\\/g, "/").split("/").filter(Boolean).pop() || "files";
+}
+
+function CopyFilePopup({
+  moveKey,
+  source,
+  onClose,
+  files,
+  fileSize,
+  setTriggerUpdate,
+  onCopySuccess,
+  showToast,
+}) {
   const [locationPath, setLocationPath] = useState("");
   const apiUrl = process.env.REACT_APP_API_ENDPOINT;
   const token = sessionStorage.getItem("number");
@@ -36,10 +63,10 @@ function CopyFilePopup({ moveKey, source, onClose, files, fileSize, setTriggerUp
   const dispatch = useDispatch();
   const sourceFol = source.replace(/\/$/, "");
   const [selectedPath, setSelectedPath] = useState("");
-  const [progress, setProgress] = useState(0);
   const [loading2, setLoading2] = useState(false);
   const [newFolderName, setNewFolderName] = useState("");
-const [creatingFolder, setCreatingFolder] = useState(false);
+  const [creatingFolder, setCreatingFolder] = useState(false);
+  const { beginZipping, endZipping, zippingModal } = useZippingProgressModal();
 
   useEffect(() => {
     dispatch(resetFCounter());
@@ -179,7 +206,7 @@ const handleMove = async () => {
     ? 500 * 1024 ** 3
     : (subscription && subscription.storage
         ? parseStorageToBytes(subscription.storage)
-        : 5 * 1024 ** 3);
+        : 15 * 1024 ** 3);
   console.log("ddddd: totalBytes:", totalBytes);
 
   const usedBytes = folderSize ? folderSize.sizeInBytes : 0;
@@ -199,25 +226,43 @@ const handleMove = async () => {
 
   console.log("ddddd: Enough storage space, proceeding with copy");
 
-  // Local loading for this copy modal
-  setLoading2(true);
+  const sharedParams = isSharedValue ? { shared: filenameRedux } : {};
+  const copyPathOptions = {
+    isShared: isSharedValue,
+    sharedRoot: filenameRedux,
+  };
 
-  dispatch(setLoader(true));
-  setProgress(0);
+  if (!Array.isArray(files)) {
+    showToast("error", "No files selected to copy.");
+    return;
+  }
+
+  // Resolve From before starting so we can lock From + To folders
+  let adjustedSourceFolder = sourceFol;
+  if (files.length > 0) {
+    adjustedSourceFolder = resolveSourceFolderAndKeys(
+      files,
+      sourceFol,
+      copyPathOptions
+    ).sourceFolder;
+  } else if (moveKey) {
+    adjustedSourceFolder = resolveSourceFolderAndKeys(
+      [moveKey],
+      sourceFol,
+      copyPathOptions
+    ).sourceFolder;
+  }
+
+  setLoading2(true);
+  const startedListing = captureListingContext();
+  beginZipping(progressLabelFromItems(files, moveKey), {
+    mode: "copy",
+    sourcePaths: [adjustedSourceFolder],
+    destinationPath: selectedPath,
+  });
 
   try {
-    const sharedParams = isSharedValue ? { shared: filenameRedux } : {};
-    const copyPathOptions = {
-      isShared: isSharedValue,
-      sharedRoot: filenameRedux,
-    };
-
-    if (!Array.isArray(files)) {
-      throw new Error("files is not an array");
-    }
-
     let copiedAnything = false;
-    let adjustedSourceFolder = "";
 
     if (files.length > 0) {
       const resolved = resolveSourceFolderAndKeys(files, sourceFol, copyPathOptions);
@@ -225,7 +270,7 @@ const handleMove = async () => {
       const apiFileKeys = resolved.keys;
       console.log("ddddd: copy payload:", adjustedSourceFolder, apiFileKeys);
 
-      const res = await axios.post(
+      await axios.post(
         `${apiUrl}copy-file`,
         {
           destinationFolder: selectedPath,
@@ -233,6 +278,7 @@ const handleMove = async () => {
           keys: apiFileKeys,
         },
         {
+          ...LONG_RUNNING_AWS_REQUEST_OPTIONS,
           headers: {
             Authorization: `Bearer ${token}`,
             "Content-Type": "application/json",
@@ -253,7 +299,7 @@ const handleMove = async () => {
       const apiFileKeys = resolved.keys;
       console.log("ddddd: single copy payload:", adjustedSourceFolder, apiFileKeys);
 
-      const res = await axios.post(
+      await axios.post(
         `${apiUrl}copy-file`,
         {
           destinationFolder: selectedPath,
@@ -261,6 +307,7 @@ const handleMove = async () => {
           keys: apiFileKeys,
         },
         {
+          ...LONG_RUNNING_AWS_REQUEST_OPTIONS,
           headers: {
             Authorization: `Bearer ${token}`,
             "Content-Type": "application/json",
@@ -273,32 +320,29 @@ const handleMove = async () => {
 
     if (copiedAnything) {
       console.log("ddddd: Files copied successfully");
-      setProgress(100);
       console.log("ddddd: Files1 source: ", adjustedSourceFolder);
       console.log("ddddd: Files1 destination: ", selectedPath);
 
-      // Always refresh the current listing after copy (same as move).
-      // NestedPage's triggerUpdate effect often no-ops without selectedFolder,
-      // so onCopySuccess (reloadAfterTast / getFileData) is the reliable path.
-      setTriggerUpdate?.((x) => x + 1);
-      onCopySuccess?.();
-
       showToast("success", "File(s) copied successfully!");
-      setTimeout(() => {
-        setLoading2(false);
-        dispatch(setLoader(false));
-        onClose();
-      }, 400);
-    } else {
+      endZipping();
       setLoading2(false);
-      dispatch(setLoader(false));
+      onClose();
+
+      // Only refresh if user is still on the same page/folder as when copy started
+      if (isStillOnListingPath(startedListing)) {
+        setTriggerUpdate?.((x) => x + 1);
+        refreshRootListingIfDestinationIsRoot(selectedPath);
+        onCopySuccess?.();
+      }
+    } else {
+      endZipping();
+      setLoading2(false);
     }
   } catch (error) {
     console.error("ddddd: Error copying file:", error);
     handleS3CopyError(error, showToast, "Failed to copy file. Please try again.");
-    setProgress(0);
+    endZipping();
     setLoading2(false);
-    dispatch(setLoader(false));
   }
 };
 
@@ -387,46 +431,35 @@ const handleCreateFolder = async () => {
 
   return (
     <>
-      <FolderDestinationModal
-        variant="copy"
-        title="Copy to"
-        itemSummary={copyItemSummary}
-        selectedPath={selectedPath}
-        onClose={handleClose}
-        onConfirm={handleMove}
-        confirmLabel="Copy here"
-        confirmLoading={loading2}
-        locationPath={locationPath}
-        counter={counter}
-        onRootClick={handleRootClick}
-        onBack={handleBack}
-        newFolderName={newFolderName}
-        onNewFolderNameChange={setNewFolderName}
-        onCreateFolder={handleCreateFolder}
-        creatingFolder={creatingFolder}
-        footerExtra={
-          progress > 0 ? (
-            <div className="fdm-progress">
-              <div className="fdm-progress-track">
-                <div
-                  className="fdm-progress-fill"
-                  style={{ width: `${progress}%` }}
-                />
-              </div>
-            </div>
-          ) : null
-        }
-      >
-        <FolderPickerListPanel
-          loading={loadingFolders}
-          folders={folders1}
+      {!loading2 && (
+        <FolderDestinationModal
+          variant="copy"
+          title="Copy to"
+          itemSummary={copyItemSummary}
+          selectedPath={selectedPath}
+          onClose={handleClose}
+          onConfirm={handleMove}
+          confirmLabel="Copy here"
+          confirmLoading={false}
+          locationPath={locationPath}
           counter={counter}
-          getTextAfterSlashes={getTextAfterSlashes}
-          onOpenFolder={handleItemClick}
-        />
-      </FolderDestinationModal>
-
-      {loading2 && <LoaderDualRing />}
+          onRootClick={handleRootClick}
+          onBack={handleBack}
+          newFolderName={newFolderName}
+          onNewFolderNameChange={setNewFolderName}
+          onCreateFolder={handleCreateFolder}
+          creatingFolder={creatingFolder}
+        >
+          <FolderPickerListPanel
+            loading={loadingFolders}
+            folders={folders1}
+            counter={counter}
+            getTextAfterSlashes={getTextAfterSlashes}
+            onOpenFolder={handleItemClick}
+          />
+        </FolderDestinationModal>
+      )}
+      {zippingModal}
     </>
   );
 }

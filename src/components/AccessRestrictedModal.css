@@ -1,7 +1,7 @@
 .access-restricted-modal-overlay {
   position: fixed;
   inset: 0;
-  z-index: 1055;
+  z-index: 2100;
   display: flex;
   align-items: center;
   justify-content: center;

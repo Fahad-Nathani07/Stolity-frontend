@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from "react";
+import React, { useState, useEffect, useCallback, useRef } from "react";
 import CustomGoogleAuthButton from "../components/CustomGoogleAuthButton";
 import { useNavigate } from "react-router-dom";
 import axios from "axios";
@@ -19,13 +19,17 @@ import { setUserProfileFromUserData, normalizeAvatarUrl } from "../store/userPro
 
 import { FaArrowLeft } from "react-icons/fa";
 import "../css/LoginGraphicTip.css";
+import {
+  getStoredReferralCode,
+  attributeStoredReferral,
+} from "../utils/referralCapture";
 
 const REMEMBER_EMAIL_KEY = "stolity_remember_email";
 
 const slides = [
   {
     title: "Upload Files",
-    text: "Store up to 5GB data in a centralised location for easy access and management.",
+    text: "Keep your files in one secure place for easy access and management.",
   },
   { title: "Fast Access", text: "Experience quicker uploads for every file type — faster, smoother, better." },
   {
@@ -72,6 +76,10 @@ const Login = ({ setSpanExpanded, spanExpanded }) => {
   // ────────────────────────────────────────────────
   const [showPassword, setShowPassword] = useState(false);
   const togglePasswordVisibility = () => setShowPassword(!showPassword);
+  const emailInputRef = useRef(null);
+  const passwordInputRef = useRef(null);
+  /** True when email+password exist in React state or autofilled DOM values */
+  const [credsReady, setCredsReady] = useState(false);
 
   // ────────────────────────────────────────────────
   //   Slide animation
@@ -233,29 +241,110 @@ const Login = ({ setSpanExpanded, spanExpanded }) => {
     }
   };
 
+  // Browser autofill paints values without firing React onChange — sync DOM → state
+  const syncAutofillFromDom = useCallback(() => {
+    const emailEl = emailInputRef.current;
+    const passEl = passwordInputRef.current;
+    const nextEmail = emailEl?.value || "";
+    const nextPass = passEl?.value || "";
+
+    if (emailEl) {
+      setEmail((prev) => (prev === nextEmail ? prev : nextEmail));
+      if (nextEmail.trim()) setEmailError("");
+    }
+    if (passEl) {
+      setPassword((prev) => (prev === nextPass ? prev : nextPass));
+      if (nextPass.trim()) setPasswordError("");
+    }
+
+    const ready = Boolean(nextEmail.trim() && String(nextPass).trim());
+    setCredsReady((prev) => (prev === ready ? prev : ready));
+    return ready;
+  }, []);
+
+  const handleAutofillAnimation = useCallback(
+    (event) => {
+      // Chrome fires animationstart for :-webkit-autofill (see index.css)
+      const name = event?.animationName || "";
+      if (
+        !name ||
+        name.includes("onAutoFillStart") ||
+        name.includes("onAutoFillCancel") ||
+        name.includes("autofill")
+      ) {
+        // Defer one frame — value is often available right after the animation starts
+        requestAnimationFrame(() => syncAutofillFromDom());
+        setTimeout(syncAutofillFromDom, 0);
+        setTimeout(syncAutofillFromDom, 50);
+      }
+    },
+    [syncAutofillFromDom]
+  );
+
+  useEffect(() => {
+    if (!isPageReady) return undefined;
+
+    // Chrome/Edge may autofill well after first paint (and without onChange)
+    syncAutofillFromDom();
+    const intervalId = setInterval(() => {
+      if (syncAutofillFromDom()) {
+        clearInterval(intervalId);
+      }
+    }, 200);
+    const stopId = setTimeout(() => clearInterval(intervalId), 8000);
+
+    const onFocus = () => syncAutofillFromDom();
+    window.addEventListener("focus", onFocus);
+    document.addEventListener("visibilitychange", onFocus);
+
+    return () => {
+      clearInterval(intervalId);
+      clearTimeout(stopId);
+      window.removeEventListener("focus", onFocus);
+      document.removeEventListener("visibilitychange", onFocus);
+    };
+  }, [isPageReady, syncAutofillFromDom]);
+
+  // Keep credsReady in sync when user types (state path)
+  useEffect(() => {
+    const ready = Boolean(email.trim() && password.trim());
+    if (ready) setCredsReady(true);
+  }, [email, password]);
+
   // ────────────────────────────────────────────────
   //   LOGIN REQUEST - with attempt logic
   // ────────────────────────────────────────────────
   const handleReq = useCallback(async () => {
+    // Prefer live input values (browser autofill may not have updated React state yet)
+    const loginEmail = (emailInputRef.current?.value || email).trim();
+    const loginPassword = passwordInputRef.current?.value || password;
+
     // Already locked?
     if (lockoutUntil && lockoutUntil > Date.now()) {
       showToast("warning", `Account locked. Try again in ${Math.ceil(countdownSeconds / 60)} minutes.`);
       return;
     }
 
+    if (!loginEmail || !String(loginPassword).trim()) {
+      showToast("warning", "Enter email and password to continue");
+      return;
+    }
+
     if (isLoggingIn) return;
     setIsLoggingIn(true);
+    if (loginEmail !== email) setEmail(loginEmail);
+    if (loginPassword !== password) setPassword(loginPassword);
 
     try {
       const res = await axios.post(
         `${apiEndPoint}login-user`,
-        { email, password },
+        { email: loginEmail, password: loginPassword },
         { headers: { "Content-Type": "application/json" } }
       );
 
       if (res.status === 200) {
         // SUCCESS → reset attempts
-        const key = `login_attempts_${email.toLowerCase().trim()}`;
+        const key = `login_attempts_${loginEmail.toLowerCase()}`;
         localStorage.removeItem(key);
         setLoginAttempts(0);
         setLockoutUntil(null);
@@ -302,12 +391,21 @@ const Login = ({ setSpanExpanded, spanExpanded }) => {
         );
 
         setError(null);
-        dispatch(loginUser({ email, password }));
+        dispatch(loginUser({ email: loginEmail, password: loginPassword }));
 
         if (rememberMe) {
-          localStorage.setItem(REMEMBER_EMAIL_KEY, email.toLowerCase().trim());
+          localStorage.setItem(REMEMBER_EMAIL_KEY, loginEmail.toLowerCase());
         } else {
           localStorage.removeItem(REMEMBER_EMAIL_KEY);
+        }
+
+        // Affiliate: attribute once, then remove stolity_ref so logout/login cannot re-count
+        if (getStoredReferralCode()) {
+          try {
+            await attributeStoredReferral(apiEndPoint, accessToken);
+          } catch {
+            /* non-blocking */
+          }
         }
       } else {
         setIsLoggingIn(false);
@@ -328,7 +426,7 @@ const Login = ({ setSpanExpanded, spanExpanded }) => {
         newAttempts = loginAttempts + 1;
         setLoginAttempts(newAttempts);
 
-        const key = `login_attempts_${email.toLowerCase().trim()}`;
+        const key = `login_attempts_${loginEmail.toLowerCase()}`;
 
         if (newAttempts >= 5) {
           const lockUntil = Date.now() + 15 * 60 * 1000;
@@ -383,14 +481,19 @@ const Login = ({ setSpanExpanded, spanExpanded }) => {
   ]);
 
   const canSubmitLogin =
-    email.trim() !== "" &&
-    password.trim() !== "" &&
+    (credsReady ||
+      (email.trim() !== "" && password.trim() !== "")) &&
     !isLoggingIn &&
     !(lockoutUntil && lockoutUntil > Date.now());
 
   const handleSubmit = (event) => {
     event.preventDefault();
-    if (!canSubmitLogin) return;
+    // Autofill may still be ahead of React state on first click
+    syncAutofillFromDom();
+    const emailValue = (emailInputRef.current?.value || email).trim();
+    const passwordValue = (passwordInputRef.current?.value || password).trim();
+    if (!emailValue || !passwordValue || isLoggingIn) return;
+    if (lockoutUntil && lockoutUntil > Date.now()) return;
     if (emailError === "" && passwordError === "") {
       handleReq();
     }
@@ -468,6 +571,12 @@ const Login = ({ setSpanExpanded, spanExpanded }) => {
         })
       );
       dispatch(setGoogleAuth(true));
+
+      // Affiliate attribution after Google auth (new or first login with stored ref)
+      if (getStoredReferralCode()) {
+        await attributeStoredReferral(apiEndPoint, a);
+      }
+
       navigate("/Files");
     } catch (error) {
       setSpanExpanded(false);
@@ -586,12 +695,16 @@ const Login = ({ setSpanExpanded, spanExpanded }) => {
                     <div className="form_group">
                       <label className="login_label">Email address</label>
                       <input
+                        ref={emailInputRef}
                         type="email"
-                        className={`form-control form_control ${emailError ? "is-invalid" : ""}`}
                         name="email"
+                        autoComplete="email"
+                        className={`form-control form_control ${emailError ? "is-invalid" : ""}`}
                         placeholder="Enter Email address"
                         value={email}
                         onChange={handleEmail}
+                        onInput={handleEmail}
+                        onAnimationStart={handleAutofillAnimation}
                       />
                     </div>
                     {emailError && <div className="error-message">{emailError}</div>}
@@ -600,11 +713,16 @@ const Login = ({ setSpanExpanded, spanExpanded }) => {
                       <label className="login_label">Password</label>
                       <div className="text_field">
                         <input
+                          ref={passwordInputRef}
                           type={showPassword ? "text" : "password"}
+                          name="password"
+                          autoComplete="current-password"
                           className="form-control form_control"
                           placeholder="Enter your Password"
                           value={password}
                           onChange={handlePass}
+                          onInput={handlePass}
+                          onAnimationStart={handleAutofillAnimation}
                         />
                         <div className="icon_field" onClick={togglePasswordVisibility}>
                           {showPassword ? <PasswordShow /> : <PasswordHide />}

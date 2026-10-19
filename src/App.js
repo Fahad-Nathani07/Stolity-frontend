@@ -21,6 +21,7 @@ import PageLoaders from './pages/PageLoaders';
 import ToastExamples from './pages/ToastExamples';
 import { UploadProvider } from './pages/UploadContext';
 import UploadProgressModal from './pages/UploadProgressModal';
+import ServerActionProgressHost from './components/ServerActionProgressHost';
 import UserProfile from './pages/UserProfile'
 import { GoogleOAuthProvider } from '@react-oauth/google';
 import PreLogin from './pages/PreLogin';
@@ -30,7 +31,6 @@ import IndustryDetail from './pages/IndustryDetail';
 import { DownloadProvider } from './pages/DownloadContext';
 import { Download } from 'lucide-react';
 import DownloadProgressModal from './pages/DownloadProgressModal';
-import DefaultFolder from './pages/DefaultFolder';
 import TermsAndConditions from './pages/TermsAndConditions';  // <-- NEW IMPORT
 import PrivacyPolicy from './pages/PrivacyPolicy';  // <-- NEW IMPORT
 import Favourites from './pages/Favourites';
@@ -61,6 +61,7 @@ import NewLogo from "./images/NewLogo.svg";
 import InactivityHandler from './components/InactivityHandler';
 import StorageWarningModal from './components/StorageWarningModal';
 import PrivateRoute from './components/PrivateRoute';
+import ReferralCapture from './components/ReferralCapture';
 import { installRowActionDropdownPosition } from './utils/rowActionDropdownPosition';
 
 
@@ -139,6 +140,7 @@ const {
       <DownloadProvider>
         <Router basename="/">
       <AnalyticsPageViews />
+      <ReferralCapture />
       <InactivityHandler />
       <StorageWarningModal />
       <ToastRoot />
@@ -150,11 +152,10 @@ const {
           }`}
           data-value="1"
           style={{
-            position: "fixed",      // ✅ important
-            // inset: 0,               // ✅ full screen
-            // width: "100vw",
-            // height: "100vh",
-            zIndex: 99999,          // ✅ higher than sidebar/header/footer
+            position: "fixed",
+            left: "50%",
+            top: "50%",
+            zIndex: 100000, // above mobile SideNav (1100) + chrome
             display: "flex",
             alignItems: "center",
             justifyContent: "center",
@@ -165,7 +166,7 @@ const {
               #E5660F 240deg,
               #E5252A 360deg
             )`,
-            pointerEvents: spanExpanded ? "all" : "none", // optional
+            pointerEvents: spanExpanded ? "all" : "none",
           }}
         >
         <div className="logo__load" style={{width:"100px", height:"100px"}}>
@@ -194,10 +195,13 @@ const {
       
           <UploadProgressModal />
           <DownloadProgressModal />
+          <ServerActionProgressHost />
             <Routes>
               {/* Public routes */}
               <Route path="/Login" element={<Login spanExpanded={spanExpanded} setSpanExpanded={setSpanExpanded} />} />
-              <Route path="/Signup" element={<Signup />} />
+              <Route path="/login" element={<Login spanExpanded={spanExpanded} setSpanExpanded={setSpanExpanded} />} />
+              <Route path="/Signup" element={<Signup spanExpanded={spanExpanded} setSpanExpanded={setSpanExpanded} />} />
+              <Route path="/signup" element={<Signup spanExpanded={spanExpanded} setSpanExpanded={setSpanExpanded} />} />
               <Route path="/ForgotPassword" element={<ForgotPassword />} />
               <Route path="/SignupWithGoogle" element={<SignupWithGoogle />} />
               <Route path="/pre-login" element={<PreLogin />} />
@@ -229,7 +233,6 @@ const {
                 <Route path="/TestLightbox" element={<TestLightbox />} />
                 <Route path="/UserProfile" element={<UserProfile />} />
                 <Route path="/nested/:folderId" element={<NestedPage />} />
-                <Route path="/folder/:folderName" element={<DefaultFolder />} />
                 <Route path="/Loader" element={<Loader />} />
                 <Route path="/PageLoaders" element={<PageLoaders />} />
                 <Route path="/Toast" element={<ToastExamples />} />

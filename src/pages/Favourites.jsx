@@ -14,12 +14,18 @@ import {
   getZipSuccessMessage,
   isZipUnzipCancelled,
 } from "../utils/zipUnzipRequest";
+import { SHOW_ZIP_UNZIP_ACTIONS } from "../utils/featureFlags";
 import { uploadFolderViaMultipart } from "../utils/uploadFolderViaMultipart";
 import {
   uploadOneFileDirect,
   abortMultipartUploadDirect,
   DIRECT_UPLOAD_GAP_MS,
 } from "../utils/uploadFileDirect";
+import {
+  startActivityBatch,
+  finishActivityBatch,
+  resolveBatchStatus,
+} from "../utils/activityBatch";
 import UploadBatchLimitModal from "../components/UploadBatchLimitModal";
 import DownloadBatchLimitModal from "../components/DownloadBatchLimitModal";
 import { useUploadBatchLimitGate } from "../hooks/useUploadBatchLimitGate";
@@ -40,9 +46,6 @@ import {
 } from "../utils/zipFolderThenNativeDownload";
 import { useZippingProgressModal } from "../hooks/useZippingProgressModal";
 import { useDownloadActions } from "./DownloadContext";
-import { Prism as SyntaxHighlighter } from "react-syntax-highlighter";
-import { oneLight } from "react-syntax-highlighter/dist/esm/styles/prism";
-import Logo from "../images/logo.png";
 import AvatarDefault from "../images/AvatarDefault.jpg";
 import sharedIcon from "../images/shared_icon.svg";
 import { resolveFileIconPath, encodeStorageUrl } from "../utils/fileIcon";
@@ -82,8 +85,20 @@ import {
   openPreviewFile,
   resolvePreviewAfterDelete,
 } from "../utils/previewModalNavigation";
+import { isCodeFileExtension } from "../utils/codePreview";
 import { afterMinLoaderDisplay } from "../utils/actionLoaderDelay";
+import { assertFolderNavAllowed } from "../utils/transferFolderLock";
+import {
+  softDeleteProgressLabel,
+  softDeleteSourcePaths,
+} from "../utils/softDeleteProgress";
+import {
+  captureListingContext,
+  isStillOnListingPath,
+  setLiveListingContext,
+} from "../utils/listingRefreshGuard";
 import "../css/FilesToolbar.css";
+import "../css/FilesPage.css";
 import CardFilePreview from "../components/CardFilePreview";
 import FilesPaginationFooter from "../components/FilesPaginationFooter";
 import { useStickyListHeader } from "../hooks/useStickyListHeader";
@@ -118,7 +133,6 @@ import moveIcon2 from "../images/DropdownIcons/MoveIcon.svg";
 import renameIcon from "../images/DropdownIcons/renameIcon.svg";
 import shareIcon from "../images/DropdownIcons/shareIcon.svg";
 import eyeIcon from "../images/DropdownIcons/eyeIcon.svg";
-import loaderGif from "../images/Loaders/Animation4.gif";
 import Dropzone from "react-dropzone";
 import createFolderPopup from "../images/createFolderPopup.svg";
 import StarIcon from "@mui/icons-material/Star"; // Filled star
@@ -153,7 +167,6 @@ import { Modal as BootstrapModal } from "react-bootstrap";
 
 import SideNav from "../components/SideNav";
 import Footer from "../components/Footer";
-import ToggleNav from "../components/ToggleNav";
 import TruncatedTooltip from "../components/TruncatedTooltip";
 
 //LIGHTBOX
@@ -347,6 +360,7 @@ const Favourites = () => {
   const [loading, isSetLoading] = useState(false);
   const [downloadLink, setDownloadLink] = useState(null);
   const [modalFile, setModalFile] = useState("");
+  const [previewFile, setPreviewFile] = useState(null);
 
   const [sharePopup, setSharepopup] = useState(false);
 
@@ -365,7 +379,7 @@ const Favourites = () => {
   });
   const [show, setShow] = useState(false);
   const [showImage, setShowImage] = useState(false);
-  const [codePopup, setCodePopup] = useState(false);
+  const [codeFilePath, setCodeFilePath] = useState("");
   //   const [showAudioPlayer, setShowAudioPlayer] = useState(false);
   // const [currentAudioFile, setCurrentAudioFile] = useState(null);
 
@@ -382,14 +396,14 @@ const Favourites = () => {
       document.body.style.width = "";
     };
 
-    if (showImage || codePopup) {
+    if (showImage) {
       lockScroll();
     } else {
       unlockScroll();
     }
 
     return () => unlockScroll(); // cleanup
-  }, [showImage, codePopup]);
+  }, [showImage]);
 
   const [endIndex, setEndIndex] = useState(0);
   const [filedata, setFileData] = useState([]);
@@ -526,6 +540,8 @@ const Favourites = () => {
     setVideoSrc("");
     setAudioSrc("");
     setPdfSrc("");
+    setDocSrc("");
+    setCodeFilePath("");
   };
 
   const [selectStatus, setSelectStatus] = useState(false);
@@ -535,7 +551,31 @@ const Favourites = () => {
   const [moveFol, setMoveFol] = useState(false);
 
   const [view, setView] = useState(localStorage.getItem("view") || "list");
-  const { filterBarRef, tableBoxRef, tableBoxClassName } = useStickyListHeader(view, false);
+  const FILES_MOBILE_BP = 767;
+  const [isMobile, setIsMobile] = useState(
+    () =>
+      typeof window !== "undefined" && window.innerWidth <= FILES_MOBILE_BP
+  );
+
+  useEffect(() => {
+    const mq = window.matchMedia(`(max-width: ${FILES_MOBILE_BP}px)`);
+    const onChange = () => setIsMobile(mq.matches);
+    onChange();
+    mq.addEventListener("change", onChange);
+    return () => mq.removeEventListener("change", onChange);
+  }, []);
+
+  useEffect(() => {
+    if (isMobile && view !== "list") {
+      setView("list");
+    }
+  }, [isMobile, view]);
+
+  const displayView = isMobile ? "list" : view;
+  const { filterBarRef, tableBoxRef, tableBoxClassName } = useStickyListHeader(
+    displayView,
+    false
+  );
 
   useEffect(() => {
     syncSelectionDomClass();
@@ -562,8 +602,9 @@ const Favourites = () => {
   }, []);
 
   const toggleView = (selectedView) => {
+    if (isMobile && selectedView === "grid") return;
     setView(selectedView);
-    localStorage.setItem("view", selectedView); // Save selection in localStorage
+    localStorage.setItem("view", selectedView);
   };
 
   const runOnce = useRef(false);
@@ -700,23 +741,30 @@ const Favourites = () => {
 
 
   const handleMulDelete = async () => {
-    const loaderStartedAt = Date.now();
-    setLoader_Recycle(true); // Start recycle loader
     const keys = getFileSelectionKeys();
     const keys2 = getFolderSelectionKeys();
 
+    // Check if any selected item is a shared folder
+    const hasSharedFolders = filedata.some(
+      (file) => file.isShared && keys2.includes(file.fileName)
+    );
+
+    if (hasSharedFolders) {
+      // showToast("error", "Shared folders cannot be deleted.");
+      return;
+    }
+
+    const startedListing = captureListingContext();
+    beginZipping(softDeleteProgressLabel({ files: keys, folders: keys2 }), {
+      mode: "delete",
+      sourcePaths: softDeleteSourcePaths({
+        parentPath: path || "",
+        fileKeys: keys,
+        folderKeys: keys2,
+      }),
+    });
+
     try {
-      // Check if any selected item is a shared folder
-      const hasSharedFolders = filedata.some(
-        (file) => file.isShared && keys2.includes(file.fileName)
-      );
-
-      if (hasSharedFolders) {
-        // showToast("error", "Shared folders cannot be deleted.");
-        setLoader_Recycle(false); // Stop recycle loader
-        return;
-      }
-
       // Soft delete files if keys have items
       if (keys.length > 0) {
         const payload = {
@@ -745,22 +793,20 @@ const Favourites = () => {
         });
       }
 
-      // After successful delete, reset states and refresh data
-      getLatestFolderList();
-      setSelectStatus(false);
-      getFileData(1); // Refresh file data
-      setCurrentPage(1);
-      getRootFolderSize(); // Refresh folder size
       clearFileSelection();
+      setSelectStatus(false);
+      if (isStillOnListingPath(startedListing)) {
+        getLatestFolderList();
+        getFileData(1);
+        setCurrentPage(1);
+        getRootFolderSize();
+      }
 
-      // Show success toast and stop recycle loader after delay
-      afterMinLoaderDisplay(loaderStartedAt, () => {
-        setLoader_Recycle(false);
-        showToast("success", "Files and folders moved to recycle bin successfully!");
-      }); // Stop recycle loader and show toast after min display
+      showToast("success", "Files and folders moved to recycle bin successfully!");
     } catch (error) {
       showToast("error", "Some error has occurred");
-      afterMinLoaderDisplay(loaderStartedAt, () => setLoader_Recycle(false)); // Stop recycle loader after min display
+    } finally {
+      endZipping();
     }
   };
 
@@ -844,19 +890,36 @@ const Favourites = () => {
       ...keys2.map((fileName) => ({ fileName, isFolder: true })),
     ];
 
-    // One shared controller for the whole batch so Cancel / ✕ aborts remaining
-    // files even after the first few have already finished.
+    // Per-file AbortController so row ✕ cancels only that file.
+    // Batch controller is for "Cancel all" and cascades to each file.
     const batchAbortController = new AbortController();
     items.forEach((item, i) => {
       const downloadId = Date.now() + Math.random() + i;
+      const fileAbortController = new AbortController();
+      batchAbortController.signal.addEventListener(
+        "abort",
+        () => {
+          try {
+            fileAbortController.abort();
+          } catch (_) {}
+        },
+        { once: true }
+      );
       addDownload(
         downloadId,
         item.fileName,
-        batchAbortController,
-        item.isFolder
+        fileAbortController,
+        item.isFolder,
+        {
+          batchAbortController,
+          sizeInBytes:
+            estimateDownloadBytes(
+              filedata?.find?.((f) => f.fileName === item.fileName)
+            ) || 0,
+        }
       );
       item.downloadId = downloadId;
-      item.abortController = batchAbortController;
+      item.abortController = fileAbortController;
       item.endpoint = item.isFolder ? "download-folder" : "download-file-url";
     });
 
@@ -919,12 +982,20 @@ const Favourites = () => {
         fileItems.length <= NATIVE_BROWSER_DOWNLOAD_MAX_FILES
       ) {
         for (const item of fileItems) {
+          if (batchSignal.aborted) break;
+          if (item.abortController?.signal?.aborted) {
+            cancelled += 1;
+            scheduleDownloadRemoval(removeDownload, item.downloadId, {
+              delayMs: 0,
+            });
+            continue;
+          }
           try {
             await downloadFileNativeBrowser({
               apiUrl,
               token,
               filePath: item.fileName,
-              signal: batchSignal,
+              signal: item.abortController?.signal || batchSignal,
               onProgress: (percent) => {
                 updateDownloadProgress(item.downloadId, percent);
               },
@@ -949,6 +1020,12 @@ const Favourites = () => {
             token,
             filePaths: fileItems.map((item) => item.fileName),
             signal: batchSignal,
+            signalsByPath: Object.fromEntries(
+              fileItems.map((item) => [
+                item.fileName,
+                item.abortController.signal,
+              ])
+            ),
             dirHandle: sharedDirHandle,
             estimatedBytesByPath: Object.fromEntries(
               fileItems.map((item) => [
@@ -1005,6 +1082,12 @@ const Favourites = () => {
             token,
             folderPaths: folderItems.map((item) => item.fileName),
             signal: batchSignal,
+            signalsByPath: Object.fromEntries(
+              folderItems.map((item) => [
+                item.fileName,
+                item.abortController.signal,
+              ])
+            ),
             dirHandle: sharedDirHandle,
             onFolderProgress: (folderPath, percent) => {
               const item = itemByPath[folderPath];
@@ -1515,6 +1598,7 @@ const Favourites = () => {
     const isFolder = file.fileType === "Folder" || file.isFolder === true;
 
     if (isFolder) {
+      if (!assertFolderNavAllowed(file.fileName, showToast)) return;
       // console.log("It's a folder.");
       dispatch(
         setFolderPath({
@@ -1659,6 +1743,7 @@ const Favourites = () => {
         filePath: filename,
         shared: isSharedValue,
         sharedName: filenameRedux,
+        inline: true,
       });
       await preloadStreamedImage(url);
       setImageSrc(url);
@@ -1675,6 +1760,7 @@ const Favourites = () => {
         apiUrl,
         token,
         filePath: filename,
+        inline: true,
       });
       setIsProgressVisible(false);
       setAudioSrc(url);
@@ -1891,7 +1977,7 @@ const Favourites = () => {
 
   useSessionEndCleanup(() => {
     setShowImage(false);
-    setCodePopup(false);
+    setCodeFilePath("");
     setIsWhisperClicked(false);
     setIsCWhisperClicked(false);
     setMoveFol(false);
@@ -2151,57 +2237,63 @@ const Favourites = () => {
   // };
 
   const handleFileDelete = async (file) => {
-    const loaderStartedAt = Date.now();
-    setLoader_Recycle(true); // Start recycle loader
     handleCloseDeletePopover();
 
-    if (file?.isFolder == true) {
-      // Soft delete folder using new API
-      try {
-        const res = await axios.delete(`${apiUrl}soft-delete-folder`, {
+    let sourceFolder = "";
+    let keyOnly = file.fileName;
+    const folderKey =
+      file?.isFolder == true ? checkLastHash(file.fileName) : "";
+
+    if (file?.isFolder != true && file.relativePath) {
+      const lastSlashIndex = file.relativePath.lastIndexOf("/");
+      if (lastSlashIndex !== -1) {
+        sourceFolder = file.relativePath.substring(0, lastSlashIndex);
+        sourceFolder = sourceFolder.replace(/\/$/, "");
+        keyOnly = file.relativePath.substring(lastSlashIndex + 1);
+      }
+    }
+
+    const startedListing = captureListingContext();
+    beginZipping(
+      softDeleteProgressLabel({
+        singleName: file?.fileName,
+        files: file?.isFolder == true ? [] : [keyOnly],
+        folders: file?.isFolder == true ? [folderKey] : [],
+      }),
+      {
+        mode: "delete",
+        sourcePaths: softDeleteSourcePaths({
+          parentPath: sourceFolder || path || "",
+          fileKeys: file?.isFolder == true ? [] : [keyOnly],
+          folderKeys: file?.isFolder == true ? [folderKey] : [],
+        }),
+      }
+    );
+
+    try {
+      if (file?.isFolder == true) {
+        await axios.delete(`${apiUrl}soft-delete-folder`, {
           ...LONG_RUNNING_AWS_REQUEST_OPTIONS,
-          data: { sourceFolders: [checkLastHash(file.fileName)] },
+          data: { sourceFolders: [folderKey] },
           headers: {
             Authorization: `Bearer ${token}`,
             "Content-Type": "application/json",
           },
         });
 
-        getLatestFolderList();
-        getFileData(currentPage);
-        getRootFolderSize();
-        afterMinLoaderDisplay(loaderStartedAt, () => {
-          setLoader_Recycle(false);
-          showToast("success", "Folder moved to recycle bin successfully");
-        });
-      } catch (error) {
-        showToast("error", `There's an error while moving folder to recycle bin`);
-        afterMinLoaderDisplay(loaderStartedAt, () => setLoader_Recycle(false));
-      }
-    } else {
-      // For files, use soft-delete API
-      const deleteKey = file.fileName;
-
-      // Extract folder and filename if file is nested
-      let sourceFolder = "";
-      let keyOnly = deleteKey;
-
-      if (file.relativePath) {
-        const lastSlashIndex = file.relativePath.lastIndexOf("/");
-        if (lastSlashIndex !== -1) {
-          sourceFolder = file.relativePath.substring(0, lastSlashIndex);
-          sourceFolder = sourceFolder.replace(/\/$/, ""); // Remove trailing slash
-          keyOnly = file.relativePath.substring(lastSlashIndex + 1);
+        if (isStillOnListingPath(startedListing)) {
+          getLatestFolderList();
+          getFileData(currentPage);
+          getRootFolderSize();
         }
-      }
+        showToast("success", "Folder moved to recycle bin successfully");
+      } else {
+        const dataToSend = {
+          sourceFolder,
+          keys: [keyOnly],
+        };
 
-      const dataToSend = {
-        sourceFolder,
-        keys: [keyOnly],
-      };
-
-      try {
-        const res = await axios.delete(`${apiUrl}soft-delete`, {
+        await axios.delete(`${apiUrl}soft-delete`, {
           ...LONG_RUNNING_AWS_REQUEST_OPTIONS,
           data: dataToSend,
           headers: {
@@ -2209,16 +2301,21 @@ const Favourites = () => {
             "Content-Type": "application/json",
           },
         });
-        getFileData(currentPage);
-        getRootFolderSize();
-        afterMinLoaderDisplay(loaderStartedAt, () => {
-          setLoader_Recycle(false);
-          showToast("success", "File moved to recycle bin successfully");
-        });
-      } catch (error) {
-        showToast("error", "There's an error while moving file to recycle bin!");
-        afterMinLoaderDisplay(loaderStartedAt, () => setLoader_Recycle(false));
+        if (isStillOnListingPath(startedListing)) {
+          getFileData(currentPage);
+          getRootFolderSize();
+        }
+        showToast("success", "File moved to recycle bin successfully");
       }
+    } catch (error) {
+      showToast(
+        "error",
+        file?.isFolder == true
+          ? "There's an error while moving folder to recycle bin"
+          : "There's an error while moving file to recycle bin!"
+      );
+    } finally {
+      endZipping();
     }
   };
 
@@ -2401,7 +2498,9 @@ const Favourites = () => {
     let succeeded = false;
     let handedToBrowser = false;
 
-    addDownload(downloadId, fileName, abortController, isFolder);
+    addDownload(downloadId, fileName, abortController, isFolder, {
+      sizeInBytes: estimateDownloadBytes(selectedFile) || 0,
+    });
     setDownloadpopup(false);
     isSetLoading(true);
     setProgress(0);
@@ -2557,88 +2656,19 @@ const Favourites = () => {
     setSelectedFile(null);
   };
 
-  const [codeContent, setCodeContent] = useState("");
-  const [codeLanguage, setCodeLanguage] = useState("javascript");
-  const codeExtensions = [
-    "js",
-    "jsx",
-    "ts",
-    "tsx",
-    "html",
-    "css",
-    "json",
-    "py",
-    "php",
-    "cpp",
-  ];
-
-  const [isLoading1, setIsLoading1] = useState(false);
-  const [codeChunks, setCodeChunks] = useState([]); // chunks of lines
-  const [fullLines, setFullLines] = useState([]); // entire line array
-  const [chunkSize] = useState(500); // lines per chunk
-  const [hasMoreChunks, setHasMoreChunks] = useState(false);
-
-  const previewCodeFile = async (file) => {
-    try {
-      setIsLoading1(true);
-      setCodePopup(true); // Show popup immediately
-
-      const res = await axios.get(`${apiUrl}getFile`, {
-        params: { filePath: file.fileName },
-        headers: { Authorization: `Bearer ${token}` },
-        responseType: "text",
-      });
-
-      const ext = file.fileName.split(".").pop();
-      const langMap = {
-        js: "javascript",
-        jsx: "jsx",
-        ts: "typescript",
-        tsx: "tsx",
-        html: "html",
-        css: "css",
-        json: "json",
-        py: "python",
-        php: "php",
-        cpp: "cpp",
-      };
-      setCodeLanguage(langMap[ext] || "text");
-
-      const lines = res.data.split("\n");
-      setFullLines(lines);
-      setCodeChunks([lines.slice(0, chunkSize).join("\n")]);
-      setHasMoreChunks(lines.length > chunkSize);
-    } catch (error) {
-      console.error("Error fetching file:", error);
-    } finally {
-      setIsLoading1(false);
-    }
-  };
-
-  const handleScroll = (e) => {
-    const bottom =
-      e.target.scrollHeight - e.target.scrollTop === e.target.clientHeight;
-    if (bottom && hasMoreChunks && !isLoading1) {
-      setIsLoading1(true);
-
-      setTimeout(() => {
-        const currentLength = codeChunks.reduce(
-          (acc, chunk) => acc + chunk.split("\n").length,
-          0
-        );
-        const nextChunk = fullLines.slice(
-          currentLength,
-          currentLength + chunkSize
-        );
-        setCodeChunks((prev) => [...prev, nextChunk.join("\n")]);
-
-        if (currentLength + chunkSize >= fullLines.length) {
-          setHasMoreChunks(false);
-        }
-
-        setIsLoading1(false);
-      }, 200); // simulate async delay
-    }
+  const openCodeInPreviewModal = (file) => {
+    setErrorMessage2("");
+    setPreviewFile(file);
+    setModalFile(file.fileName);
+    setImageSrc("");
+    setVideoSrc("");
+    setAudioSrc("");
+    setPdfSrc("");
+    setDocSrc("");
+    setCodeFilePath(file.fileName);
+    const idx = filedata.findIndex((f) => f.fileName === file.fileName);
+    if (idx !== -1) setCurrentImageIndex(idx);
+    handleImageShow();
   };
 
   const [showFolderModal, setShowFolderModal] = useState(false);
@@ -3098,6 +3128,7 @@ const Favourites = () => {
     input.click();
   };
   const path = "";
+  setLiveListingContext({ page: "favourites", path });
   const removeFile = (index) => {
     const updatedFiles = [...files];
     updatedFiles.splice(index, 1);
@@ -3395,6 +3426,23 @@ const Favourites = () => {
       });
 
       const results = [];
+      let batchCanceled = false;
+      const estimatedUploadBytes = uploadEntries.reduce(
+        (acc, e) => acc + (Number(e.file?.size) || 0),
+        0
+      );
+      const activityBatchId =
+        uploadEntries.length >= 2
+          ? await startActivityBatch({
+              apiUrl,
+              token,
+              action: "UPLOAD",
+              fileCount: uploadEntries.length,
+              estimatedBytes: estimatedUploadBytes || undefined,
+              source: "multi-upload",
+              apis: ["presign-put-object", "complete-multipart-upload-direct"],
+            })
+          : null;
       for (let i = 0; i < uploadEntries.length; i++) {
         const { file, uploadUiId, sanitizedName, controller } = uploadEntries[i];
 
@@ -3439,6 +3487,7 @@ const Favourites = () => {
               fileName: basename,
               folderPath: cleanPath || undefined,
               visibility: pubpri,
+              batchId: activityBatchId || undefined,
               getSignal: () => getUpload?.(uploadUiId)?.controller?.signal,
               onProgress: (pct) => updateUploadProgress(uploadUiId, pct),
               onMeta: ({ key, uploadId, mode, needsNewController }) => {
@@ -3515,6 +3564,47 @@ const Favourites = () => {
       const anyCanceled = results.some(
         (r) => r.status === "fulfilled" && r.value === "canceled"
       );
+
+      if (activityBatchId) {
+        const successCount = results.filter(
+          (r) => r.status === "fulfilled" && r.value === "success"
+        ).length;
+        const cancelCount = results.filter(
+          (r) => r.status === "fulfilled" && r.value === "canceled"
+        ).length;
+        const failCount = results.filter((r) => r.status === "rejected").length;
+        let sizeBytes = 0;
+        results.forEach((r, idx) => {
+          if (r.status === "fulfilled" && r.value === "success") {
+            sizeBytes += Number(uploadEntries[idx]?.file?.size) || 0;
+          }
+        });
+        const failedPaths = results
+          .map((r, idx) =>
+            r.status === "rejected"
+              ? uploadEntries[idx]?.sanitizedName || `file-${idx}`
+              : null
+          )
+          .filter(Boolean)
+          .slice(0, 50);
+        finishActivityBatch({
+          apiUrl,
+          token,
+          batchId: activityBatchId,
+          status: resolveBatchStatus({
+            fileCount: uploadEntries.length,
+            successCount,
+            failCount,
+            cancelCount,
+            cancelled: batchCanceled || allCanceled,
+          }),
+          successCount,
+          failCount: failCount + cancelCount,
+          sizeBytes,
+          failedPaths,
+          apis: ["presign-put-object", "complete-multipart-upload-direct"],
+        });
+      }
 
       if (anySucceeded && !anyFailed && !anyCanceled) {
         showToast("success", "Files uploaded successfully!");
@@ -3923,6 +4013,7 @@ const Favourites = () => {
       }
 
       const ft = (fileType || "").toLowerCase();
+      setPreviewFile(filedata[newIndex]);
 
       // Image types
       const imageTypes = ["jpeg", "jpg", "png", "gif", "hevc", "heif", "heic", "svg", "webp", "avif"];
@@ -3935,6 +4026,7 @@ const Favourites = () => {
 
       // Clear previous srcs
       setIsProgressVisible(false);
+      setCodeFilePath("");
 
       console.log("✅ FileType(ft)", ft)
 
@@ -3970,6 +4062,14 @@ const Favourites = () => {
         // set docSrc via fetch
         console.log("✅DOCSSSS")
         getDocInfo(filedata[newIndex].fileName);
+        setModalFile(filedata[newIndex].fileName);
+      } else if (isCodeFileExtension(ft)) {
+        setImageSrc("");
+        setVideoSrc("");
+        setAudioSrc("");
+        setPdfSrc("");
+        setDocSrc("");
+        setCodeFilePath(filedata[newIndex].fileName);
         setModalFile(filedata[newIndex].fileName);
       } else {
         setImageSrc("");
@@ -4100,6 +4200,7 @@ const Favourites = () => {
       }
 
       const ft = (fileType || "").toLowerCase();
+      setPreviewFile(filedata[newIndex]);
 
       const imageTypes = ["jpeg", "jpg", "png", "gif", "heic", "hevc", "heif", "svg", "webp"];
       const pdfTypes = ["pdf", "txt"];
@@ -4108,6 +4209,7 @@ const Favourites = () => {
 
       // Clear previous srcs
       setIsProgressVisible(false);
+      setCodeFilePath("");
 
       // Handle types
       if (imageTypes.includes(ft)) {
@@ -4140,6 +4242,14 @@ const Favourites = () => {
         setPdfSrc("");
         // set docSrc via fetch
         getDocInfo(filedata[newIndex].fileName);
+        setModalFile(filedata[newIndex].fileName);
+      } else if (isCodeFileExtension(ft)) {
+        setImageSrc("");
+        setVideoSrc("");
+        setAudioSrc("");
+        setPdfSrc("");
+        setDocSrc("");
+        setCodeFilePath(filedata[newIndex].fileName);
         setModalFile(filedata[newIndex].fileName);
       } else {
         setImageSrc("");
@@ -4187,6 +4297,7 @@ const Favourites = () => {
         openPreviewFile(next.file, next.index, {
           handleImageShow,
           setCurrentImageIndex,
+          setPreviewFile,
           setModalFile,
           setErrorMessage2,
           setIsProgressVisible,
@@ -4195,6 +4306,7 @@ const Favourites = () => {
           setAudioSrc,
           setPdfSrc,
           setDocSrc,
+          setCodeFilePath,
           getImageInfo,
           getPdfInfo,
           getDocInfo,
@@ -4239,6 +4351,7 @@ const Favourites = () => {
     openPreviewFile(next.file, next.index, {
       handleImageShow,
       setCurrentImageIndex,
+      setPreviewFile,
       setModalFile,
       setErrorMessage2,
       setIsProgressVisible,
@@ -4247,6 +4360,7 @@ const Favourites = () => {
       setAudioSrc,
       setPdfSrc,
       setDocSrc,
+      setCodeFilePath,
       getImageInfo,
       getPdfInfo,
       getDocInfo,
@@ -4472,33 +4586,22 @@ const Favourites = () => {
 
   const moveDraggedFile = async (filename) => {
     if (filename.isFolder === true) {
-
       try {
-        const uploadId = Date.now() + Math.random(); // Ensures a unique uploadId for each file
-        addUpload(uploadId, "Moving " + filename.fileName, { operation: "move" });
-        const res = await axios.post(
+        await axios.post(
           `${apiUrl}move-folder`,
           {
             sourceFolders: [filename.fileName],
             destinationFolder: targetFolder,
           },
           {
+            ...LONG_RUNNING_AWS_REQUEST_OPTIONS,
+
             headers: {
               Authorization: `Bearer ${token}`,
               "Content-Type": "application/json",
             },
-            onUploadProgress: (progressEvent) => {
-              const progress = Math.round(
-                (progressEvent.loaded * 100) / progressEvent.total
-              );
-              updateUploadProgress(uploadId, progress);
-            },
           }
         );
-        removeUpload(uploadId);
-        setDragPop(false);
-        getFileData(currentPage);
-        // console.log("Response is", res.data);
         showToast("success", "Folder Moved Successfully!");
       } catch (error) {
         showToast(
@@ -4506,39 +4609,29 @@ const Favourites = () => {
           getApiErrorMessage(error, "Failed to move folder!")
         );
         console.error("Error moving file:", error);
+        throw error;
       }
     } else {
-      const uploadId = Date.now() + Math.random(); // Ensures a unique uploadId for each file
       const movingFile = filename.fileName;
-      addUpload(uploadId, "Moving " + movingFile, { operation: "move" });
       try {
-        const res = await axios.post(
+        await axios.post(
           `${apiUrl}move-file`,
           {
             sourceFolder: "",
             destinationFolder: targetFolder,
-            keys: [filename.fileName], // Handle each file (segment) separately
+            keys: [filename.fileName],
           },
           {
+            ...LONG_RUNNING_AWS_REQUEST_OPTIONS,
+
             headers: {
               Authorization: `Bearer ${token}`,
               "Content-Type": "application/json",
             },
-            onUploadProgress: (progressEvent) => {
-              const progress = Math.round(
-                (progressEvent.loaded * 100) / progressEvent.total
-              );
-              updateUploadProgress(uploadId, progress);
-            },
           }
         );
-        setDragPop(false);
-        removeUpload(uploadId);
-        getFileData(currentPage);
-        // console.log(`"${movingFile}" moved successfully:`, res.data);
         showToast("success", `"${movingFile}" Moved Successfully!`);
       } catch (error) {
-        // console.error(`Error moving file "${movingFile}":`, error);
         showToast(
           "error",
           getApiErrorMessage(
@@ -4546,6 +4639,7 @@ const Favourites = () => {
             `Failed to move file "${movingFile}". Please try again.`
           )
         );
+        throw error;
       }
     }
   };
@@ -4553,11 +4647,8 @@ const Favourites = () => {
   //Move multiple files
   const moveMultipleDrag = async (arr, folname) => {
     try {
-      const uploadId = Date.now() + Math.random();
-      addUpload(uploadId, "Moving Files..", { operation: "move" });
-      // console.log("File to move is", arr);
       for (const key of arr) {
-        const res = await axios.post(
+        await axios.post(
           `${apiUrl}move-file`,
           {
             sourceFolder: "",
@@ -4565,90 +4656,107 @@ const Favourites = () => {
             keys: [key],
           },
           {
+            ...LONG_RUNNING_AWS_REQUEST_OPTIONS,
+
             headers: {
               Authorization: `Bearer ${token}`,
               "Content-Type": "application/json",
             },
-            onUploadProgress: (progressEvent) => {
-              // Simulating progress for folder move
-              const progress = Math.round(
-                (progressEvent.loaded * 100) / progressEvent.total
-              );
-              updateUploadProgress(uploadId, progress);
-            },
           }
         );
-        clearFileSelection();
-        // console.log(res);
-        setDragPop(false);
-        removeUpload(uploadId);
-        getFileData(currentPage);
-        showToast("success", "Files Moved Successfully!");
       }
+      clearFileSelection();
+      showToast("success", "Files Moved Successfully!");
     } catch (error) {
       console.error(error);
       showToast(
         "error",
         getApiErrorMessage(error, "Failed to move files. Please try again.")
       );
+      throw error;
     }
   };
 
   //Move multiple folders
   const moveMultipleDrag2 = async (arr, folname) => {
-    // console.log("moveMultipleDrag2 : ", arr);
     try {
-      if (arr && arr.length > 0) {
-        // Check if any folder is shared
-        const sharedFolders = arr.filter(
-          (folder) => folder.isShared === true || folder.isShared === "true"
-        );
+      if (!arr || arr.length === 0) return;
 
-        if (sharedFolders.length > 0) {
-          const sharedNames = sharedFolders
-            .map((f) => f.fileName || f.name)
-            .join(", ");
-          showToast("error", `Cannot move shared folder(s): ${sharedNames}`);
-          return;
-        }
+      const sharedFolders = arr.filter(
+        (folder) => folder.isShared === true || folder.isShared === "true"
+      );
 
-        const movingFolders = arr.map((f) => f.fileName || f.name).join(", ");
-        const uploadId = Date.now();
-        addUpload(uploadId, "Moving " + movingFolders, { operation: "move" });
-
-        const folderMoveRes = await axios.post(
-          `${apiUrl}move-folder`,
-          {
-            sourceFolders: arr.map((f) => f.filePath || f.path),
-            destinationFolder: folname,
-          },
-          {
-            headers: {
-              Authorization: `Bearer ${token}`,
-              "Content-Type": "application/json",
-            },
-            onUploadProgress: (progressEvent) => {
-              const progress = Math.round(
-                (progressEvent.loaded * 100) / progressEvent.total
-              );
-              updateUploadProgress(uploadId, progress);
-            },
-          }
-        );
-
-        clearFileSelection();
-        setDragPop(false);
-        removeUpload(uploadId);
-        getFileData(currentPage);
-        // console.log("Folders moved successfully:", folderMoveRes.data);
-        showToast("success", "Folders Moved Successfully!");
+      if (sharedFolders.length > 0) {
+        const sharedNames = sharedFolders
+          .map((f) => f.fileName || f.name)
+          .join(", ");
+        showToast("error", `Cannot move shared folder(s): ${sharedNames}`);
+        return;
       }
+
+      await axios.post(
+        `${apiUrl}move-folder`,
+        {
+          sourceFolders: arr.map((f) => f.filePath || f.path),
+          destinationFolder: folname,
+        },
+        {
+          ...LONG_RUNNING_AWS_REQUEST_OPTIONS,
+
+          headers: {
+            Authorization: `Bearer ${token}`,
+            "Content-Type": "application/json",
+          },
+        }
+      );
+
+      clearFileSelection();
+      showToast("success", "Folders Moved Successfully!");
     } catch (error) {
       console.error(error);
       showToast(
         "error",
         getApiErrorMessage(error, "Failed to move folders. Please try again.")
       );
+      throw error;
+    }
+  };
+
+  const handleDragMoveConfirm = async () => {
+    setDragPop(false);
+    const dragKeys = getFileSelectionKeys();
+    const dragKeys2 = getFolderSelectionKeys();
+    const dragLabel =
+      dragFile?.fileName ||
+      (dragKeys.length + dragKeys2.length > 1
+        ? `${dragKeys.length + dragKeys2.length} items`
+        : dragKeys[0] || dragKeys2[0] || "items");
+    const sourcePaths = [
+      ...(dragFile?.isFolder ? [dragFile.fileName] : dragFile?.fileName ? [""] : []),
+      ...dragKeys2.map((f) =>
+        typeof f === "string" ? f : f?.filePath || f?.fileName || f?.path || ""
+      ),
+      ...(dragKeys.length > 0 ? [""] : []),
+    ];
+    const startedListing = captureListingContext();
+    beginZipping(dragLabel, {
+      mode: "move",
+      sourcePaths,
+      destinationPath: targetFolder,
+    });
+    try {
+      const tasks = [];
+      if (dragFile?.fileName) tasks.push(moveDraggedFile(dragFile));
+      if (dragKeys.length > 0) tasks.push(moveMultipleDrag(dragKeys, targetFolder));
+      if (dragKeys2.length > 0) tasks.push(moveMultipleDrag2(dragKeys2, targetFolder));
+      await Promise.all(tasks);
+      if (isStillOnListingPath(startedListing)) {
+        getFileData(currentPage);
+      }
+    } catch (error) {
+      console.error("Drag move failed:", error);
+    } finally {
+      endZipping();
     }
   };
 
@@ -4706,6 +4814,8 @@ const Favourites = () => {
           keys: [modalFile],
         },
         {
+          ...LONG_RUNNING_AWS_REQUEST_OPTIONS,
+
           headers: {
             Authorization: `Bearer ${token}`,
             "Content-Type": "application/json",
@@ -4741,56 +4851,6 @@ const Favourites = () => {
 
   return (
     <>
-      {codePopup && (
-        <div className="code-popup-overlay">
-          <div className="code-popup-container">
-            <button
-              className="code-popup-close-btn"
-              onClick={() => setCodePopup(false)}
-              aria-label="Close"
-            >
-              ×
-            </button>
-
-            <h2 className="code-popup-title">Code Preview</h2>
-
-            <div
-              className="code-scroll-container"
-              style={{ maxHeight: "70vh", overflowY: "auto" }}
-              onScroll={handleScroll}
-            >
-              {codeChunks.map((chunk, idx) => (
-                <SyntaxHighlighter
-                  key={idx}
-                  language={codeLanguage}
-                  style={oneLight}
-                  wrapLines
-                  wrapLongLines
-                  className="code-popup-highlighter"
-                >
-                  {chunk}
-                </SyntaxHighlighter>
-              ))}
-
-              {isLoading1 && (
-                <div
-                  style={{
-                    textAlign: "center",
-                    padding: "10px",
-                    display: "flex",
-                    justifyContent: "center",
-                    flexDirection: "column",
-                    alignItems: "center",
-                  }}
-                >
-                  <img src={loaderGif} alt="" />
-                  <p>Loading Code File....</p>
-                </div>
-              )}
-            </div>
-          </div>
-        </div>
-      )}
 
       <FileInfoModal
         isOpen={infoShower}
@@ -4883,17 +4943,7 @@ const Favourites = () => {
               </button>
               <button
                 className="drag_btn ok"
-                onClick={() => {
-                  moveDraggedFile(dragFile);
-                  const dragKeys = getFileSelectionKeys();
-                  const dragKeys2 = getFolderSelectionKeys();
-                  if (dragKeys.length > 0) {
-                    moveMultipleDrag(dragKeys, targetFolder);
-                  }
-                  if (dragKeys2.length > 0) {
-                    moveMultipleDrag2(dragKeys2, targetFolder);
-                  }
-                }}
+                onClick={handleDragMoveConfirm}
               >
                 Yes
               </button>
@@ -4949,7 +4999,11 @@ const Favourites = () => {
         isOpen={sharePopup}
         onClose={closeSharePopup}
         file={selectedFile}
-        resolveFilePath={(file) => removeSlash2(file.fileName)}
+        // Favourites API returns full relative path (e.g. Images/w1.jpg).
+        // Do not use removeSlash2 — it strips the first segment and breaks nested files.
+        resolveFilePath={(file) =>
+          String(file?.fileName || "").replace(/\/$/, "")
+        }
         apiUrl={apiUrl}
         token={token}
         shared={isSharedValue ? filenameRedux : undefined}
@@ -4960,85 +5014,54 @@ const Favourites = () => {
       />
 
       <SideNav />
-      <div className="container-fluid page-body-wrapper">
+      <div className={`container-fluid page-body-wrapper files-layout${isMobile ? " files-layout--mobile" : ""}`}>
         {/* partial:partials/_navbar.html */}
-        <nav className="navbar p-0 fixed-top d-flex flex-row">
-          <div className="navbar-brand-wrapper d-flex d-lg-none align-items-center justify-content-center">
-            <a className="navbar-brand brand-logo-mini" href="#">
-              <img src={Logo} alt="logo" />
-            </a>
-          </div>
-          <div className="navbar-menu-wrapper flex-grow d-flex align-items-stretch">
-            <ToggleNav />
-            <div className="navbar-nav page_title">
-              <div style={{
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "space-between",
-                width: "100%",
-              }}>
-                <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-                  <h1>Favourites</h1>
-                </div>
-
-                <div style={{
-                  display: 'flex',
-                  alignItems: "center",
-                  gap: "10px"
-                }}>
+        <nav className="navbar p-0 fixed-top d-flex flex-row files-navbar">
+          <div className="navbar-menu-wrapper flex-grow files-navbar__shell">
+            <header className="files-app-header">
+              <div className="files-app-header__titles">
+                <h1 className="files-app-header__title">Favourites</h1>
+                <div className="files-app-header__end">
                   <button
                     type="button"
-                    className="page_title-support-btn"
+                    className="files-app-header__support"
+                    title="Support"
+                    aria-label="Support"
                     onClick={() => nav("/SupportTickets")}
                   >
                     <FiLifeBuoy aria-hidden="true" />
                     Support
                   </button>
-                  <div style={{
-                    color: "#494949",
-                    fontWeight: "510"
-                  }}>
-                    <div style={{ fontSize: "12px" }}>Welcome, Back!</div>
-                    <div style={{ fontSize: "16px" }}>{userProfile.name || userData?.userData?.name || userData?.name || name}</div>
-                  </div>
-
-                  <div
-                    role="button"
-                    tabIndex={0}
-                    title="Edit profile"
-                    aria-label="Open profile"
-                    onClick={() => nav("/UserProfile")}
-                    onKeyDown={(e) => {
-                      if (e.key === "Enter" || e.key === " ") {
-                        e.preventDefault();
-                        nav("/UserProfile");
-                      }
-                    }}
-                    style={{
-                      height: "45px",
-                      width: "45px",
-                      borderRadius: "100px",
-                      overflow: "hidden",
-                      cursor: "pointer",
-                      flexShrink: 0,
-                    }}>
-                    <img
-                      src={avatarUrl || AvatarDefault}
-                      alt="Profile"
-                      style={{ width: "100%", height: "100%", objectFit: "cover" }}
-                      onError={(e) => {
-                        e.target.onerror = null;
-                        e.target.src = AvatarDefault;
-                      }}
-                    />
+                  <div className="files-app-header__welcome files-nav-welcome">
+                    <span className="files-nav-welcome__greet">Welcome back</span>
+                    <span className="files-nav-welcome__name">
+                      {userProfile.name || userData?.userData?.name || userData?.name || name}
+                    </span>
                   </div>
                 </div>
               </div>
-            </div>
+
+              <button
+                type="button"
+                className="files-app-header__profile"
+                title="Edit profile"
+                aria-label="Open profile"
+                onClick={() => nav("/UserProfile")}
+              >
+                <img
+                  src={avatarUrl || AvatarDefault}
+                  alt=""
+                  onError={(e) => {
+                    e.target.onerror = null;
+                    e.target.src = AvatarDefault;
+                  }}
+                />
+              </button>
+            </header>
           </div>
         </nav>
         {/* partial */}
-        <div className="main-panel">
+        <div className="main-panel files-page">
           <div className="content-wrapper">
             <div className={tableBoxClassName} ref={tableBoxRef}>
               <div className="filerbar_row" ref={filterBarRef}>
@@ -5054,6 +5077,7 @@ const Favourites = () => {
 
                 <div className="files-toolbar filter-row-new">
                   <div className="files-toolbar__main">
+                    {!isMobile && (
                     <div className="files-toolbar__view">
                       <div
                         className={`switcher-container ${view === "list" ? "list-active" : "grid-active"
@@ -5076,6 +5100,7 @@ const Favourites = () => {
                         />
                       </div>
                     </div>
+                    )}
 
                     <div className="files-toolbar__filters">
                       <div className="files-toolbar__sort">
@@ -5106,9 +5131,16 @@ const Favourites = () => {
                                 aria-hidden
                               />
                               <span className="sort-filter-label">
-                                {selectedFileTypes.length > 0
-                                  ? `File Type (${selectedFileTypes.length})`
-                                  : "File Type"}
+                                <span className="sort-filter-label--full">
+                                  {selectedFileTypes.length > 0
+                                    ? `File Type (${selectedFileTypes.length})`
+                                    : "File Type"}
+                                </span>
+                                <span className="sort-filter-label--short" aria-hidden="true">
+                                  {selectedFileTypes.length > 0
+                                    ? `Type (${selectedFileTypes.length})`
+                                    : "Type"}
+                                </span>
                               </span>
                               {!isPremium && (
                                 <img
@@ -5301,7 +5333,7 @@ const Favourites = () => {
 
 
               <div id="dataView">
-                {view === "list" ? (
+                {displayView === "list" ? (
                   placeholderLoading ? (
                     <div
                       className="table-responsive"
@@ -5499,6 +5531,7 @@ const Favourites = () => {
                                     if (trySelectInsteadOfOpen(file)) return;
 
                                     setErrorMessage2("");
+                                    setPreviewFile(file);
 
                                     const isFolder =
                                       file.fileType === "Folder" ||
@@ -5509,17 +5542,14 @@ const Favourites = () => {
                                       return;
                                     }
 
-                                    const codeExtensions = [
-                                      "js", "jsx", "ts", "tsx", "html", "css", "json", "xml",
-                                      "py", "java", "c", "cpp", "rb", "php", "sh", "go", "cs",
-                                    ];
-
                                     const fileTypeLower = file.fileType?.toLowerCase();
 
-                                    if (codeExtensions.includes(fileTypeLower)) {
-                                      previewCodeFile(file);
+                                    if (isCodeFileExtension(fileTypeLower)) {
+                                      openCodeInPreviewModal(file);
                                       return;
                                     }
+
+                                    setCodeFilePath("");
 
                                     const imageTypes = ["jpeg", "jpg", "png", "gif", "hevc", "heif", "heic", "svg", "webp"];
                                     const pdfTypes = ["pdf", "txt"];
@@ -5603,6 +5633,7 @@ const Favourites = () => {
                                         if (trySelectInsteadOfOpen(file)) return;
 
                                         setErrorMessage2("");
+                                        setPreviewFile(file);
 
                                         const isFolder =
                                           file.fileType === "Folder" ||
@@ -5613,17 +5644,14 @@ const Favourites = () => {
                                           return;
                                         }
 
-                                        const codeExtensions = [
-                                          "js", "jsx", "ts", "tsx", "html", "css", "json", "xml",
-                                          "py", "java", "c", "cpp", "rb", "php", "sh", "go", "cs",
-                                        ];
-
                                         const fileTypeLower = file.fileType?.toLowerCase();
 
-                                        if (codeExtensions.includes(fileTypeLower)) {
-                                          previewCodeFile(file);
+                                        if (isCodeFileExtension(fileTypeLower)) {
+                                          openCodeInPreviewModal(file);
                                           return;
                                         }
+
+                                        setCodeFilePath("");
 
                                         const imageTypes = ["jpeg", "jpg", "png", "gif", "hevc", "heif", "heic", "svg", "webp"];
                                         const pdfTypes = ["pdf", "txt"];
@@ -5866,7 +5894,7 @@ const Favourites = () => {
                                         </a>
                                       )}
 
-                                      {file.fileName.includes(".zip") ? (
+                                      {SHOW_ZIP_UNZIP_ACTIONS && (file.fileName.includes(".zip") ? (
                                         <a
                                           className={`dropdown-item dropdown-item-custom ${file?.isShared
                                               ? "disabled blur-effect"
@@ -5918,7 +5946,7 @@ const Favourites = () => {
                                           />
                                           Zip
                                         </a>
-                                      )}
+                                      ))}
 
                                       {/* {file.isFolder === false && ( */}
                                       <a
@@ -5947,7 +5975,7 @@ const Favourites = () => {
                                         />
                                         Download
                                       </a>
-                                      {/* )} */}
+                                      {/* ))} */}
 
                                       {/* <a
                                           className={`dropdown-item dropdown-item-custom ${
@@ -6125,34 +6153,17 @@ const Favourites = () => {
                                 if (trySelectInsteadOfOpen(file)) return;
 
                                 setErrorMessage2("");
+                                setPreviewFile(file);
 
-                                const codeExtensions = [
-                                  "js",
-                                  "jsx",
-                                  "ts",
-                                  "tsx",
-                                  "html",
-                                  "css",
-                                  "json",
-                                  "xml",
-                                  "py",
-                                  "java",
-                                  "c",
-                                  "cpp",
-                                  "rb",
-                                  "php",
-                                  "sh",
-                                  "go",
-                                  "cs",
-                                ];
                                 const fileTypeLower =
                                   file.fileType?.toLowerCase();
 
-                                // CODE FILE DETECTION
-                                if (codeExtensions.includes(fileTypeLower)) {
-                                  previewCodeFile(file); // <-- handles API call + setCodeContent + open modal
+                                if (isCodeFileExtension(fileTypeLower)) {
+                                  openCodeInPreviewModal(file);
                                   return;
                                 }
+
+                                setCodeFilePath("");
 
                                 if (
                                   [
@@ -6410,7 +6421,7 @@ const Favourites = () => {
 
 
 
-                                  {file.fileName.includes(".zip") ? (
+                                  {SHOW_ZIP_UNZIP_ACTIONS && (file.fileName.includes(".zip") ? (
                                     <a
                                       className={`dropdown-item dropdown-item-custom ${file?.isShared
                                           ? "disabled blur-effect"
@@ -6462,7 +6473,7 @@ const Favourites = () => {
                                       />
                                       Zip
                                     </a>
-                                  )}
+                                  ))}
                                   {/* {file.isFolder === false && ( */}
                                   <a
                                     className={`dropdown-item dropdown-item-custom ${file?.isShared
@@ -6489,7 +6500,7 @@ const Favourites = () => {
                                     />
                                     Download
                                   </a>
-                                  {/* )} */}
+                                  {/* ))} */}
                                   {/* <a
                                       className={`dropdown-item dropdown-item-custom ${
                                         file?.isShared
@@ -6812,6 +6823,9 @@ const Favourites = () => {
         setTriggerUpdate={setTriggerUpdate}
         isPublic={modalFile?.isPublic}
         docSrc={docSrc}
+        codeFilePath={codeFilePath}
+        previewFile={previewFile}
+        setModalFile={setModalFile}
         // onRenameSuccess={() => getFolderFiles(selectedFolder)}
         onRenameSuccess={() => getFileData()}
         onMoveSuccess={onMoveSuccessFromModal}
@@ -6822,6 +6836,7 @@ const Favourites = () => {
         open={openFileUploadModal}
         onClose={handleCloseFileUploadModal}
         className="pdf_modal_style file_upload_modal_style"
+        zIndex={2100}
         style={{
           display: "flex",
           alignItems: "center",
@@ -6836,19 +6851,22 @@ const Favourites = () => {
                 <Tab>
                   <div className="my-tab-item">
                     <i className="mdi mdi-file-document-box-multiple-outline"></i>
-                    <span>Files</span>
+                    <span className="tab-label-full">Files</span>
+                    <span className="tab-label-short">Files</span>
                   </div>
                 </Tab>
                 <Tab>
                   <div className="my-tab-item">
                     <i className="mdi mdi-folder-multiple-outline"></i>
-                    <span>Upload Folder</span>
+                    <span className="tab-label-full">Upload Folder</span>
+                    <span className="tab-label-short">Upload</span>
                   </div>
                 </Tab>
                 <Tab>
                   <div className="my-tab-item">
                     <i className="mdi mdi-folder-multiple-outline"></i>
-                    <span>Folder</span>
+                    <span className="tab-label-full">Folder</span>
+                    <span className="tab-label-short">Folder</span>
                   </div>
                 </Tab>
               </TabList>
@@ -7204,7 +7222,7 @@ const Favourites = () => {
             display: "flex",
             alignItems: "center",
             justifyContent: "center",
-            zIndex: 1500,
+            zIndex: 2100,
           }}
           onClick={() => setShowPrivateWarning(false)}
         >
