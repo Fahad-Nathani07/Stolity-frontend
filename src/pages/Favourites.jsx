@@ -4999,7 +4999,11 @@ const Favourites = () => {
         isOpen={sharePopup}
         onClose={closeSharePopup}
         file={selectedFile}
-        resolveFilePath={(file) => removeSlash2(file.fileName)}
+        // Favourites API returns full relative path (e.g. Images/w1.jpg).
+        // Do not use removeSlash2 — it strips the first segment and breaks nested files.
+        resolveFilePath={(file) =>
+          String(file?.fileName || "").replace(/\/$/, "")
+        }
         apiUrl={apiUrl}
         token={token}
         shared={isSharedValue ? filenameRedux : undefined}

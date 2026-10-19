@@ -29,7 +29,7 @@ const REMEMBER_EMAIL_KEY = "stolity_remember_email";
 const slides = [
   {
     title: "Upload Files",
-    text: "Store up to 15GB data in a centralised location for easy access and management.",
+    text: "Keep your files in one secure place for easy access and management.",
   },
   { title: "Fast Access", text: "Experience quicker uploads for every file type — faster, smoother, better." },
   {
@@ -78,6 +78,8 @@ const Login = ({ setSpanExpanded, spanExpanded }) => {
   const togglePasswordVisibility = () => setShowPassword(!showPassword);
   const emailInputRef = useRef(null);
   const passwordInputRef = useRef(null);
+  /** True when email+password exist in React state or autofilled DOM values */
+  const [credsReady, setCredsReady] = useState(false);
 
   // ────────────────────────────────────────────────
   //   Slide animation
@@ -243,35 +245,71 @@ const Login = ({ setSpanExpanded, spanExpanded }) => {
   const syncAutofillFromDom = useCallback(() => {
     const emailEl = emailInputRef.current;
     const passEl = passwordInputRef.current;
+    const nextEmail = emailEl?.value || "";
+    const nextPass = passEl?.value || "";
+
     if (emailEl) {
-      const nextEmail = emailEl.value || "";
       setEmail((prev) => (prev === nextEmail ? prev : nextEmail));
       if (nextEmail.trim()) setEmailError("");
     }
     if (passEl) {
-      const nextPass = passEl.value || "";
       setPassword((prev) => (prev === nextPass ? prev : nextPass));
       if (nextPass.trim()) setPasswordError("");
     }
+
+    const ready = Boolean(nextEmail.trim() && String(nextPass).trim());
+    setCredsReady((prev) => (prev === ready ? prev : ready));
+    return ready;
   }, []);
+
+  const handleAutofillAnimation = useCallback(
+    (event) => {
+      // Chrome fires animationstart for :-webkit-autofill (see index.css)
+      const name = event?.animationName || "";
+      if (
+        !name ||
+        name.includes("onAutoFillStart") ||
+        name.includes("onAutoFillCancel") ||
+        name.includes("autofill")
+      ) {
+        // Defer one frame — value is often available right after the animation starts
+        requestAnimationFrame(() => syncAutofillFromDom());
+        setTimeout(syncAutofillFromDom, 0);
+        setTimeout(syncAutofillFromDom, 50);
+      }
+    },
+    [syncAutofillFromDom]
+  );
 
   useEffect(() => {
     if (!isPageReady) return undefined;
 
-    // Chrome/Edge often autofill after first paint; poll briefly
-    const timers = [50, 150, 400, 800, 1500].map((ms) =>
-      setTimeout(syncAutofillFromDom, ms)
-    );
+    // Chrome/Edge may autofill well after first paint (and without onChange)
+    syncAutofillFromDom();
+    const intervalId = setInterval(() => {
+      if (syncAutofillFromDom()) {
+        clearInterval(intervalId);
+      }
+    }, 200);
+    const stopId = setTimeout(() => clearInterval(intervalId), 8000);
+
     const onFocus = () => syncAutofillFromDom();
     window.addEventListener("focus", onFocus);
     document.addEventListener("visibilitychange", onFocus);
 
     return () => {
-      timers.forEach(clearTimeout);
+      clearInterval(intervalId);
+      clearTimeout(stopId);
       window.removeEventListener("focus", onFocus);
       document.removeEventListener("visibilitychange", onFocus);
     };
   }, [isPageReady, syncAutofillFromDom]);
+
+  // Keep credsReady in sync when user types (state path)
+  useEffect(() => {
+    const ready = Boolean(email.trim() && password.trim());
+    if (ready) setCredsReady(true);
+  }, [email, password]);
 
   // ────────────────────────────────────────────────
   //   LOGIN REQUEST - with attempt logic
@@ -443,8 +481,8 @@ const Login = ({ setSpanExpanded, spanExpanded }) => {
   ]);
 
   const canSubmitLogin =
-    email.trim() !== "" &&
-    password.trim() !== "" &&
+    (credsReady ||
+      (email.trim() !== "" && password.trim() !== "")) &&
     !isLoggingIn &&
     !(lockoutUntil && lockoutUntil > Date.now());
 
@@ -666,7 +704,7 @@ const Login = ({ setSpanExpanded, spanExpanded }) => {
                         value={email}
                         onChange={handleEmail}
                         onInput={handleEmail}
-                        onAnimationStart={syncAutofillFromDom}
+                        onAnimationStart={handleAutofillAnimation}
                       />
                     </div>
                     {emailError && <div className="error-message">{emailError}</div>}
@@ -684,7 +722,7 @@ const Login = ({ setSpanExpanded, spanExpanded }) => {
                           value={password}
                           onChange={handlePass}
                           onInput={handlePass}
-                          onAnimationStart={syncAutofillFromDom}
+                          onAnimationStart={handleAutofillAnimation}
                         />
                         <div className="icon_field" onClick={togglePasswordVisibility}>
                           {showPassword ? <PasswordShow /> : <PasswordHide />}

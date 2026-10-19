@@ -8,9 +8,16 @@ import React, {
 import { useNavigate, useParams, useSearchParams } from "react-router-dom";
 import { useSelector } from "react-redux";
 import axios from "axios";
-import { FiArrowLeft, FiPlus, FiSend, FiLifeBuoy } from "react-icons/fi";
+import {
+  FiArrowLeft,
+  FiSend,
+  FiLifeBuoy,
+  FiMessageSquare,
+} from "react-icons/fi";
+import { HiOutlineTicket } from "react-icons/hi2";
 import SideNav from "../components/SideNav";
 import { showToast } from "../components/ToastProvider";
+import { refreshSupportTicketsUnread } from "../hooks/useSupportTicketsUnread";
 import AvatarDefault from "../images/AvatarDefault.jpg";
 import {
   SUPPORT_TICKET_CATEGORIES,
@@ -112,6 +119,7 @@ export default function SupportTicketsPage() {
   const [sendingReply, setSendingReply] = useState(false);
   const [listFilter, setListFilter] = useState("all");
   const messagesEndRef = useRef(null);
+  const markingReadRef = useRef(false);
 
   const view = wantNew ? "new" : ticketId ? "chat" : "list";
   const displayName =
@@ -170,6 +178,57 @@ export default function SupportTicketsPage() {
     setSelected(null);
     return undefined;
   }, [view, ticketId, fetchTicket]);
+
+  /** Clear unread when the customer has the ticket chat open (incl. new replies while viewing). */
+  useEffect(() => {
+    if (view !== "chat" || !ticketId || ticketId === "new") return undefined;
+    if (!selected?.id || selected.id !== ticketId) return undefined;
+    if (!selected.hasUnread) return undefined;
+    if (markingReadRef.current) return undefined;
+
+    let cancelled = false;
+    markingReadRef.current = true;
+    const markRead = async () => {
+      try {
+        const res = await axios.post(
+          `${apiUrl}support/questions/${ticketId}/read`,
+          {},
+          { headers: authHeaders() }
+        );
+        if (cancelled) return;
+        const result = res.data?.result;
+        if (result?.id) {
+          setSelected((prev) =>
+            prev?.id === result.id ? { ...prev, ...result, hasUnread: false } : prev
+          );
+          setTickets((prev) =>
+            prev.map((t) =>
+              t.id === result.id ? { ...t, ...result, hasUnread: false } : t
+            )
+          );
+        } else {
+          setSelected((prev) =>
+            prev?.id === ticketId ? { ...prev, hasUnread: false } : prev
+          );
+          setTickets((prev) =>
+            prev.map((t) =>
+              t.id === ticketId ? { ...t, hasUnread: false } : t
+            )
+          );
+        }
+        refreshSupportTicketsUnread();
+      } catch {
+        /* non-blocking */
+      } finally {
+        markingReadRef.current = false;
+      }
+    };
+    markRead();
+    return () => {
+      cancelled = true;
+      markingReadRef.current = false;
+    };
+  }, [view, ticketId, selected?.id, selected?.hasUnread]);
 
   const sortedMessages = useMemo(() => {
     const list = Array.isArray(selected?.messages) ? [...selected.messages] : [];
@@ -287,12 +346,12 @@ export default function SupportTicketsPage() {
                   <button
                     type="button"
                     className="files-app-header__support"
-                    title="Raise ticket"
-                    aria-label="Raise ticket"
+                    title="New ticket"
+                    aria-label="New ticket"
                     onClick={() => navigate("/SupportTickets/new")}
                   >
-                    <FiPlus aria-hidden="true" />
-                    Raise
+                    <HiOutlineTicket aria-hidden="true" />
+                    New ticket
                   </button>
                 ) : (
                   <button
@@ -303,7 +362,7 @@ export default function SupportTicketsPage() {
                     onClick={() => navigate("/SupportTickets")}
                   >
                     <FiLifeBuoy aria-hidden="true" />
-                    Tickets
+                    All tickets
                   </button>
                 )}
                 <div className="files-app-header__welcome files-nav-welcome">
@@ -335,26 +394,24 @@ export default function SupportTicketsPage() {
       <div className={`stu-page${view === "chat" ? " stu-page--chat" : ""}`}>
             {view === "list" ? (
               <div className="stu-shell">
-                <header className="stu-hero">
-                  <div className="stu-hero-text">
-                    <span className="stu-hero-icon" aria-hidden="true">
-                      <FiLifeBuoy />
-                    </span>
-                    <div>
-                      <h2>Support Tickets</h2>
-                      <p>
-                        Chat with Stolity support. Track open tickets and past
-                        conversations in one place.
-                      </p>
-                    </div>
+                <header className="stu-toolbar">
+                  <div className="stu-toolbar__copy">
+                    <h2>Your conversations</h2>
+                    <p>
+                      Chat with Stolity support. Track open tickets and past
+                      conversations in one place.
+                    </p>
                   </div>
-                  <button
-                    type="button"
-                    className="stu-btn stu-btn--primary stu-hero-cta"
-                    onClick={() => navigate("/SupportTickets/new")}
-                  >
-                    <FiPlus /> Raise Ticket
-                  </button>
+                  <div className="stu-toolbar__actions">
+                    <button
+                      type="button"
+                      className="stu-btn stu-btn--primary stu-btn--lg"
+                      onClick={() => navigate("/SupportTickets/new")}
+                    >
+                      <HiOutlineTicket aria-hidden="true" />
+                      New ticket
+                    </button>
+                  </div>
                 </header>
 
                 <div className="stu-stats">
@@ -395,7 +452,9 @@ export default function SupportTicketsPage() {
                     <p className="stu-empty">Loading your tickets…</p>
                   ) : visibleTickets.length === 0 ? (
                     <div className="stu-empty-state">
-                      <FiLifeBuoy aria-hidden="true" />
+                      <div className="stu-empty-state__icon" aria-hidden="true">
+                        <FiMessageSquare />
+                      </div>
                       <h3>
                         {tickets.length === 0
                           ? "No tickets yet"
@@ -404,15 +463,16 @@ export default function SupportTicketsPage() {
                       <p>
                         {tickets.length === 0
                           ? "Need help with billing, uploads, or your account?"
-                          : "Try another filter or raise a new ticket."}
+                          : "Try another filter or open a new ticket."}
                       </p>
                       {tickets.length === 0 ? (
                         <button
                           type="button"
-                          className="stu-btn stu-btn--primary"
+                          className="stu-btn stu-btn--primary stu-btn--lg"
                           onClick={() => navigate("/SupportTickets/new")}
                         >
-                          <FiPlus /> Raise your first ticket
+                          <HiOutlineTicket aria-hidden="true" />
+                          Open a ticket
                         </button>
                       ) : null}
                     </div>
@@ -433,12 +493,22 @@ export default function SupportTicketsPage() {
                             {visibleTickets.map((t) => (
                               <tr
                                 key={t.id}
+                                className={t.hasUnread ? "is-unread" : ""}
                                 onClick={() =>
                                   navigate(`/SupportTickets/${t.id}`)
                                 }
                               >
-                                <td className="stu-mono">
-                                  {ticketDisplayCode(t.id)}
+                                <td>
+                                  <span className="stu-mono">
+                                    {t.hasUnread ? (
+                                      <span
+                                        className="stu-unread-dot"
+                                        title="New reply"
+                                        aria-label="New reply"
+                                      />
+                                    ) : null}
+                                    {ticketDisplayCode(t.id)}
+                                  </span>
                                 </td>
                                 <td>{formatTicketCategory(t.category)}</td>
                                 <td className="stu-preview" title={t.question}>
@@ -470,11 +540,20 @@ export default function SupportTicketsPage() {
                           <button
                             key={t.id}
                             type="button"
-                            className="stu-ticket-card"
+                            className={`stu-ticket-card${
+                              t.hasUnread ? " is-unread" : ""
+                            }`}
                             onClick={() => navigate(`/SupportTickets/${t.id}`)}
                           >
                             <div className="stu-ticket-card__top">
                               <span className="stu-mono">
+                                {t.hasUnread ? (
+                                  <span
+                                    className="stu-unread-dot"
+                                    title="New reply"
+                                    aria-label="New reply"
+                                  />
+                                ) : null}
                                 {ticketDisplayCode(t.id)}
                               </span>
                               <span
@@ -516,9 +595,9 @@ export default function SupportTicketsPage() {
 
                 <form className="stu-form-card" onSubmit={handleCreate}>
                   <div className="stu-form-head">
-                    <h2>Raise a ticket</h2>
+                    <h2>New support ticket</h2>
                     <p>
-                      Pick a category and describe the issue. Our team will
+                      Choose a category and describe the issue. Our team will
                       reply in this chat.
                     </p>
                   </div>
@@ -572,13 +651,14 @@ export default function SupportTicketsPage() {
                     </span>
                     <button
                       type="submit"
-                      className="stu-btn stu-btn--primary"
+                      className="stu-btn stu-btn--primary stu-btn--lg"
                       disabled={
                         submitting ||
                         message.trim().length < TICKET_MESSAGE_MIN
                       }
                     >
-                      {submitting ? "Creating…" : "Create ticket"}
+                      <HiOutlineTicket aria-hidden="true" />
+                      {submitting ? "Creating…" : "Submit ticket"}
                     </button>
                   </div>
                 </form>

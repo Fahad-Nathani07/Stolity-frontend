@@ -1,27 +1,31 @@
 .sort-by-dropdown {
   position: relative;
-  width: 100%;
+  width: max-content;
+  max-width: 100%;
   min-width: 0;
 }
 
 .filterbar-dropdown--sort,
 .filterbar-dropdown--filetype {
   min-width: 0;
+  width: max-content;
 }
 
 .sort-by-trigger-wrap {
   position: relative;
-  display: flex;
+  display: inline-flex;
   align-items: center;
-  width: 100%;
+  width: max-content;
+  max-width: 100%;
   min-width: 0;
 }
 
 .sort-by-trigger {
-  display: flex;
+  display: inline-flex;
   align-items: center;
   gap: 8px;
-  width: 100%;
+  width: max-content;
+  max-width: 100%;
   min-width: 0;
   height: 38px;
   padding: 0 34px 0 10px;
@@ -69,7 +73,7 @@
 }
 
 .sort-by-label {
-  flex: 1 1 auto;
+  flex: 0 1 auto;
   min-width: 0;
   overflow: hidden;
   text-overflow: ellipsis;

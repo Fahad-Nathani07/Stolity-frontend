@@ -1,5 +1,24 @@
 /* Settings gear — match active nav icon when on settings-linked pages */
+.sidebar-settings-wrapper {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  overflow: visible;
+}
+
+/* Sized to the gear only — keeps icon centered; badge positions against this box */
+.sidebar-settings-anchor {
+  position: relative;
+  width: 44px;
+  height: 44px;
+  flex: 0 0 auto;
+  overflow: visible;
+}
+
 .settings-gear-btn {
+  position: relative;
   background: none;
   border-radius: 25px;
   transition: background 0.2s ease;
@@ -11,6 +30,56 @@
 
 .settings-gear-btn.is-active img {
   filter: brightness(0) invert(1);
+}
+
+/* Outside the ripple button so overflow:hidden can't clip it */
+.settings-unread-badge {
+  position: absolute;
+  top: -2px;
+  right: -2px;
+  z-index: 3;
+  min-width: 16px;
+  height: 16px;
+  padding: 0 4px;
+  border-radius: 999px;
+  background: #e5660f;
+  color: #fff;
+  font-size: 10px;
+  font-weight: 700;
+  line-height: 16px;
+  text-align: center;
+  box-shadow: 0 0 0 2px #fff;
+  pointer-events: none;
+  box-sizing: border-box;
+}
+
+.sidebar-settings-anchor:has(.settings-gear-btn.is-active) .settings-unread-badge {
+  background: #fff;
+  color: #c4231c;
+  box-shadow: 0 0 0 2px #c4231c;
+}
+
+.settings-menu-item {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  width: 100%;
+}
+
+.settings-menu-item__badge {
+  min-width: 18px;
+  height: 18px;
+  padding: 0 5px;
+  border-radius: 999px;
+  background: #e5660f;
+  color: #fff;
+  font-size: 11px;
+  font-weight: 700;
+  line-height: 18px;
+  text-align: center;
+  flex-shrink: 0;
 }
 
 /* SideNav — bottom bar while theme hides the left rail (≤991px) */
@@ -144,12 +213,20 @@
     display: flex;
     align-items: center;
     justify-content: center;
+    width: auto;
+    overflow: visible;
   }
 
   .sidebar--mobile .settings-gear-btn {
     width: 44px !important;
     height: 44px !important;
     border-radius: 12px;
+    overflow: visible !important;
+  }
+
+  .sidebar--mobile .settings-unread-badge {
+    top: 0;
+    right: 0;
   }
 
   .sidebar--mobile .settings-gear-btn.is-open {
@@ -184,6 +261,10 @@
 
   .sidebar--mobile .settings-menu-item {
     width: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px;
     background: none;
     border: none;
     padding: 13px 20px;

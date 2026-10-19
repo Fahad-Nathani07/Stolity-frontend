@@ -10,11 +10,20 @@ import {
   FiInbox,
 } from "react-icons/fi";
 import { showToast } from "../components/ToastProvider";
-import { markPaneScrolling } from "../components/SupportFilterSelect";
+import SupportFilterSelect, {
+  markPaneScrolling,
+} from "../components/SupportFilterSelect";
+import SupportDatePicker from "../components/SupportDatePicker";
 import FilesPaginationFooter from "../components/FilesPaginationFooter";
 import SupportUserDetailsModal from "./SupportUserDetailsModal";
 
 const DEFAULT_PAGE_SIZE = 25;
+
+const EXPIRY_SORT_OPTIONS = [
+  { id: "none", label: "Default" },
+  { id: "asc", label: "Soonest first ↑" },
+  { id: "desc", label: "Latest first ↓" },
+];
 
 function todayKey() {
   const d = new Date();
@@ -510,6 +519,27 @@ export default function SupportUsersPane({
     fetchUsers({ soft: false, cursorOverride: null });
   };
 
+  const handleUserUpdated = useCallback(
+    (next) => {
+      if (!next?.id) return;
+      setUsers((prev) =>
+        prev.map((u) => {
+          if (u.id !== next.id) return u;
+          return {
+            ...u,
+            ...next,
+            storageUsed: next.storageUsed ?? u.storageUsed,
+            storageUsedBytes: next.storageUsedBytes ?? u.storageUsedBytes,
+            usagePercent: next.usagePercent ?? u.usagePercent,
+          };
+        })
+      );
+      // Plan / ban changes affect summary cards (premium count, etc.)
+      void fetchSummary({ soft: true });
+    },
+    [fetchSummary]
+  );
+
   const showActiveLogins = () => {
     setListMode("active");
     resetPager();
@@ -561,46 +591,38 @@ export default function SupportUsersPane({
           <div className="ssd-users-dates">
             {preset === "custom" && (
               <>
-                <div className="ssd-users-date-field">
-                  <span className="ssd-users-date-label">From</span>
-                  <input
-                    type="date"
-                    value={fromDate}
-                    max={toDate || todayKey()}
-                    disabled={busy || listMode === "active"}
-                    onChange={(e) => setFromDate(e.target.value)}
-                  />
-                </div>
-                <div className="ssd-users-date-field">
-                  <span className="ssd-users-date-label">To</span>
-                  <input
-                    type="date"
-                    value={toDate}
-                    min={fromDate || undefined}
-                    max={todayKey()}
-                    disabled={busy || listMode === "active"}
-                    onChange={(e) => setToDate(e.target.value)}
-                  />
-                </div>
+                <SupportDatePicker
+                  label="From"
+                  value={fromDate}
+                  max={toDate || todayKey()}
+                  disabled={busy || listMode === "active"}
+                  onChange={setFromDate}
+                  ariaLabel="From date"
+                />
+                <SupportDatePicker
+                  label="To"
+                  value={toDate}
+                  min={fromDate || undefined}
+                  max={todayKey()}
+                  disabled={busy || listMode === "active"}
+                  onChange={setToDate}
+                  ariaLabel="To date"
+                />
               </>
             )}
           </div>
         </div>
 
         <div className="ssd-users-toolbar__right">
-          <label className="ssd-users-sort">
-            <span>Premium expiry</span>
-            <select
-              value={expirySort}
-              disabled={busy}
-              onChange={(e) => setExpirySort(e.target.value)}
-              aria-label="Sort by premium expiry"
-            >
-              <option value="none">Default</option>
-              <option value="asc">Soonest first ↑</option>
-              <option value="desc">Latest first ↓</option>
-            </select>
-          </label>
+          <SupportFilterSelect
+            label="Premium expiry"
+            value={expirySort}
+            options={EXPIRY_SORT_OPTIONS}
+            onChange={setExpirySort}
+            disabled={busy}
+            ariaLabel="Sort by premium expiry"
+            className="ssd-users-sort"
+          />
           <button
             type="button"
             className="ssd-btn ssd-btn-ghost ssd-btn-refresh"
@@ -843,6 +865,7 @@ export default function SupportUsersPane({
           toDate={datesReady ? toDate : todayKey()}
           agentEmail={agentEmail}
           onClose={() => setDetailsUserId(null)}
+          onUserUpdated={handleUserUpdated}
         />
       )}
     </div>

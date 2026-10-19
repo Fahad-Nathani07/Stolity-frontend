@@ -1,17 +1,24 @@
 import React, { useEffect } from "react";
-import { FiX } from "react-icons/fi";
+import { FiX, FiCheck, FiArrowRight } from "react-icons/fi";
 import { HiOutlineSparkles } from "react-icons/hi2";
 import crownIcon from "../images/crown.svg";
 import "./PremiumUpgradeModal.css";
+
+const DEFAULT_PERKS = [
+  "File type filters & advanced sort",
+  "Faster workflows across your files",
+  "Premium tools built for power users",
+];
 
 export default function PremiumUpgradeModal({
   isOpen,
   onClose,
   onUpgrade,
-  title = "Unlock Premium Feature",
-  description = "This action is available for premium users only. Upgrade your Stolity plan to continue.",
+  title = "Unlock Premium",
+  description = "This action is available on Stolity Premium. Upgrade your plan to continue.",
   cancelLabel = "Not now",
   confirmLabel = "Upgrade plan",
+  perks = DEFAULT_PERKS,
   zIndex,
 }) {
   useEffect(() => {
@@ -40,36 +47,40 @@ export default function PremiumUpgradeModal({
         aria-labelledby="premium-upgrade-title"
       >
         <div className="premium-upgrade-card">
-          <header className="premium-upgrade-header">
-            <div className="premium-upgrade-header-main">
-              <div className="premium-upgrade-icon-wrap" aria-hidden="true">
+          <button
+            type="button"
+            className="premium-upgrade-close-btn"
+            onClick={onClose}
+            aria-label="Close"
+          >
+            <FiX />
+          </button>
+
+          <div className="premium-upgrade-hero">
+            <div className="premium-upgrade-icon-ring" aria-hidden="true">
+              <div className="premium-upgrade-icon-wrap">
                 <img src={crownIcon} alt="" className="premium-upgrade-crown" />
               </div>
-              <div className="premium-upgrade-header-text">
-                <span className="premium-upgrade-badge">
-                  <HiOutlineSparkles aria-hidden="true" />
-                  Stolity Premium
-                </span>
-                <h2 id="premium-upgrade-title" className="premium-upgrade-title">
-                  {title}
-                </h2>
-                <p className="premium-upgrade-text">{description}</p>
-              </div>
             </div>
-            <button
-              type="button"
-              className="premium-upgrade-close-btn"
-              onClick={onClose}
-              aria-label="Close"
-            >
-              <FiX />
-            </button>
-          </header>
+            <span className="premium-upgrade-badge">
+              <HiOutlineSparkles aria-hidden="true" />
+              Stolity Premium
+            </span>
+            <h2 id="premium-upgrade-title" className="premium-upgrade-title">
+              {title}
+            </h2>
+            <p className="premium-upgrade-text">{description}</p>
+          </div>
 
           <ul className="premium-upgrade-perks">
-            <li>File type filters &amp; advanced sort</li>
-            <li>Faster workflows across your files</li>
-            <li>Premium tools built for power users</li>
+            {(Array.isArray(perks) ? perks : DEFAULT_PERKS).map((perk) => (
+              <li key={perk}>
+                <span className="premium-upgrade-perk-check" aria-hidden="true">
+                  <FiCheck />
+                </span>
+                <span>{perk}</span>
+              </li>
+            ))}
           </ul>
 
           <footer className="premium-upgrade-actions">
@@ -89,6 +100,7 @@ export default function PremiumUpgradeModal({
               }}
             >
               {confirmLabel}
+              <FiArrowRight aria-hidden="true" />
             </button>
           </footer>
         </div>

@@ -29,6 +29,7 @@ import { FiHeadphones } from "react-icons/fi";
 import { useDispatch, useSelector } from "react-redux";
 
 import axios from "axios";
+import useSupportTicketsUnread from "../hooks/useSupportTicketsUnread";
 import "../css/SideNav.css";
 
 /* Match theme off-canvas hide at max-width 991px (style.css .sidebar-offcanvas) */
@@ -41,6 +42,9 @@ const SideNav = () => {
   const navigate = useNavigate();
   const token = sessionStorage.getItem("number");
   const location = useLocation();
+  const { count: supportTicketsUnread } = useSupportTicketsUnread({
+    enabled: Boolean(token),
+  });
   const count = useSelector((state) => state.getdata.counter);
   const apiUrl = process.env.REACT_APP_API_ENDPOINT;
   const [defaultFolders, setDefaultFolders] = useState([]);
@@ -622,30 +626,43 @@ const SideNav = () => {
           </ul>
 
           <div>
-            <div className="sidebar-settings-wrapper" ref={settingsRef} style={{ position: "relative" }}>
-              <button
-                type="button"
-                className={`settings-gear-btn ripple_effect${showSettingsMenu ? " is-open" : ""}${
-                  activeMenu === "SettingsPages" ? " is-active" : ""
-                }`}
-                onClick={() => setShowSettingsMenu((v) => !v)}
-                style={{
-                  border: "none",
-                  outline: "none",
-                  padding: "0",
-                  margin: "0 auto",
-                  display: "flex",
-                  justifyContent: "center",
-                  alignItems: "center",
-                  cursor: "pointer",
-                  width: "44px",
-                  height: "44px",
-                }}
-                aria-label="Settings"
-                aria-expanded={showSettingsMenu}
-              >
-                <img src={SettingsGearIcon} alt="" style={{ width: "24px", height: "24px" }} />
-              </button>
+            <div className="sidebar-settings-wrapper" ref={settingsRef}>
+              <div className="sidebar-settings-anchor">
+                <button
+                  type="button"
+                  className={`settings-gear-btn ripple_effect${showSettingsMenu ? " is-open" : ""}${
+                    activeMenu === "SettingsPages" ? " is-active" : ""
+                  }`}
+                  onClick={() => setShowSettingsMenu((v) => !v)}
+                  style={{
+                    border: "none",
+                    outline: "none",
+                    padding: "0",
+                    margin: "0",
+                    display: "flex",
+                    justifyContent: "center",
+                    alignItems: "center",
+                    cursor: "pointer",
+                    width: "44px",
+                    height: "44px",
+                  }}
+                  aria-label={
+                    supportTicketsUnread > 0
+                      ? `Settings, ${supportTicketsUnread} unread support ticket${
+                          supportTicketsUnread === 1 ? "" : "s"
+                        }`
+                      : "Settings"
+                  }
+                  aria-expanded={showSettingsMenu}
+                >
+                  <img src={SettingsGearIcon} alt="" style={{ width: "24px", height: "24px" }} />
+                </button>
+                {supportTicketsUnread > 0 ? (
+                  <span className="settings-unread-badge" aria-hidden="true">
+                    {supportTicketsUnread > 99 ? "99+" : supportTicketsUnread}
+                  </span>
+                ) : null}
+              </div>
 
               {showSettingsMenu && (
                 <div
@@ -775,7 +792,14 @@ const SideNav = () => {
                       if (!isMobile) e.currentTarget.style.color = "#222";
                     }}
                   >
-                    Support Tickets
+                    <span>Support Tickets</span>
+                    {supportTicketsUnread > 0 ? (
+                      <span className="settings-menu-item__badge" aria-hidden="true">
+                        {supportTicketsUnread > 99
+                          ? "99+"
+                          : supportTicketsUnread}
+                      </span>
+                    ) : null}
                   </button>
                   <button
                     type="button"

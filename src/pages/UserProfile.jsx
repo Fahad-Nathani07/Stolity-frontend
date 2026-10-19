@@ -382,33 +382,97 @@ const maskEmail = (value) => {
   const [firstPopup, setFirstPopup] = useState(false);
   const [secondPopup, setSecondPopup] = useState(false);
   const [isDeletingAccount, setIsDeletingAccount] = useState(false);
+  const [deleteOtp, setDeleteOtp] = useState("");
+  const [deleteOtpSending, setDeleteOtpSending] = useState(false);
+  const [deleteOtpResendTimer, setDeleteOtpResendTimer] = useState(0);
   const isDeletingAccountRef = useRef(false);
 
   const navigate = useNavigate();
+
+  useEffect(() => {
+    if (deleteOtpResendTimer <= 0) return undefined;
+    const id = setInterval(() => {
+      setDeleteOtpResendTimer((t) => (t <= 1 ? 0 : t - 1));
+    }, 1000);
+    return () => clearInterval(id);
+  }, [deleteOtpResendTimer]);
 
   const closeDeleteModals = () => {
     if (isDeletingAccountRef.current) return;
     setFirstPopup(false);
     setSecondPopup(false);
+    setDeleteOtp("");
+    setDeleteOtpSending(false);
+    setDeleteOtpResendTimer(0);
+  };
+
+  const sendDeleteAccountOtp = async () => {
+    try {
+      setDeleteOtpSending(true);
+      await axios.post(
+        `${apiUrl}send-delete-otp`,
+        {},
+        {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        }
+      );
+      showToast("success", "OTP sent to your email.");
+      setDeleteOtpResendTimer(60);
+      return true;
+    } catch (err) {
+      showToast(
+        "error",
+        err?.response?.data?.message || "Failed to send OTP. Please try again."
+      );
+      return false;
+    } finally {
+      setDeleteOtpSending(false);
+    }
+  };
+
+  const handleContinueToOtp = async () => {
+    const sent = await sendDeleteAccountOtp();
+    if (!sent) return;
+    setFirstPopup(false);
+    setSecondPopup(true);
+    setDeleteOtp("");
   };
 
   const handleFinalDelete = async () => {
     if (isDeletingAccountRef.current) return;
 
+    const code = String(deleteOtp || "").trim();
+    if (!/^\d{6}$/.test(code)) {
+      showToast("warning", "Enter the 6-digit OTP sent to your email.");
+      return;
+    }
+
     isDeletingAccountRef.current = true;
     setIsDeletingAccount(true);
 
     try {
-      await axios.get(`${apiUrl}delete-account`, {
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
-        responseType: "arraybuffer",
-      });
+      await axios.post(
+        `${apiUrl}delete-account-verified`,
+        { otp: code },
+        {
+          headers: {
+            Authorization: `Bearer ${token}`,
+            "Content-Type": "application/json",
+          },
+        }
+      );
 
       showToast("success", "Account deleted successfully.");
       setFirstPopup(false);
       setSecondPopup(false);
+      setDeleteOtp("");
+
+      try {
+        sessionStorage.clear();
+        localStorage.removeItem("stolity_remember_email");
+      } catch (_) {}
 
       setTimeout(() => {
         navigate("/Login");
@@ -416,7 +480,10 @@ const maskEmail = (value) => {
     } catch (err) {
       isDeletingAccountRef.current = false;
       setIsDeletingAccount(false);
-      showToast("error", "Failed to delete account.");
+      showToast(
+        "error",
+        err?.response?.data?.message || "Failed to delete account."
+      );
     }
   };
 
@@ -675,15 +742,15 @@ const maskEmail = (value) => {
     e?.preventDefault?.();
     if (!newPassword || !confirmPassword) {
       showToast("error", "Please fill out the password fields.");
-      return;
+      return false;
     }
     if (newPassword !== confirmPassword) {
       showToast("error", "Passwords do not match.");
-      return;
+      return false;
     }
     if (!otp || otp.length < 6) {
       showToast("error", "OTP is required to reset password.");
-      return;
+      return false;
     }
     setOtpBusy(true);
     try {
@@ -696,13 +763,10 @@ const maskEmail = (value) => {
         headers: { "Content-Type": "application/json" },
       });
       showToast("success", "Password has been reset successfully!");
-      setOtpFlowStep(0);
-      setOtp("");
-      setNewPassword("");
-      setConfirmPassword("");
-      setResendTimer(0);
+      return true;
     } catch (error) {
       showToast("error", error.response?.data?.message || "Failed to reset password!");
+      return false;
     } finally {
       setOtpBusy(false);
     }
@@ -1906,10 +1970,7 @@ const maskEmail = (value) => {
         {/* main-panel ends */}
       </div>
 
-      {/* First Confirmation Modal */}
-      {/* Delete Account Button */}
-
-      {/* First Confirmation Modal */}
+      {/* Delete Account — confirm, then OTP (same email path as signup OTP) */}
       {firstPopup && (
         <div className="rename_popup_wrapper">
           <div className="rename_modal">
@@ -1925,13 +1986,16 @@ const maskEmail = (value) => {
             <h2 className="rename_title2">
               Are you sure you want to delete your account?
             </h2>
-            <p className="rename_subtext">This action cannot be undone.</p>
+            <p className="rename_subtext">
+              We’ll email a one-time code to{" "}
+              <strong>{email || "your account email"}</strong> to confirm.
+            </p>
             <div className="rename_buttons">
               <button
                 type="button"
                 className="rename_btn cancel"
                 onClick={closeDeleteModals}
-                disabled={isDeletingAccount}
+                disabled={isDeletingAccount || deleteOtpSending}
               >
                 No
               </button>
@@ -1939,20 +2003,16 @@ const maskEmail = (value) => {
                 type="button"
                 className="rename_btn ok"
                 style={{ backgroundColor: "#FF0000" }}
-                disabled={isDeletingAccount}
-                onClick={() => {
-                  setFirstPopup(false);
-                  setSecondPopup(true);
-                }}
+                disabled={isDeletingAccount || deleteOtpSending}
+                onClick={handleContinueToOtp}
               >
-                Yes, Continue
+                {deleteOtpSending ? "Sending OTP…" : "Yes, send OTP"}
               </button>
             </div>
           </div>
         </div>
       )}
 
-      {/* Second (Final) Confirmation Modal */}
       {secondPopup && (
         <div className="rename_popup_wrapper">
           <div
@@ -1968,8 +2028,86 @@ const maskEmail = (value) => {
             >
               <img src={DeletePopup} alt="Delete Icon" />
             </div>
-            <h2 className="rename_title2">Your data will be lost forever.</h2>
-            <p className="rename_subtext">This action cannot be reversed.</p>
+            <h2 className="rename_title2">Enter verification code</h2>
+            <p className="rename_subtext">
+              Your data will be lost forever. Enter the 6-digit OTP sent to your
+              email.
+            </p>
+            <div style={{ margin: "16px 0 8px", textAlign: "left" }}>
+              <label
+                htmlFor="delete-account-otp"
+                style={{
+                  display: "block",
+                  marginBottom: 6,
+                  fontSize: 13,
+                  fontWeight: 600,
+                  color: "#475569",
+                }}
+              >
+                OTP
+              </label>
+              <input
+                id="delete-account-otp"
+                type="text"
+                inputMode="numeric"
+                autoComplete="one-time-code"
+                maxLength={6}
+                value={deleteOtp}
+                onChange={(e) =>
+                  setDeleteOtp(e.target.value.replace(/\D/g, "").slice(0, 6))
+                }
+                placeholder="6-digit code"
+                disabled={isDeletingAccount}
+                style={{
+                  width: "100%",
+                  height: 44,
+                  padding: "0 12px",
+                  borderRadius: 10,
+                  border: "1px solid #e2e8f0",
+                  fontSize: 16,
+                  letterSpacing: "0.2em",
+                  textAlign: "center",
+                  boxSizing: "border-box",
+                }}
+              />
+              <div
+                style={{
+                  marginTop: 10,
+                  display: "flex",
+                  justifyContent: "flex-end",
+                }}
+              >
+                <button
+                  type="button"
+                  onClick={sendDeleteAccountOtp}
+                  disabled={
+                    isDeletingAccount ||
+                    deleteOtpSending ||
+                    deleteOtpResendTimer > 0
+                  }
+                  style={{
+                    border: "none",
+                    background: "transparent",
+                    color:
+                      deleteOtpResendTimer > 0 ? "#94a3b8" : "#c4231c",
+                    fontSize: 12,
+                    fontWeight: 600,
+                    cursor:
+                      deleteOtpResendTimer > 0 || deleteOtpSending
+                        ? "not-allowed"
+                        : "pointer",
+                    textDecoration: "underline",
+                    padding: 0,
+                  }}
+                >
+                  {deleteOtpSending
+                    ? "Sending…"
+                    : deleteOtpResendTimer > 0
+                      ? `Resend in ${deleteOtpResendTimer}s`
+                      : "Resend OTP"}
+                </button>
+              </div>
+            </div>
             <div className="rename_buttons">
               <button
                 type="button"
@@ -1977,14 +2115,16 @@ const maskEmail = (value) => {
                 onClick={closeDeleteModals}
                 disabled={isDeletingAccount}
               >
-                No
+                Cancel
               </button>
               <button
                 type="button"
                 className="rename_btn ok"
                 style={{ backgroundColor: "#FF0000" }}
                 onClick={handleFinalDelete}
-                disabled={isDeletingAccount}
+                disabled={
+                  isDeletingAccount || String(deleteOtp).trim().length !== 6
+                }
                 aria-busy={isDeletingAccount}
               >
                 {isDeletingAccount ? "Deleting..." : "Delete Permanently"}
@@ -2005,15 +2145,12 @@ const maskEmail = (value) => {
         centered
         destroyOnClose
         wrapClassName="edit-profile-modal-wrap"
-        zIndex={1200}
-        styles={
-          isMobile
-            ? {
-                mask: { zIndex: 1190 },
-                wrapper: { zIndex: 1200 },
-              }
-            : undefined
-        }
+        rootClassName="edit-profile-modal-root"
+        zIndex={2100}
+        styles={{
+          mask: { zIndex: 2100 },
+          wrapper: { zIndex: 2100 },
+        }}
       >
         <div className="edit-profile-modal">
           <div className="edit-profile-header">
@@ -2782,7 +2919,10 @@ const maskEmail = (value) => {
                 <button
                   className="btn-save"
                   onClick={async () => {
-                    await handleResetPassword();
+                    const ok = await handleResetPassword();
+                    if (ok) {
+                      handleCancel();
+                    }
                   }}
                   disabled={
                     otpBusy ||

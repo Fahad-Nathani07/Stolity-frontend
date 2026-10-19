@@ -335,6 +335,7 @@ export default function SupportUserDetailsModal({
   toDate,
   agentEmail,
   onClose,
+  onUserUpdated,
 }) {
   const canManageSharedFolders =
     String(agentEmail || "").trim().toLowerCase() === "fahad@infomanav.in";
@@ -363,6 +364,19 @@ export default function SupportUserDetailsModal({
       Array.isArray(u?.sharedFolders) ? [...u.sharedFolders] : []
     );
     setNewSharedFolder("");
+  };
+
+  /** Merge API user into modal state and notify the Users list. */
+  const applyUserUpdate = (next) => {
+    if (!next) return;
+    setUser((prev) => ({
+      ...prev,
+      ...next,
+      storageUsed: next.storageUsed ?? prev?.storageUsed,
+      storageUsedBytes: next.storageUsedBytes ?? prev?.storageUsedBytes,
+      usagePercent: next.usagePercent ?? prev?.usagePercent,
+    }));
+    onUserUpdated?.(next);
   };
 
   useEffect(() => {
@@ -439,13 +453,7 @@ export default function SupportUserDetailsModal({
       );
       const next = res.data?.user;
       if (next) {
-        setUser((prev) => ({
-          ...prev,
-          ...next,
-          storageUsed: next.storageUsed ?? prev?.storageUsed,
-          storageUsedBytes: next.storageUsedBytes ?? prev?.storageUsedBytes,
-          usagePercent: next.usagePercent ?? prev?.usagePercent,
-        }));
+        applyUserUpdate(next);
         syncPlanForm(next);
       }
       showToast("success", res.data?.message || "Plan updated");
@@ -476,13 +484,7 @@ export default function SupportUserDetailsModal({
       );
       const next = res.data?.user;
       if (next) {
-        setUser((prev) => ({
-          ...prev,
-          ...next,
-          storageUsed: next.storageUsed ?? prev?.storageUsed,
-          storageUsedBytes: next.storageUsedBytes ?? prev?.storageUsedBytes,
-          usagePercent: next.usagePercent ?? prev?.usagePercent,
-        }));
+        applyUserUpdate(next);
         syncPlanForm(next);
       }
       showToast("success", res.data?.message || "Premium ended");
@@ -516,13 +518,7 @@ export default function SupportUserDetailsModal({
       );
       const next = res.data?.user;
       if (next) {
-        setUser((prev) => ({
-          ...prev,
-          ...next,
-          storageUsed: next.storageUsed ?? prev?.storageUsed,
-          storageUsedBytes: next.storageUsedBytes ?? prev?.storageUsedBytes,
-          usagePercent: next.usagePercent ?? prev?.usagePercent,
-        }));
+        applyUserUpdate(next);
       }
       showToast("success", res.data?.message || "Status updated");
     } catch (err) {
@@ -578,13 +574,7 @@ export default function SupportUserDetailsModal({
       );
       const next = res.data?.user;
       if (next) {
-        setUser((prev) => ({
-          ...prev,
-          ...next,
-          storageUsed: next.storageUsed ?? prev?.storageUsed,
-          storageUsedBytes: next.storageUsedBytes ?? prev?.storageUsedBytes,
-          usagePercent: next.usagePercent ?? prev?.usagePercent,
-        }));
+        applyUserUpdate(next);
         syncSharedFolders(next);
       }
       showToast("success", res.data?.message || "Shared folders updated");

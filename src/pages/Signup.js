@@ -92,6 +92,17 @@ const Signup = ({ setSpanExpanded, spanExpanded }) => {
     });
   };
 
+  /** Keep confirm-error in sync when either field changes */
+  const syncConfirmPasswordError = (pwd, confirm) => {
+    if (!confirm) {
+      setConfirmPasswordError("");
+      return;
+    }
+    setConfirmPasswordError(
+      confirm !== pwd ? "Passwords do not match" : ""
+    );
+  };
+
   useEffect(() => {
     let timerInterval = null;
     if (resendTimer > 0) {
@@ -248,13 +259,27 @@ const Signup = ({ setSpanExpanded, spanExpanded }) => {
   const handleCompleteSignup = async (e) => {
     e.preventDefault();
 
-    if (!name || !password || !confirmPassword) {
+    if (!name?.trim() || !password || !confirmPassword) {
       showToast("error", "Please fill out all fields.");
       return;
     }
 
     if (password !== confirmPassword) {
+      setConfirmTouched(true);
+      setConfirmPasswordError("Passwords do not match");
       showToast("error", "Passwords do not match.");
+      return;
+    }
+
+    const strengthOk =
+      passwordStrength.length &&
+      passwordStrength.uppercase &&
+      passwordStrength.lowercase &&
+      passwordStrength.number &&
+      passwordStrength.special;
+    if (!strengthOk) {
+      setPasswordTouched(true);
+      showToast("error", "Password does not meet the requirements.");
       return;
     }
 
@@ -735,6 +760,10 @@ const Signup = ({ setSpanExpanded, spanExpanded }) => {
                       setPassword(val);
                       validatePassword(val);
                       setPasswordTouched(true);
+                      // Re-check confirm when password changes after it was filled
+                      if (confirmTouched || confirmPassword) {
+                        syncConfirmPasswordError(val, confirmPassword);
+                      }
                     }}
                     onFocus={() => setPasswordTouched(true)}
                     onBlur={() => setPasswordTouched(true)} // keep visible briefly after blur
@@ -827,14 +856,12 @@ const Signup = ({ setSpanExpanded, spanExpanded }) => {
                       const val = e.target.value;
                       setConfirmPassword(val);
                       setConfirmTouched(true);
-
-                      if (val && val !== password) {
-                        setConfirmPasswordError("Passwords do not match");
-                      } else {
-                        setConfirmPasswordError("");
-                      }
+                      syncConfirmPasswordError(password, val);
                     }}
-                    onBlur={() => confirmPassword && setConfirmTouched(true)}
+                    onBlur={() => {
+                      setConfirmTouched(true);
+                      syncConfirmPasswordError(password, confirmPassword);
+                    }}
                     placeholder="Confirm your Password"
                     autoComplete="new-password"
                     name="confirm-password"
@@ -979,7 +1006,7 @@ const Signup = ({ setSpanExpanded, spanExpanded }) => {
             <div className="login_graphic_text_inner">
               <h2>Upload Files</h2>
               <p>
-                Store upto 15GB data in a centralised location for easy access and
+                Keep your files in one secure place for easy access and
                 management.
               </p>
             </div>

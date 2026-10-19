@@ -230,18 +230,30 @@
   }
 }
 
+/* Edit Profile modal must sit above .files-navbar (z-index: 1050) */
+.edit-profile-modal-root.ant-modal-root .ant-modal-mask,
+.edit-profile-modal-root .ant-modal-mask {
+  z-index: 2100 !important;
+}
+
+.edit-profile-modal-root .edit-profile-modal-wrap.ant-modal-wrap,
+.edit-profile-modal-wrap.ant-modal-wrap {
+  z-index: 2100 !important;
+}
+
 /* ===== Edit Profile modal (Ant) — mobile: fit viewport, no scrollbar ===== */
 @media screen and (max-width: 767px) {
   .edit-profile-modal-wrap.ant-modal-wrap {
-    z-index: 1200 !important;
+    z-index: 2100 !important;
     overflow: hidden !important;
     padding: 12px !important;
     padding-bottom: calc(12px + var(--sidenav-mobile-offset, 0px)) !important;
     box-sizing: border-box;
   }
 
+  .edit-profile-modal-root .ant-modal-mask,
   .ant-modal-root:has(.edit-profile-modal-wrap) .ant-modal-mask {
-    z-index: 1190 !important;
+    z-index: 2100 !important;
   }
 
   .edit-profile-modal-wrap .ant-modal {

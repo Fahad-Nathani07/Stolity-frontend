@@ -902,8 +902,8 @@ const handleDragOverFolder = (e) => {
     }
 
     // Folders only
-    setMovedFol(keys2);
-    setMoveFol(true);
+      setMovedFol(keys2);
+      setMoveFol(true);
   };
 
   const handleMultiCopyClick = () => {
@@ -1032,8 +1032,8 @@ function debounce(fn, delay) {
   const { role, companies: assignedCompanyIds } = useSelector(
       (state) => state.jobPortal
     );
-
   
+
 
   useEffect(() => {
     console.log("ggggg subscription", subscription)
@@ -1158,42 +1158,42 @@ function debounce(fn, delay) {
     });
 
     try {
-      // Soft delete files if keys have items
-      if (keys.length > 0) {
-        const payload = {
-          sourceFolder: "", // empty string for root folder
-          keys: keys,
-        };
+    // Soft delete files if keys have items
+    if (keys.length > 0) {
+      const payload = {
+        sourceFolder: "", // empty string for root folder
+        keys: keys,
+      };
         await axios.delete(`${apiUrl}soft-delete`, { ...LONG_RUNNING_AWS_REQUEST_OPTIONS, 
-          data: payload,
-          headers: {
-            Authorization: `Bearer ${token}`,
-            "Content-Type": "application/json",
-          },
-        });
-      }
+        data: payload,
+        headers: {
+          Authorization: `Bearer ${token}`,
+          "Content-Type": "application/json",
+        },
+      });
+    }
 
-      // Soft delete folders if keys2 have items
-      if (keys2.length > 0) {
+    // Soft delete folders if keys2 have items
+    if (keys2.length > 0) {
         await axios.delete(`${apiUrl}soft-delete-folder`, { ...LONG_RUNNING_AWS_REQUEST_OPTIONS, 
-          data: { sourceFolders: keys2 },
-          headers: {
-            Authorization: `Bearer ${token}`,
-            "Content-Type": "application/json",
-          },
-        });
-      }
+        data: { sourceFolders: keys2 },
+        headers: {
+          Authorization: `Bearer ${token}`,
+          "Content-Type": "application/json",
+        },
+      });
+    }
 
-      // After successful delete operations, reset states and refresh data
+    // After successful delete operations, reset states and refresh data
       clearFileSelection();
-      setSelectStatus(false);
+    setSelectStatus(false);
       if (isStillOnListingPath(startedListing)) {
         getLatestFolderList();
         await refreshFileListWithLoader();
-        getRootFolderSize(); // Refresh folder size
+    getRootFolderSize(); // Refresh folder size
       }
 
-      // Refresh storage info in Redux
+    // Refresh storage info in Redux
       dispatch(fetchUserFolderSize({ token, force: true }));
 
       showToast(
@@ -1415,7 +1415,7 @@ function debounce(fn, delay) {
             scheduleDownloadRemoval(removeDownload, item.downloadId, {
               delayMs: 0,
             });
-          } catch (err) {
+    } catch (err) {
             if (isDownloadCancelledError(err)) cancelled += 1;
             else failed += 1;
             scheduleDownloadRemoval(removeDownload, item.downloadId, {
@@ -1653,7 +1653,7 @@ function debounce(fn, delay) {
     const reqId = ++filterReqIdRef.current;
 
     if (!keepOpen) {
-      setShowFTPopup(false);
+    setShowFTPopup(false);
     }
     beginFilterSortLoading();
     try {
@@ -1709,11 +1709,11 @@ function debounce(fn, delay) {
 
         if (
           !isGoogleAuth &&
-          sharedFolders.length > 0 &&
-          !sessionStorage.getItem("googleAuthWarned")
-        ) {
-          setShowGoogleAuthPopup(true);
-          sessionStorage.setItem("googleAuthWarned", "true");
+            sharedFolders.length > 0 &&
+            !sessionStorage.getItem("googleAuthWarned")
+          ) {
+            setShowGoogleAuthPopup(true);
+            sessionStorage.setItem("googleAuthWarned", "true");
         }
 
         const combinedData = buildDefaultFileListing(files, sharedFolders, {
@@ -2044,65 +2044,65 @@ const getFileData = async () => {
   }
 
   const request = (async () => {
-    try {
-      const [sharedFoldersResult, filesResult] = await Promise.allSettled([
-        axios.get(`${apiUrl}shared-folders`, {
-          headers: {
-            Authorization: `Bearer ${token}`,
-            "Content-Type": "application/json",
-          },
-        }),
-        axios.get(`${apiUrl}getAllObjectsNew`, {
-          headers: {
-            Authorization: `Bearer ${token}`,
-            "Content-Type": "application/json",
-          },
-          params: {
-            limit: 1000,
-          },
-        }),
-      ]);
+  try {
+    const [sharedFoldersResult, filesResult] = await Promise.allSettled([
+      axios.get(`${apiUrl}shared-folders`, {
+        headers: {
+          Authorization: `Bearer ${token}`,
+          "Content-Type": "application/json",
+        },
+      }),
+      axios.get(`${apiUrl}getAllObjectsNew`, {
+        headers: {
+          Authorization: `Bearer ${token}`,
+          "Content-Type": "application/json",
+        },
+        params: {
+          limit: 1000,
+        },
+      }),
+    ]);
 
-      // ✅ Detect failure ONLY for files API
-      const filesFailed = filesResult.status === "rejected";
+    // ✅ Detect failure ONLY for files API
+    const filesFailed = filesResult.status === "rejected";
 
-      if (filesFailed) {
-        console.error("getAllObjectsNew failed:", filesResult.reason);
+    if (filesFailed) {
+      console.error("getAllObjectsNew failed:", filesResult.reason);
 
-        setTimeout(() => {
-          showToast?.(
-            "error",
-            "Unable to load files from server. Please try again."
-          );
-        }, 1500);
+     setTimeout(() => {
+      showToast?.(
+        "error",
+        "Unable to load files from server. Please try again."
+      );
+     }, 1500);
         return [];
-      }
+    }
 
-      const sharedFolders =
-        sharedFoldersResult.status === "fulfilled"
-          ? sharedFoldersResult.value.data.result || []
-          : [];
+    const sharedFolders =
+      sharedFoldersResult.status === "fulfilled"
+        ? sharedFoldersResult.value.data.result || []
+        : [];
 
       const files =
-        filesResult.status === "fulfilled"
-          ? filesResult.value.data.result || []
-          : [];
+      filesResult.status === "fulfilled"
+        ? filesResult.value.data.result || []
+        : [];
 
-      if (
-        !isGoogleAuth &&
-        sharedFolders.length > 0 &&
-        !sessionStorage.getItem("googleAuthWarned")
-      ) {
-        setShowGoogleAuthPopup(true);
-        sessionStorage.setItem("googleAuthWarned", "true");
-      }
+    if (
+      !isGoogleAuth &&
+      sharedFolders.length > 0 &&
+      !sessionStorage.getItem("googleAuthWarned")
+    ) {
+      setShowGoogleAuthPopup(true);
+      sessionStorage.setItem("googleAuthWarned", "true");
+    }
 
       const combinedData = buildDefaultFileListing(files, sharedFolders, {
         isGoogleAuth,
       });
 
-      setAllEntries(combinedData);
-      setTotalEntries(combinedData.length);
+    setAllEntries(combinedData);
+    setTotalEntries(combinedData.length);
       setCurrentPage((prev) => {
         const maxPage = Math.max(
           1,
@@ -2111,18 +2111,18 @@ const getFileData = async () => {
         return Math.min(prev, maxPage);
       });
 
-      console.log("combinedData ---------------->>>", combinedData);
+    console.log("combinedData ---------------->>>", combinedData);
 
-      setSelectedFilter("Sort By");
+    setSelectedFilter("Sort By");
       return combinedData;
-    } catch (error) {
-      console.log("Unexpected error:", error);
+  } catch (error) {
+    console.log("Unexpected error:", error);
 
-      // 🔴 Rare case (Promise.allSettled usually prevents this)
-      showToast?.(
-        "error",
-        "Unexpected issue occurred while loading data."
-      );
+    // 🔴 Rare case (Promise.allSettled usually prevents this)
+    showToast?.(
+      "error",
+      "Unexpected issue occurred while loading data."
+    );
       return [];
     } finally {
       getFileDataInFlightRef.current = null;
@@ -2172,10 +2172,10 @@ const refreshFileListWithSkeleton = refreshFileListWithLoader;
       if (isGoogleAuth) {
         try {
           const sharedResponse = await axios.get(`${apiUrl}shared-folders`, {
-            headers: {
-              Authorization: `Bearer ${token}`,
-              "Content-Type": "application/json",
-            },
+          headers: {
+            Authorization: `Bearer ${token}`,
+            "Content-Type": "application/json",
+          },
           });
           if (!isStillActive?.()) return;
           const sharedFolders = sharedResponse.data?.result || [];
@@ -2191,7 +2191,7 @@ const refreshFileListWithSkeleton = refreshFileListWithLoader;
                 : undefined,
             }
           );
-        } catch (error) {
+    } catch (error) {
           console.error("Failed to merge shared folders into search:", error);
         }
       }
@@ -2338,8 +2338,8 @@ const chkFileorFolder = (file, size) => {
 
       const res = await axios.get(`${apiUrl}getFolder`, {
         params,
-        headers: { Authorization: `Bearer ${token}` },
-      });
+          headers: { Authorization: `Bearer ${token}` },
+        });
 
       console.log("zxcvb Shared? 1593", isShared, "params", params);
 
@@ -2359,7 +2359,7 @@ const chkFileorFolder = (file, size) => {
         })
       );
       if (!isShared) {
-        dispatch(setParentFolderName(foldername.fileName));
+      dispatch(setParentFolderName(foldername.fileName));
       }
       dispatch(incrementCounter());
 
@@ -2420,7 +2420,7 @@ const chkFileorFolder = (file, size) => {
       const url = await resolveMediaPlayUrl({
         apiUrl,
         token,
-        filePath: filename,
+          filePath: filename,
         shared: isSharedValue,
         sharedName: filenameRedux,
         inline: true,
@@ -2440,7 +2440,7 @@ const chkFileorFolder = (file, size) => {
       const url = await resolveMediaPlayUrl({
         apiUrl,
         token,
-        filePath: filename,
+          filePath: filename,
         shared: isSharedValue,
         sharedName: filenameRedux,
         inline: true,
@@ -2459,7 +2459,7 @@ const chkFileorFolder = (file, size) => {
       const url = await resolveDocumentBlobUrl({
         apiUrl,
         token,
-        filePath: filename,
+          filePath: filename,
         shared: isSharedValue,
         sharedName: filenameRedux,
       });
@@ -2476,9 +2476,9 @@ const chkFileorFolder = (file, size) => {
     try {
       setIsProgressVisible(true);
 
-      if (docBlobRef.current && typeof docBlobRef.current === "string" && docBlobRef.current.startsWith("blob:")) {
-        try { URL.revokeObjectURL(docBlobRef.current); } catch (e) { /* ignore */ }
-      }
+        if (docBlobRef.current && typeof docBlobRef.current === "string" && docBlobRef.current.startsWith("blob:")) {
+          try { URL.revokeObjectURL(docBlobRef.current); } catch (e) { /* ignore */ }
+        }
 
       const url = await resolveDocumentBlobUrl({
         apiUrl,
@@ -2487,13 +2487,13 @@ const chkFileorFolder = (file, size) => {
         shared: isSharedValue,
         sharedName: filenameRedux,
       });
-      docBlobRef.current = url;
+        docBlobRef.current = url;
 
-      setImageSrc("");
-      setVideoSrc("");
-      setAudioSrc("");
-      setPdfSrc("");
-      setDocSrc(url);
+        setImageSrc("");
+        setVideoSrc("");
+        setAudioSrc("");
+        setPdfSrc("");
+        setDocSrc(url);
     } catch (error) {
       console.error("getDocInfo: final error ->", error);
       showToast?.("error", "Failed to load document preview");
@@ -2911,20 +2911,20 @@ const chkFileorFolder = (file, size) => {
         });
 
         if (isStillOnListingPath(startedListing)) {
-          getLatestFolderList();
+        getLatestFolderList();
           await refreshFileListWithLoader();
-          getRootFolderSize();
+        getRootFolderSize();
         }
         showToast("success", "Folder moved to recycle bin successfully");
-      } else {
-        dispatch(setLoader(true));
+    } else {
+      dispatch(setLoader(true));
 
-        const dataToSend = {
-          sourceFolder,
-          keys: [key],
-        };
+      const dataToSend = {
+        sourceFolder,
+        keys: [key],
+      };
 
-        console.log("Soft delete payload:", dataToSend);
+      console.log("Soft delete payload:", dataToSend);
 
         await axios.delete(`${apiUrl}soft-delete`, { ...LONG_RUNNING_AWS_REQUEST_OPTIONS, 
           data: dataToSend,
@@ -2935,8 +2935,8 @@ const chkFileorFolder = (file, size) => {
         });
         if (isStillOnListingPath(startedListing)) {
           await refreshFileListWithLoader();
-          getRootFolderSize();
-        }
+        getRootFolderSize();
+      }
         showToast("success", "File moved to recycle bin successfully");
       }
     } catch (error) {
@@ -2950,7 +2950,7 @@ const chkFileorFolder = (file, size) => {
     } finally {
       endZipping();
       dispatch(setLoader(false));
-      if (token) {
+    if (token) {
         dispatch(fetchUserFolderSize({ token, force: true }));
       }
     }
@@ -3030,7 +3030,7 @@ const chkFileorFolder = (file, size) => {
       console.log("zxcvb Shared? getFodlerList", isShared);
       console.log("zxcvb config?", config);
 
-      
+
 
       const folders = response.data;
 
@@ -3150,7 +3150,7 @@ const handleConfirmDownload = async () => {
           endZipping();
           if (isDownloadCancelledError(error)) {
             showToast("info", "Zipping cancelled.");
-          } else {
+        } else {
             showToast("error", error.message || "Zip and download failed.");
           }
         }
@@ -3230,10 +3230,10 @@ const handleConfirmDownload = async () => {
             });
           } catch (error) {
             if (!isDownloadCancelledError(error)) {
-              console.error("Download error:", error);
-              showToast("error", `Error downloading ${fileName}.`);
+                console.error("Download error:", error);
+                showToast("error", `Error downloading ${fileName}.`);
             }
-          }
+              }
         });
 
         isSetLoading(true);
@@ -3323,7 +3323,7 @@ const handleConfirmDownload = async () => {
     // console.log("Zip successful:", response.data);
     showToast("success", getZipSuccessMessage(zipResult));
     if (isStillOnListingPath(startedListing)) {
-      getFileData();
+    getFileData();
     }
   } catch (error) {
     if (isZipUnzipCancelled(error)) {
@@ -3373,7 +3373,7 @@ const handleConfirmDownload = async () => {
     // console.log("Unzip successful:", response.data);
     showToast("success", "File successfully unzipped!");
     if (isStillOnListingPath(startedListing)) {
-      getFileData();
+    getFileData();
     }
   } catch (error) {
     if (isZipUnzipCancelled(error)) {
@@ -3466,27 +3466,27 @@ const handleConfirmDownload = async () => {
     setIsCreatingFolder(true);
     try {
       await axios.post(
-        `${apiUrl}create-folder`,
-        { folderName: folderName },
-        {
-          headers: {
-            Authorization: `Bearer ${token}`,
-            "Content-Type": "application/x-www-form-urlencoded",
-          },
-        }
-      );
+          `${apiUrl}create-folder`,
+          { folderName: folderName },
+          {
+            headers: {
+              Authorization: `Bearer ${token}`,
+              "Content-Type": "application/x-www-form-urlencoded",
+            },
+          }
+        );
 
       setNewFolderName("");
       setFolderFieldError("");
       handleCloseFileUploadModal();
-      getLatestFolderList();
-      getFolderList();
+        getLatestFolderList();
+        getFolderList();
       await refreshFileListWithLoader();
-      handleCloseCreateFolder();
-      setOpenFileUploadModal(false);
-      showToast("success", "Folder created successfully!");
-    } catch (error) {
-      console.error(`There's error at ${error}`);
+        handleCloseCreateFolder();
+        setOpenFileUploadModal(false);
+        showToast("success", "Folder created successfully!");
+      } catch (error) {
+        console.error(`There's error at ${error}`);
       const message = getCreateFolderErrorMessage(error);
       setFolderFieldError(message);
       showToast("error", message);
@@ -3529,9 +3529,9 @@ const handleConfirmDownload = async () => {
       isPausing,
       onBeforeStart: () => {
         handleCloseFileUploadModal();
-        setFiles([]);
-      },
-    });
+      setFiles([]);
+        },
+      });
 
     if (result.status === "busy") {
       showToast(
@@ -3942,8 +3942,8 @@ useEffect(()=>{
             batchCanceled = true;
             break;
           }
-          continue;
-        }
+            continue;
+          }
 
         // If this item was paused (e.g. pause hit during gap between files), wait for play
         if (getUpload?.(uploadUiId)?.paused || isPausing?.(uploadUiId)) {
@@ -4023,7 +4023,7 @@ useEffect(()=>{
             });
             updateUploadProgress(uploadUiId, 100);
             results.push({ status: "fulfilled", value: "success" });
-          } catch (err) {
+            } catch (err) {
             const canceled =
               err?.name === "UploadCanceled" ||
               err?.message === "upload-removed" ||
@@ -4043,8 +4043,8 @@ useEffect(()=>{
                   mode: activeMode,
                 });
               }
-              removeUpload(uploadUiId);
-              results.push({ status: "fulfilled", value: "canceled" });
+                    removeUpload(uploadUiId);
+                    results.push({ status: "fulfilled", value: "canceled" });
               const anyLeft = uploadEntries
                 .slice(i + 1)
                 .some((e) => getUpload?.(e.uploadUiId));
@@ -4061,9 +4061,9 @@ useEffect(()=>{
           }
 
           if (batchCanceled) break;
-        } catch (err) {
-          results.push({ status: "rejected", reason: err });
-        }
+          } catch (err) {
+            results.push({ status: "rejected", reason: err });
+          }
 
         // Wait before next file (avoids rate limits)
         if (
@@ -4209,7 +4209,7 @@ useEffect(()=>{
       // console.log(error);
       showToast("error", "Unable to show information!");
     }
-  };
+};
 
   //Image slider functionality
   const [isFullscreen, setIsFullscreen] = useState(false);
@@ -4516,7 +4516,7 @@ useEffect(()=>{
         await advancePreviewAfterRemove(filename, deletedIndex);
       }
 
-      showToast("success", "File moved to recycle bin successfully");
+        showToast("success", "File moved to recycle bin successfully");
     } catch (error) {
       showToast("error", "There's an error while moving file to recycle bin!");
     } finally {
@@ -4855,7 +4855,7 @@ useEffect(()=>{
           "error",
           getApiErrorMessage(
             error,
-            `Failed to move file "${movingFile}". Please try again.`
+          `Failed to move file "${movingFile}". Please try again.`
           )
         );
         throw error;
@@ -4904,20 +4904,20 @@ useEffect(()=>{
     try {
       if (!arr || arr.length === 0) return;
 
-      const sharedFolders = arr.filter(
+        const sharedFolders = arr.filter(
         (folder) =>
           (typeof folder === "object" && folder.isShared) ||
           (typeof folder === "string" &&
             filedata.find((f) => f.fileName === folder)?.isShared)
-      );
+        );
 
-      if (sharedFolders.length > 0) {
-        const sharedNames = sharedFolders
+        if (sharedFolders.length > 0) {
+          const sharedNames = sharedFolders
           .map((f) => (typeof f === "string" ? f : f.fileName || f.name))
-          .join(", ");
-        showToast("error", `Cannot move shared folder(s): ${sharedNames}`);
-        return;
-      }
+            .join(", ");
+          showToast("error", `Cannot move shared folder(s): ${sharedNames}`);
+          return;
+        }
 
       const sourceFolders = arr
         .map((f) =>
@@ -4930,23 +4930,23 @@ useEffect(()=>{
       if (!sourceFolders.length) return;
 
       await axios.post(
-        `${apiUrl}move-folder`,
-        {
+          `${apiUrl}move-folder`,
+          {
           sourceFolders,
-          destinationFolder: folname,
-        },
-        {
+            destinationFolder: folname,
+          },
+          {
           ...LONG_RUNNING_AWS_REQUEST_OPTIONS,
 
-          headers: {
-            Authorization: `Bearer ${token}`,
-            "Content-Type": "application/json",
-          },
+            headers: {
+              Authorization: `Bearer ${token}`,
+              "Content-Type": "application/json",
+            },
           params: sharedParams,
         }
       );
 
-      showToast("success", "Folders Moved Successfully!");
+        showToast("success", "Folders Moved Successfully!");
     } catch (error) {
       console.error(error);
       showToast(
@@ -5119,15 +5119,15 @@ useEffect(()=>{
         <RenameModal
           isOpen={renamePop}
           onClose={handleClosePopover}
-          value={inputValue}
-          onChange={handleInputChange}
+              value={inputValue}
+              onChange={handleInputChange}
           onSubmit={() =>
-            handleFileRename(
-              checkLastHash(newFileName),
-              inputValue + extension,
-              wholeFile
-            )
-          }
+                  handleFileRename(
+                    checkLastHash(newFileName),
+                    inputValue + extension,
+                    wholeFile
+                  )
+                }
           isSubmitting={isRenaming}
           currentName={newFileName}
           extensionSuffix={extension}
@@ -5350,7 +5350,7 @@ useEffect(()=>{
               <div className="files-app-header__titles">
                 <h1 className="files-app-header__title">All Files</h1>
                 <div className="files-app-header__end">
-                  <button
+              <button
                     type="button"
                     className="files-app-header__support"
                     title="Support"
@@ -5359,15 +5359,15 @@ useEffect(()=>{
                   >
                     <FiLifeBuoy aria-hidden="true" />
                     Support
-                  </button>
+              </button>
                   <div className="files-app-header__welcome files-nav-welcome">
                     <span className="files-nav-welcome__greet">Welcome back</span>
                     <span className="files-nav-welcome__name">
                       {userProfile.name || userData?.userData?.name || userData?.name || name}
                     </span>
-                  </div>
-                </div>
-              </div>
+            </div>
+          </div>
+        </div>
 
               <button
                 type="button"
@@ -5376,12 +5376,12 @@ useEffect(()=>{
                 aria-label="Open profile"
                 onClick={() => navigate("/UserProfile")}
               >
-                <img
-                  src={avatarUrl || AvatarDefault}
+                  <img 
+                  src={avatarUrl || AvatarDefault} 
                   alt=""
                   onError={(e) => {
-                    e.target.onerror = null;
-                    e.target.src = AvatarDefault;
+                      e.target.onerror = null;
+                      e.target.src = AvatarDefault;
                   }}
                 />
               </button>
@@ -5399,8 +5399,8 @@ useEffect(()=>{
               <div className="filerbar_row" ref={filesFilterBarRef}>
                 <div className="show_entries_row">
                   <FileSearchBar
-                    value={query}
-                    onChange={handleSearchChange}
+                      value={query}
+                      onChange={handleSearchChange}
                     onClear={clearSearch}
                     isPremium={isPremium}
                     onPremiumGate={() => setShowUpgradeModal(true)}
@@ -5414,25 +5414,25 @@ useEffect(()=>{
                       <div
                         className={`switcher-container ${
                           view === "list" ? "list-active" : "grid-active"
-                        }`}
-                      >
-                        <img
-                          src={view === "list" ? IconListW : IconList}
-                          alt="List View"
+                      }`}
+                  >
+                    <img
+                      src={view === "list" ? IconListW : IconList}
+                      alt="List View"
                           className={`list-view-img ${
                             view === "list" ? "active" : ""
-                          }`}
-                          onClick={() => toggleView("list")}
-                        />
-                        <img
-                          src={view === "grid" ? IconHomeW : IconHome}
-                          alt="Grid View"
+                        }`}
+                      onClick={() => toggleView("list")}
+                    />
+                    <img
+                      src={view === "grid" ? IconHomeW : IconHome}
+                      alt="Grid View"
                           className={`grid-view-img ${
                             view === "grid" ? "active" : ""
-                          }`}
-                          onClick={() => toggleView("grid")}
-                        />
-                      </div>
+                        }`}
+                      onClick={() => toggleView("grid")}
+                    />
+                  </div>
                     </div>
                     )}
 
@@ -5446,19 +5446,19 @@ useEffect(()=>{
                           sortIcon={SortHome}
                           crownIcon={svgCrown}
                         />
-                      </div>
+                    </div>
 
                       <div
                         className={`files-toolbar__filetype${
                           selectedFileTypes.length > 0 ? " is-active" : ""
                         }${showFTPopup ? " is-open" : ""}`}
-                        ref={fileTypeDropdownRef}
-                      >
-                        <Dropdown
+                      ref={fileTypeDropdownRef}
+                    >
+                      <Dropdown
                           noCaret
-                          onSelect={handleFTypeSelect}
-                          title={
-                            <span className="sort-filter-span">
+                        onSelect={handleFTypeSelect}
+                        title={
+                          <span className="sort-filter-span">
                               <SlidersHorizontal
                                 className="sort-filter-lucide"
                                 size={15}
@@ -5492,18 +5492,18 @@ useEffect(()=>{
                                 strokeWidth={2.4}
                                 aria-hidden
                               />
-                            </span>
-                          }
-                          className="filter_dropdown"
-                          onClick={() => {
-                            if (!isPremium) {
+                          </span>
+                        }
+                        className="filter_dropdown"
+                        onClick={() => {
+                          if (!isPremium) {
                               setShowUpgradeModal(true);
                               return;
                             }
                             setShowFTPopup((open) => !open);
                           }}
-                        >
-                        </Dropdown>
+                      >
+                      </Dropdown>
 
                         {showFTPopup &&
                           ftPopupStyle &&
@@ -5515,12 +5515,12 @@ useEffect(()=>{
                             >
                               <div className="ft-filter-popup-header">
                                 <div className="ft-filter-popup-title">
-                                  File Type Filter
-                                </div>
+                              File Type Filter
+                            </div>
                                 <div className="ft-filter-popup-subtitle">
-                                  Choose formats to filter
-                                </div>
-                              </div>
+                              Choose formats to filter
+                            </div>
+                          </div>
 
                               <div className="ft-custom-ext-card">
                                 <div className="ft-custom-ext-top">
@@ -5582,50 +5582,50 @@ useEffect(()=>{
                               </div>
 
                               <div className="ft-filter-popup-list">
-                                {fileTypes.map((fileType) => {
-                                  const isSelected =
-                                    selectedFileTypes.includes(fileType);
-                                  return (
-                                    <label
-                                      key={fileType}
+                            {fileTypes.map((fileType) => {
+                              const isSelected =
+                                selectedFileTypes.includes(fileType);
+                              return (
+                                <label
+                                  key={fileType}
                                       className={`ft-filter-type-item${
                                         isSelected ? " is-selected" : ""
                                       }`}
                                     >
-                                      <input
-                                        type="checkbox"
-                                        checked={isSelected}
-                                        onChange={() =>
-                                          handleFTCheckboxChange(fileType)
-                                        }
+                                  <input
+                                    type="checkbox"
+                                    checked={isSelected}
+                                    onChange={() =>
+                                      handleFTCheckboxChange(fileType)
+                                    }
                                       />
                                       <span>{fileType.toUpperCase()}</span>
-                                    </label>
-                                  );
-                                })}
-                              </div>
+                                </label>
+                              );
+                            })}
+                          </div>
 
                               <div className="ft-filter-popup-footer">
-                                <button
+                            <button
                                   type="button"
                                   className="ft-filter-btn-cancel"
                                   onClick={closeOnlyPopup}
                                 >
                                   Done
-                                </button>
-                                <button
+                            </button>
+                            <button
                                   type="button"
                                   className="ft-filter-btn-apply"
                                   onClick={clearFileTypeFilter}
                                 >
                                   Clear
-                                </button>
-                              </div>
+                            </button>
+                          </div>
                             </div>,
                             document.body
-                          )}
-                      </div>
+                      )}
                     </div>
+                  </div>
                   </div>
 
                   <div className="files-toolbar__actions">
@@ -5634,54 +5634,54 @@ useEffect(()=>{
                       trigger="hover"
                       speaker={<Tooltip className="bulk-selection-toolbar__tooltip">Create Folder</Tooltip>}
                     >
-                      <button
-                        onClick={handleOpenCreateFolder}
-                        className="download-btn2"
+                  <button
+                    onClick={handleOpenCreateFolder}
+                    className="download-btn2"
                         type="button"
                         aria-label="Create Folder"
-                      >
+                  >
                         <img src={CreateFolder} alt="" />
-                      </button>
-                    </Whisper>
+                  </button>
+                  </Whisper>
 
                     <Whisper
                       placement="top"
                       trigger="hover"
                       speaker={<Tooltip className="bulk-selection-toolbar__tooltip">Download from URL</Tooltip>}
                     >
-                      <button
-                        onClick={() => {
-                          if (!isPremium) {
+                  <button
+                    onClick={() => {
+                       if (!isPremium) {
                             setShowUpgradeModal(true);
-                            return;
-                          }
+                        return;
+                      }
                           setIsDownloadModalOpen(true);
                         }}
-                        className="download-btn"
+                    className="download-btn"
                         type="button"
                         aria-label="Download from URL"
-                      >
-                        <img src={DownloafFromUrl} alt="" />
-                      </button>
-                    </Whisper>
+                  >
+                    <img src={DownloafFromUrl} alt="" />
+                  </button>
+                  </Whisper>
 
                     <Whisper
                       placement="top"
                       trigger="hover"
                       speaker={<Tooltip className="bulk-selection-toolbar__tooltip">Upload</Tooltip>}
                     >
-                      <button
-                        onClick={handleOpenFileUploadModal}
-                        className="btn__upload__file_modal"
+                  <button
+                    onClick={handleOpenFileUploadModal}
+                    className="btn__upload__file_modal"
                         type="button"
                         aria-label="Upload"
-                      >
+                  >
                         <img src={IconUpload} alt="" />
-                      </button>
-                    </Whisper>
-                  </div>
+                  </button>
+                  </Whisper>
                 </div>
               </div>
+                  </div>
 
               <StoreBulkSelectionToolbar
                 pageItems={filedata}
@@ -5689,8 +5689,8 @@ useEffect(()=>{
                 showCopy={true}
                 onDownload={() => {
                   if (!hasFileSelection()) {
-                    showToast("error", "No files or folders selected!");
-                  } else {
+                              showToast("error", "No files or folders selected!");
+                            } else {
                     setShowDownloadModal(true);
                   }
                 }}
@@ -5713,7 +5713,7 @@ useEffect(()=>{
                         rows={11}
                         columns={5}
                         active
-                        style={{
+                          style={{
                           paddingLeft: 20,
                           paddingRight: 20,
                           paddingTop: 12,
@@ -5728,7 +5728,7 @@ useEffect(()=>{
                           query.trim().length > 0
                         }
                       />
-                    </div>
+                </div>
                   ) : (
                   <div className="table-responsive" id="listViewContent">
                     <table id="filestable" className="table table-striped">
@@ -6139,12 +6139,12 @@ useEffect(()=>{
                       e.target.src = file.isFolder
                         ? "/images/icons/Folder.svg"
                         : "/images/icons/doc.svg";
-                    }}
+                  }}
                     alt="file icon"
                   />
                 </div>
                 <div className="file-details">
-                  <div
+                 <div
                     className="file-name"
                     style={{
                       whiteSpace: "nowrap",
@@ -6642,20 +6642,20 @@ useEffect(()=>{
                         </div>
                         <div className="files-card-view-header__name">
                           <span className="column-name-new">
-                            File Name
-                            <img
-                              src={SortIcon}
-                              alt=""
-                              style={{ cursor: "pointer", marginLeft: 6 }}
-                              onClick={() =>
-                                handleFilterSelect(
-                                  selectedFilter === "By Name(A-Z)"
-                                    ? "name-filter2"
-                                    : "name-filter1"
-                                )
-                              }
-                            />
-                          </span>
+                        File Name
+                        <img
+                          src={SortIcon}
+                          alt=""
+                          style={{ cursor: "pointer", marginLeft: 6 }}
+                          onClick={() =>
+                            handleFilterSelect(
+                              selectedFilter === "By Name(A-Z)"
+                                ? "name-filter2"
+                                : "name-filter1"
+                            )
+                          }
+                        />
+                      </span>
                         </div>
                       </div>
                     )}
@@ -6912,7 +6912,7 @@ useEffect(()=>{
                                       <img
                                         src={getFileIcon(file)}
                                         onError={(e) => {
-                                          e.target.onerror = null;
+                                            e.target.onerror = null;
                                           e.target.src = file.isFolder
                                             ? "/images/icons/Folder.svg"
                                             : "/images/icons/doc.svg";
@@ -7917,7 +7917,7 @@ useEffect(()=>{
           setNewFolderName(e.target.value);
           if (folderFieldError) setFolderFieldError("");
         }}
-        onSubmit={createJustFolder}
+              onSubmit={createJustFolder}
         error={folderFieldError}
         isSubmitting={isCreatingFolder}
       />
@@ -8126,10 +8126,10 @@ useEffect(()=>{
         isSharedValue={isSharedValue}
         filenameRedux={filenameRedux}
       /> */}
-
       
 
-      
+
+
 
     </>
   );

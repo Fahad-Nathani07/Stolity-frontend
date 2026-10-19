@@ -402,6 +402,15 @@ export default function SupportCallbacksPane({
     }
   };
 
+  const patchListItem = (result) => {
+    if (!result?.id) return;
+    setItems((prev) =>
+      prev.map((item) =>
+        item.id === result.id ? { ...item, ...result } : item
+      )
+    );
+  };
+
   const claimTicket = async () => {
     const ticket = selected;
     if (!ticket?.id || claiming) return;
@@ -413,23 +422,27 @@ export default function SupportCallbacksPane({
         {},
         { headers: authHeaders }
       );
-      setSelected(res.data?.result || ticket);
+      const result = res.data?.result || ticket;
+      setSelected(result);
+      patchListItem(result);
       if (res.data?.claimed) {
         showToast("success", "Callback assigned to you.", "Claimed");
         setActionMsg({ type: "success", text: "You are assigned." });
       }
-      await fetchList({ soft: true });
+      // force: soft refresh otherwise skips while claimingRef is still true
+      await fetchList({ soft: true, force: true });
     } catch (err) {
       if (err.response?.status === 409) {
         const result = err.response?.data?.result || ticket;
         setSelected(result);
+        patchListItem(result);
         const ownerEmail =
           result?.assignedTo?.email ||
           result?.assignedTo?.name ||
           "another agent";
         showToast("warning", `Already under ${ownerEmail}.`, "Taken");
         setActionMsg({ type: "error", text: `Under ${ownerEmail}.` });
-        await fetchList({ soft: true });
+        await fetchList({ soft: true, force: true });
       } else {
         const msg =
           err.response?.data?.message || "Could not claim this callback.";
@@ -451,11 +464,13 @@ export default function SupportCallbacksPane({
         {},
         { headers: authHeaders }
       );
-      setSelected(res.data?.result || selected);
+      const result = res.data?.result || selected;
+      setSelected(result);
+      patchListItem(result);
       setNoteDraft("");
       showToast("success", "Callback is available again.", "Released");
       setActionMsg({ type: "success", text: "Released." });
-      await fetchList({ soft: true });
+      await fetchList({ soft: true, force: true });
     } catch (err) {
       const msg =
         err.response?.data?.message || "Could not release this callback.";
@@ -546,59 +561,77 @@ export default function SupportCallbacksPane({
   return (
     <div className="sta-root">
       <div className="sta-toolbar">
-        <div className="sta-toolbar-left">
-          <div className="sta-filters" role="tablist" aria-label="Callback filters">
+        <div className="sta-toolbar-primary">
+          <div className="sta-seg" role="tablist" aria-label="Callback filters">
             {LIST_FILTERS.map((f) => (
               <button
                 key={f.id}
                 type="button"
                 role="tab"
                 aria-selected={listFilter === f.id}
-                className={`sta-filter-chip${
+                className={`sta-seg-btn${
                   listFilter === f.id ? " is-active" : ""
                 }`}
                 onClick={() => setListFilter(f.id)}
               >
-                {f.label}
-                <em>{filterCounts[f.id] ?? 0}</em>
+                <span className="sta-seg-label">{f.label}</span>
+                <span className="sta-seg-count">{filterCounts[f.id] ?? 0}</span>
               </button>
             ))}
           </div>
-          <label className="sta-field sta-field--search">
-            <span>Search</span>
-            <span className="sta-search">
-              <FiSearch aria-hidden="true" />
-              <input
-                type="search"
-                placeholder="Name, phone, email, ID…"
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-              />
-            </span>
-          </label>
-        </div>
-        <div className="sta-toolbar-right">
-          <div className="sta-stats">
-            <span>
-              Available <strong>{counts.available}</strong>
-            </span>
-            <span>
-              Mine <strong>{counts.mine}</strong>
-            </span>
-            <span>
-              Taken <strong>{counts.taken}</strong>
-            </span>
+
+          <div className="sta-find">
+            <FiSearch className="sta-find-icon" aria-hidden="true" />
+            <input
+              type="search"
+              className="sta-find-input"
+              placeholder="Search name, phone, email, ID…"
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              aria-label="Search callbacks"
+            />
+            {searchQuery ? (
+              <button
+                type="button"
+                className="sta-find-clear"
+                onClick={() => setSearchQuery("")}
+                aria-label="Clear search"
+              >
+                <FiX aria-hidden="true" />
+              </button>
+            ) : null}
           </div>
+        </div>
+
+        <div className="sta-toolbar-aside">
+          <div className="sta-meters" aria-label="Queue ownership">
+            <div className="sta-meter">
+              <span className="sta-meter-label">Available</span>
+              <strong className="sta-meter-value">{counts.available}</strong>
+            </div>
+            <div className="sta-meter">
+              <span className="sta-meter-label">Mine</span>
+              <strong className="sta-meter-value">{counts.mine}</strong>
+            </div>
+            <div className="sta-meter">
+              <span className="sta-meter-label">Taken</span>
+              <strong className="sta-meter-value">{counts.taken}</strong>
+            </div>
+          </div>
+
           <button
             type="button"
-            className="sta-btn sta-btn--ghost"
+            className={`sta-sync${loading ? " is-busy" : ""}`}
             onClick={() => {
               fetchList({ soft: false });
               setRefreshIn(SOFT_REFRESH_MS / 1000);
             }}
             disabled={loading}
+            title="Refresh queue"
+            aria-label={`Refresh queue, next auto-refresh in ${refreshIn} seconds`}
           >
-            <FiRefreshCw /> Refresh {refreshIn}s
+            <FiRefreshCw aria-hidden="true" />
+            <span className="sta-sync-timer">{refreshIn}s</span>
           </button>
         </div>
       </div>
@@ -636,7 +669,9 @@ export default function SupportCallbacksPane({
                     } sta-row--${state}`}
                     onClick={() => openTicket(item)}
                   >
-                    <td className="sta-mono">{code}</td>
+                    <td>
+                      <span className="sta-mono">{code}</span>
+                    </td>
                     <td>
                       <div className="sta-user">
                         <strong>{displayName(item)}</strong>

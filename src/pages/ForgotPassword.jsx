@@ -798,7 +798,7 @@ if (step === 3) {
             <div className="login_graphic_text_inner">
               <h2>Upload Files</h2>
               <p>
-                Store upto 15GB data in a centralised location for easy access and
+                Keep your files in one secure place for easy access and
                 management.
               </p>
             </div>

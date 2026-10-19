@@ -30,7 +30,7 @@
   width: 95%;
   height: 100vh;
   max-height: 100vh;
-  padding: 16px 22px 14px;
+  padding: 16px 8px 14px 22px;
   box-sizing: border-box;
   display: flex;
   flex-direction: column;
@@ -45,7 +45,7 @@
   justify-content: space-between;
   align-items: flex-start;
   gap: 16px;
-  margin-bottom: 12px;
+  margin-bottom: 28px;
   flex-shrink: 0;
 }
 
@@ -165,7 +165,8 @@
   display: flex;
   align-items: stretch;
   gap: 0;
-  padding: 0 14px;
+  /* Bottom padding keeps the active underline inside the chrome, above the border */
+  padding: 4px 14px 8px;
   border-bottom: 1px solid var(--ssd-border);
 }
 
@@ -173,8 +174,8 @@
   border: none;
   background: transparent;
   border-bottom: 2px solid transparent;
-  margin-bottom: -1px;
-  padding: 12px 14px;
+  margin-bottom: 0;
+  padding: 10px 14px 8px;
   font-weight: 600;
   font-size: 0.875rem;
   cursor: pointer;
@@ -2691,7 +2692,7 @@
 }
 
 .ssd-page--activity .ssd-header {
-  margin-bottom: 6px;
+  margin-bottom: 15px;
 }
 
 .ssd-page--activity .ssd-breadcrumb {
@@ -2703,11 +2704,15 @@
 }
 
 .ssd-page--activity .ssd-chrome {
-  margin-bottom: 8px;
+  margin-bottom: 20px;
 }
 
 .ssd-page--activity .ssd-tab {
-  padding: 10px 12px;
+  padding: 8px 12px 6px;
+}
+
+.ssd-page--activity .ssd-tabs {
+  padding: 4px 14px 8px;
 }
 
 .ssd-activity-host {
@@ -3687,43 +3692,58 @@
 }
 
 .ssd-users-toolbar__right {
+  --su-control-h: 34px;
   display: flex;
   flex-wrap: wrap;
   align-items: center;
-  gap: 10px;
+  gap: 12px;
   margin-left: auto;
 }
 
-.ssd-users-sort {
-  display: inline-flex;
+/* Horizontal custom select + matching Refresh height */
+.ssd-users-sort.ssd-filter-select {
+  flex-direction: row;
   align-items: center;
   gap: 8px;
+  min-width: 0;
+}
+
+.ssd-users-sort .ssd-filter-select-label {
+  margin: 0;
+  white-space: nowrap;
   font-size: 0.75rem;
   font-weight: 650;
+  letter-spacing: 0.02em;
   color: var(--ssd-muted, #6b7280);
+  line-height: 1;
 }
 
-.ssd-users-sort span {
-  white-space: nowrap;
-}
-
-.ssd-users-sort select {
-  height: 34px;
-  border: 1px solid var(--ssd-border, #e5e7eb);
+.ssd-users-sort .ssd-filter-select-trigger {
+  width: auto;
+  min-width: 168px;
+  height: var(--su-control-h);
+  min-height: var(--su-control-h);
+  padding: 0 32px 0 12px;
   border-radius: 8px;
-  padding: 0 28px 0 10px;
-  font: inherit;
   font-size: 0.8125rem;
-  font-weight: 600;
-  color: var(--su-ink, #1e293b);
-  background: var(--ssd-surface, #fff)
-    url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%236b7280' stroke-width='2'%3E%3Cpolyline points='6 9 12 15 18 9'/%3E%3C/svg%3E")
-    no-repeat right 10px center;
-  appearance: none;
-  cursor: pointer;
+  box-sizing: border-box;
 }
 
-.ssd-users-sort select:disabled {
+.ssd-users-sort .ssd-filter-select-menu {
+  left: auto;
+  right: 0;
+  min-width: 100%;
+  width: max-content;
+}
+
+.ssd-users-toolbar__right .ssd-btn-refresh {
+  height: var(--su-control-h);
+  min-height: var(--su-control-h);
+  padding: 0 12px;
+  box-sizing: border-box;
+}
+
+.ssd-filter-select.is-disabled .ssd-filter-select-trigger {
   opacity: 0.6;
   cursor: not-allowed;
 }
@@ -3765,7 +3785,14 @@
   gap: 8px;
 }
 
-.ssd-users-date-field {
+/* Custom date picker (Users / Activity toolbar) */
+.ssd-date-picker {
+  position: relative;
+  flex: 0 0 auto;
+}
+
+.ssd-date-picker-trigger {
+  appearance: none;
   display: inline-flex;
   align-items: center;
   gap: 8px;
@@ -3775,9 +3802,28 @@
   border-radius: 8px;
   background: var(--ssd-surface, #fff);
   box-sizing: border-box;
+  font: inherit;
+  cursor: pointer;
+  color: var(--su-ink, #1e293b);
+  transition: border-color 0.15s ease, box-shadow 0.15s ease, background 0.15s ease;
 }
 
-.ssd-users-date-label {
+.ssd-date-picker-trigger:hover:not(:disabled) {
+  border-color: #f0d4b5;
+  background: #fffaf5;
+}
+
+.ssd-date-picker.is-open .ssd-date-picker-trigger {
+  border-color: var(--su-orange, #e5660f);
+  box-shadow: 0 0 0 3px rgba(229, 102, 15, 0.14);
+}
+
+.ssd-date-picker-trigger:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+
+.ssd-date-picker-label {
   font-size: 0.75rem;
   font-weight: 650;
   letter-spacing: 0.02em;
@@ -3786,28 +3832,139 @@
   white-space: nowrap;
 }
 
-.ssd-users-date-field input[type="date"] {
-  border: none;
-  outline: none;
-  background: transparent;
-  font: inherit;
+.ssd-date-picker-value {
   font-size: 0.8125rem;
-  color: var(--su-ink);
-  height: 100%;
-  padding: 0;
-  min-width: 128px;
-  color-scheme: light;
+  font-weight: 600;
+  color: var(--su-ink, #1e293b);
+  white-space: nowrap;
+  min-width: 6.5em;
+  text-align: left;
 }
 
-.ssd-users-date-field input[type="date"]:disabled {
-  opacity: 0.55;
+.ssd-date-picker-icon {
+  width: 15px;
+  height: 15px;
+  color: var(--su-orange, #e5660f);
+  flex-shrink: 0;
+  margin-left: 2px;
+}
+
+.ssd-date-picker-menu {
+  padding: 12px;
+  border-radius: 12px;
+  border: 1px solid var(--ssd-border, #e5e7eb);
+  background: #fff;
+  box-shadow:
+    0 4px 6px rgba(15, 23, 42, 0.04),
+    0 16px 32px rgba(15, 23, 42, 0.12);
+  box-sizing: border-box;
+  font-family: inherit;
+}
+
+.ssd-date-picker-nav {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  margin-bottom: 10px;
+}
+
+.ssd-date-picker-month {
+  font-size: 0.875rem;
+  font-weight: 700;
+  color: var(--su-ink, #1e293b);
+  letter-spacing: -0.01em;
+}
+
+.ssd-date-picker-nav-btn {
+  appearance: none;
+  width: 32px;
+  height: 32px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid var(--ssd-border, #e5e7eb);
+  border-radius: 8px;
+  background: #fff;
+  color: #64748b;
+  cursor: pointer;
+}
+
+.ssd-date-picker-nav-btn:hover {
+  background: #fff7ed;
+  border-color: #fdba74;
+  color: var(--su-orange, #e5660f);
+}
+
+.ssd-date-picker-weekdays {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  gap: 2px;
+  margin-bottom: 4px;
+}
+
+.ssd-date-picker-weekdays span {
+  text-align: center;
+  font-size: 0.6875rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--ssd-faint, #9ca3af);
+  padding: 4px 0;
+}
+
+.ssd-date-picker-grid {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  gap: 2px;
+}
+
+.ssd-date-picker-day {
+  appearance: none;
+  height: 34px;
+  border: none;
+  border-radius: 8px;
+  background: transparent;
+  color: var(--su-ink, #1e293b);
+  font: inherit;
+  font-size: 0.8125rem;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.ssd-date-picker-day.is-empty {
+  pointer-events: none;
+}
+
+.ssd-date-picker-day:hover:not(:disabled):not(.is-selected) {
+  background: #fff7ed;
+  color: var(--su-orange, #e5660f);
+}
+
+.ssd-date-picker-day.is-today:not(.is-selected) {
+  box-shadow: inset 0 0 0 1px #fdba74;
+}
+
+.ssd-date-picker-day.is-selected {
+  background: var(--su-orange, #e5660f);
+  color: #fff;
+  box-shadow: 0 2px 8px rgba(229, 102, 15, 0.28);
+}
+
+.ssd-date-picker-day.is-disabled,
+.ssd-date-picker-day:disabled {
+  color: #cbd5e1;
   cursor: not-allowed;
+  background: transparent;
+  box-shadow: none;
 }
 
 .ssd-users-stats {
   display: grid;
   grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) minmax(0, 1.35fr);
-  gap: 8px;
+  gap: 10px;
+  /* Inset so selected card’s 2px orange border isn’t clipped by overflow parents */
+  padding: 2px;
   flex-shrink: 0;
   align-items: stretch;
 }
@@ -3824,10 +3981,10 @@
   box-shadow: var(--ssd-shadow);
   text-align: left;
   min-width: 0;
+  box-sizing: border-box;
   transition:
     border-color 0.2s ease,
     box-shadow 0.2s ease,
-    transform 0.2s ease,
     background 0.2s ease;
 }
 
@@ -3906,21 +4063,18 @@
 .ssd-users-card--action:hover:not(:disabled) {
   border-color: rgba(229, 102, 15, 0.4);
   box-shadow: 0 3px 10px rgba(229, 102, 15, 0.1);
-  transform: translateY(-1px);
 }
 
 .ssd-users-card--action.is-selected {
-  border-color: var(--su-orange);
+  border: 2px solid var(--su-orange);
+  padding: 9px 11px;
   background: linear-gradient(180deg, #fffaf4 0%, #fff 100%);
-  box-shadow:
-    0 0 0 1px var(--su-orange),
-    0 4px 12px rgba(229, 102, 15, 0.12);
+  box-shadow: 0 4px 12px rgba(229, 102, 15, 0.12);
 }
 
 .ssd-users-card--action:disabled {
   opacity: 0.7;
   cursor: not-allowed;
-  transform: none;
 }
 
 .ssd-users-card--static {

@@ -358,6 +358,25 @@ textarea.form_control {
   font-size: 14px !important;
 }
 
+/* Detect Chrome/Edge autofill so Login can enable the submit button */
+@keyframes onAutoFillStart {
+  from {
+    opacity: 0.99;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes onAutoFillCancel {
+  from {
+    opacity: 0.99;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
 .form-control:-webkit-autofill,
 .form_control:-webkit-autofill:hover,
 .form_control:-webkit-autofill:focus,
@@ -370,6 +389,14 @@ textarea.form_control {
   border: 1px solid var(--stolity-field-border) !important;
   transition: background-color 99999s ease-in-out 0s;
   caret-color: var(--stolity-ink);
+  animation-name: onAutoFillStart;
+  animation-duration: 0.001s;
+}
+
+.form-control:not(:-webkit-autofill),
+.form_control:not(:-webkit-autofill) {
+  animation-name: onAutoFillCancel;
+  animation-duration: 0.001s;
 }
 
 .form-control:-webkit-autofill:focus,
