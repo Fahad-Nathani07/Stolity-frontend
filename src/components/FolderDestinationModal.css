@@ -80,7 +80,7 @@
 
 .fdm-title {
   margin: 0;
-  font-size: 1.125rem;
+  font-size: 1.5rem !important;
   font-weight: 650;
   line-height: 1.3;
   color: #0f172a;
@@ -472,6 +472,7 @@ span.fdm-crumb.is-active {
     width: 36px;
     height: 36px;
     font-size: 17px;
+    margin-top: 7px;
   }
 
   .fdm-body {

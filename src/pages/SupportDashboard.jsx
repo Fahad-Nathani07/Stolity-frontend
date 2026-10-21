@@ -1,4 +1,11 @@
-import React, { useCallback, useEffect, useMemo, useState } from "react";
+import React, {
+  useCallback,
+  useEffect,
+  useLayoutEffect,
+  useMemo,
+  useRef,
+  useState,
+} from "react";
 import { useSelector } from "react-redux";
 import { useNavigate } from "react-router-dom";
 import axios from "axios";
@@ -89,6 +96,57 @@ export default function SupportDashboard() {
   const [activityCount, setActivityCount] = useState(0);
   const [usersCount, setUsersCount] = useState(0);
   const [affiliatesCount, setAffiliatesCount] = useState(0);
+  const tabsRef = useRef(null);
+  const tabBtnRefs = useRef({});
+  const [tabIndicator, setTabIndicator] = useState({
+    left: 0,
+    width: 0,
+    ready: false,
+  });
+
+  const updateTabIndicator = useCallback(() => {
+    const root = tabsRef.current;
+    const btn = tabBtnRefs.current[activeTab];
+    if (!root || !btn) return;
+    const rootRect = root.getBoundingClientRect();
+    const btnRect = btn.getBoundingClientRect();
+    setTabIndicator((prev) => ({
+      left: btnRect.left - rootRect.left + root.scrollLeft,
+      width: btnRect.width,
+      ready: prev.ready,
+    }));
+  }, [activeTab]);
+
+  useLayoutEffect(() => {
+    updateTabIndicator();
+    const raf = requestAnimationFrame(() => {
+      setTabIndicator((prev) =>
+        prev.ready ? prev : { ...prev, ready: true }
+      );
+    });
+    const onResize = () => updateTabIndicator();
+    window.addEventListener("resize", onResize);
+    const ro =
+      typeof ResizeObserver !== "undefined"
+        ? new ResizeObserver(updateTabIndicator)
+        : null;
+    if (ro && tabsRef.current) ro.observe(tabsRef.current);
+    return () => {
+      cancelAnimationFrame(raf);
+      window.removeEventListener("resize", onResize);
+      ro?.disconnect();
+    };
+  }, [
+    updateTabIndicator,
+    tabs,
+    callbacksCount,
+    callbacksUnassigned,
+    questionsCount,
+    questionsUnassigned,
+    activityCount,
+    usersCount,
+    affiliatesCount,
+  ]);
 
   useEffect(() => {
     if (!showFileActivity && activeTab === "activity") {
@@ -253,13 +311,17 @@ export default function SupportDashboard() {
           delay={0.1}
           duration={0.85}
         >
-          <div className="ssd-tabs" role="tablist">
+          <div className="ssd-tabs" role="tablist" ref={tabsRef}>
             {tabs.map((tab) => (
               <button
                 key={tab.id}
                 type="button"
                 role="tab"
                 disabled={!tab.enabled}
+                ref={(el) => {
+                  if (el) tabBtnRefs.current[tab.id] = el;
+                  else delete tabBtnRefs.current[tab.id];
+                }}
                 className={`ssd-tab${activeTab === tab.id ? " is-active" : ""}`}
                 onClick={() => {
                   if (!tab.enabled) return;
@@ -292,6 +354,16 @@ export default function SupportDashboard() {
                 {!tab.enabled && <span className="ssd-soon">Soon</span>}
               </button>
             ))}
+            <span
+              className={`ssd-tab-indicator${
+                tabIndicator.ready ? " is-ready" : ""
+              }`}
+              aria-hidden="true"
+              style={{
+                width: tabIndicator.width,
+                transform: `translateX(${tabIndicator.left}px)`,
+              }}
+            />
           </div>
         </ScrollReveal>
 

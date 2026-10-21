@@ -3,6 +3,14 @@ import { createPortal } from "react-dom";
 import axios from "axios";
 import { FiX, FiMail, FiPhone, FiClock, FiHardDrive } from "react-icons/fi";
 import { showToast } from "../components/ToastProvider";
+import SupportFilterSelect from "../components/SupportFilterSelect";
+
+const PLAN_OPTIONS = [
+  { id: "", label: "No Plan (Free)" },
+  { id: "stolity_lite_trial", label: "Stolity Trial — 1 week" },
+  { id: "stolity_lite_monthly", label: "Stolity Lite Monthly" },
+  { id: "stolity_lite_yearly", label: "Stolity Lite Yearly" },
+];
 
 function formatWhen(iso, withTime = true) {
   if (!iso) return "—";
@@ -875,7 +883,7 @@ export default function SupportUserDetailsModal({
                     {isActivePremium && (
                       <button
                         type="button"
-                        className="ssd-btn ssd-btn-ghost ssd-btn-xs"
+                        className="ssd-btn ssd-btn-premium-outline ssd-btn-xs"
                         onClick={endPremium}
                         disabled={endingPremium || savingPlan}
                       >
@@ -884,29 +892,21 @@ export default function SupportUserDetailsModal({
                     )}
                   </div>
                   <div className="sud-plan-form">
-                    <label>
-                      Plan
-                      <select
-                        value={planId}
-                        onChange={(e) => onPlanSelect(e.target.value)}
-                        disabled={savingPlan || endingPremium}
-                      >
-                        <option value="">No Plan (Free)</option>
-                        <option value="stolity_lite_trial">
-                          Stolity Trial — 1 week
-                        </option>
-                        <option value="stolity_lite_monthly">
-                          Stolity Lite Monthly
-                        </option>
-                        <option value="stolity_lite_yearly">
-                          Stolity Lite Yearly
-                        </option>
-                      </select>
-                    </label>
-                    <label>
-                      Storage (GB)
+                    <SupportFilterSelect
+                      label="Plan"
+                      value={planId}
+                      options={PLAN_OPTIONS}
+                      onChange={onPlanSelect}
+                      disabled={savingPlan || endingPremium}
+                      ariaLabel="Select plan"
+                      placeholder="No Plan (Free)"
+                      className="sud-plan-select"
+                    />
+                    <label className="sud-plan-field">
+                      <span className="sud-plan-field-label">Storage (GB)</span>
                       <input
                         type="number"
+                        className="ssd-reassign-input"
                         min="1"
                         max="10000"
                         list="sud-storage-options"

@@ -233,88 +233,87 @@ const SortByDropdown = ({
   const menu =
     open && isPremium && menuStyle
       ? createPortal(
-          <div
-            ref={menuRef}
-            className="sort-by-menu sort-by-menu--portal"
-            role="listbox"
-            aria-label="Sort options"
-            style={menuStyle}
-          >
-            <div className="sort-by-menu-head">
-              <span className="sort-by-menu-title">Sort by</span>
-              {isActive ? (
-                <button
-                  type="button"
-                  className="sort-by-menu-clear"
-                  onClick={handleClear}
-                >
-                  Clear
-                </button>
-              ) : null}
-            </div>
-
-            <div className="sort-by-menu-scroll">
+        <div
+          ref={menuRef}
+          className="sort-by-menu sort-by-menu--portal"
+          role="listbox"
+          aria-label="Sort options"
+          style={menuStyle}
+        >
+          <div className="sort-by-menu-head">
+            <span className="sort-by-menu-title">Sort by</span>
+            {isActive ? (
               <button
                 type="button"
-                role="option"
-                aria-selected={!isActive}
-                className={`sort-by-item${!isActive ? " is-selected" : ""}`}
-                onClick={() => handleSelect("default")}
+                className="sort-by-menu-clear"
+                onClick={handleClear}
               >
-                <span className="sort-by-item-icon" aria-hidden>
-                  <ListOrdered size={14} strokeWidth={2} />
-                </span>
-                <span className="sort-by-item-main">Default order</span>
-                {!isActive ? (
-                  <Check className="sort-by-check" size={13} strokeWidth={2.5} />
-                ) : null}
+                Clear
               </button>
+            ) : null}
+          </div>
 
-              {SORT_OPTIONS.map((group) => (
-                <div key={group.group} className="sort-by-group">
-                  <div className="sort-by-group-label">
-                    <span>{group.group}</span>
-                  </div>
-                  {group.items.map((item) => {
-                    const selected = value === item.value;
-                    const Icon = item.Icon;
-                    return (
-                      <button
-                        key={item.key}
-                        type="button"
-                        role="option"
-                        aria-selected={selected}
-                        className={`sort-by-item${selected ? " is-selected" : ""}`}
-                        onClick={() => handleSelect(item.key)}
-                      >
-                        <span className="sort-by-item-icon" aria-hidden>
-                          <Icon size={14} strokeWidth={2} />
-                        </span>
-                        <span className="sort-by-item-main">{item.label}</span>
-                        {selected ? (
-                          <Check
-                            className="sort-by-check"
-                            size={13}
-                            strokeWidth={2.5}
-                          />
-                        ) : null}
-                      </button>
-                    );
-                  })}
+          <div className="sort-by-menu-scroll">
+            <button
+              type="button"
+              role="option"
+              aria-selected={!isActive}
+              className={`sort-by-item${!isActive ? " is-selected" : ""}`}
+              onClick={() => handleSelect("default")}
+            >
+              <span className="sort-by-item-icon" aria-hidden>
+                <ListOrdered size={14} strokeWidth={2} />
+              </span>
+              <span className="sort-by-item-main">Default order</span>
+              {!isActive ? (
+                <Check className="sort-by-check" size={13} strokeWidth={2.5} />
+              ) : null}
+            </button>
+
+            {SORT_OPTIONS.map((group) => (
+              <div key={group.group} className="sort-by-group">
+                <div className="sort-by-group-label">
+                  <span>{group.group}</span>
                 </div>
-              ))}
-            </div>
-          </div>,
-          document.body
-        )
+                {group.items.map((item) => {
+                  const selected = value === item.value;
+                  const Icon = item.Icon;
+                  return (
+                    <button
+                      key={item.key}
+                      type="button"
+                      role="option"
+                      aria-selected={selected}
+                      className={`sort-by-item${selected ? " is-selected" : ""}`}
+                      onClick={() => handleSelect(item.key)}
+                    >
+                      <span className="sort-by-item-icon" aria-hidden>
+                        <Icon size={14} strokeWidth={2} />
+                      </span>
+                      <span className="sort-by-item-main">{item.label}</span>
+                      {selected ? (
+                        <Check
+                          className="sort-by-check"
+                          size={13}
+                          strokeWidth={2.5}
+                        />
+                      ) : null}
+                    </button>
+                  );
+                })}
+              </div>
+            ))}
+          </div>
+        </div>,
+        document.body
+      )
       : null;
 
   return (
     <div
       ref={rootRef}
-      className={`sort-by-dropdown${isActive ? " is-active" : ""}${
-        open ? " is-open" : ""
-      }${!isPremium ? " is-locked" : ""}`}
+      className={`sort-by-dropdown${isActive ? " is-active" : ""}${open ? " is-open" : ""
+        }${!isPremium ? " is-locked" : ""}`}
     >
       <div className="sort-by-trigger-wrap" ref={triggerRef}>
         <button

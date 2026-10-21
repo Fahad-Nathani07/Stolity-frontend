@@ -120,7 +120,7 @@ import IconHomeW from "../images/GridWhite.svg";
 import IconListW from "../images/listWhite.svg";
 import DeletePopup from "../images/deletePopup.svg";
 import SortHome from "../images/SortHome.svg";
-import { ChevronDown, SlidersHorizontal } from "lucide-react";
+import { ChevronDown, SlidersHorizontal, Crown } from "lucide-react";
 import SortIcon from "../images/sort-style-1.svg";
 import { Tab, Tabs, TabList, TabPanel } from "react-tabs";
 import copyIcon from "../images/DropdownIcons/copyIcon.svg";
@@ -5143,10 +5143,12 @@ const Favourites = () => {
                                 </span>
                               </span>
                               {!isPremium && (
-                                <img
-                                  src={svgCrown}
-                                  alt=""
+                                <Crown
                                   className="sort-filter-crown"
+                                  size={15}
+                                  strokeWidth={2.2}
+                                  color="#e5660f"
+                                  aria-hidden
                                 />
                               )}
                               <ChevronDown

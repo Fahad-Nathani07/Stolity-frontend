@@ -71,7 +71,7 @@ import IconListW from "../images/listWhite.svg";
 import DeletePopup from "../images/deletePopup.svg";
 import warningIcon from "../images/warningIcon.svg";
 import SortHome from "../images/SortHome.svg";
-import { ChevronDown, History as RotateCcwClock, SlidersHorizontal } from "lucide-react";
+import { ChevronDown, History as RotateCcwClock, SlidersHorizontal, Crown } from "lucide-react";
 import SortIcon from "../images/sort-style-1.svg";
 import { Tab, Tabs, TabList, TabPanel } from "react-tabs";
 import deleteIcon2 from "../images/DropdownIcons/deleteIcon.svg";
@@ -3743,10 +3743,12 @@ const isMultiSizeExceeded = selectedTotalBytes > remainingBytes;
                               </span>
                             </span>
                             {!isPremium && (
-                              <img
-                                src={svgCrown}
-                                alt=""
+                              <Crown
                                 className="sort-filter-crown"
+                                size={15}
+                                strokeWidth={2.2}
+                                color="#e5660f"
+                                aria-hidden
                               />
                             )}
                             <ChevronDown

@@ -55,7 +55,11 @@ export default function FileSearchBar({
 
       {!isPremium && showCrown && (
         <span className="file-search-bar__crown" title="Premium feature">
-          <img src={svgCrown} alt="Premium" />
+          <img
+            src={svgCrown}
+            alt="Premium"
+            className="sort-by-trigger-crown"
+          />
         </span>
       )}
 

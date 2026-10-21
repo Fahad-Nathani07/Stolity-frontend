@@ -562,10 +562,11 @@
 }
 
 .files-toolbar__filters .sort-filter-crown {
-  height: 16px;
-  width: auto;
+  width: 15px;
+  height: 15px;
   margin-left: 0;
   flex-shrink: 0;
+  color: #e5660f;
 }
 
 .files-toolbar__filters .sort-filter-span>img:first-child,

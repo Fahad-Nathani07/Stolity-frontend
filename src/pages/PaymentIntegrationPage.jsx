@@ -531,17 +531,7 @@ const handleConfirmPayment = async () => {
 
 
 
-      {/* Free Plan (default, no button) */}
-      <div style={{
-fontWeight: 600,
-fontStyle: "Semibold",
-fontSize: "36px",
-leadingTrim: "NONE",
-lineHeight: "120%",
-letterSpacing: "0%",
-    maxWidth: "195px",
-    marginRight:"150px"
-      }}>
+      <div className="plans-pick-title">
         Pick your Plan
       </div>
 
@@ -673,9 +663,9 @@ letterSpacing: "0%",
       {/* Column headers */}
       <div className="plans-compare-row plans-compare-header">
         <div className="plans-compare-feature-col" />
-        <div className="plans-compare-plan-col" style={{color:"black", fontSize:"18px "}}>Free</div>
-        <div className="plans-compare-plan-col" style={{color:"black", fontSize:"18px "}}>Lite Monthly</div>
-        <div className="plans-compare-plan-col" style={{color:"black", fontSize:"18px "}}>Lite Yearly</div>
+        <div className="plans-compare-plan-col">Free</div>
+        <div className="plans-compare-plan-col">Lite Monthly</div>
+        <div className="plans-compare-plan-col">Lite Yearly</div>
       </div>
 
 
@@ -924,17 +914,9 @@ letterSpacing: "0%",
                     <div className="payment-upi-section">
                       <label className="payment-upi-label">UPI ID</label>
                       <div className="payment-upi-input-row">
-                        <div
-                          style={{
-                            width: "100%",
-                            display: "flex",
-                            border: "1px solid #E0E0E0",
-                            padding: "10px",
-                            borderRadius: "50px",
-                          }}
-                        >
+                        <div className="payment-upi-shell">
                           <img
-                            style={{ padding: "15px" }}
+                            className="payment-upi-shell-icon"
                             src={CopyIcon}
                             alt=""
                           />
@@ -950,18 +932,10 @@ letterSpacing: "0%",
                         Use this if you’re unable to scan the QR code.
                       </p>
 
-                      <div
-                        style={{
-                          display: "flex",
-                          justifyContent: "center",
-                          alignItems: "center",
-                          marginTop: "25px",
-                        }}
-                      >
+                      <div className="payment-upi-copy-wrap">
                         <button
                           type="button"
                           className="payment-copy-btn"
-                          style={{ padding: "11px 24px" }}
                           onClick={() => {
                             navigator.clipboard.writeText("payments@stolity");
                           }}
@@ -1124,14 +1098,7 @@ Amount: ${
                     account suspension.
                   </p>
 
-                 <div style={{    width: "100%",
-                    display: "flex",
-                    justifyContent: "center",
-                    alignItems: "center",
-                    gap: "10px"}}     
-                 >
-                  
-
+                 <div className="payment-actions-row">
                   <button
                     type="button"
                     className="payment-back-btn"
@@ -1144,7 +1111,6 @@ Amount: ${
                     <IoIosArrowRoundBack /> Back to Plans
                   </button>
 
-
                    <button
                     type="button"
                     className="payment-confirm-btn"
@@ -1156,7 +1122,6 @@ Amount: ${
                   >
                     Confirm Payment
                   </button>
-
                  </div>
 
 

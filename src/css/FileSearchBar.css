@@ -105,10 +105,17 @@
   animation: fsb-crown-in 0.35s ease;
 }
 
-.file-search-bar__crown img {
-  height: 18px;
-  width: auto;
+.file-search-bar__crown svg,
+.file-search-bar__crown img,
+.file-search-bar__crown .sort-by-trigger-crown {
+  position: static;
+  right: auto;
+  width: 15px;
+  height: 15px;
   display: block;
+  color: #e5660f;
+  flex-shrink: 0;
+  object-fit: contain;
 }
 
 .file-search-bar__clear {

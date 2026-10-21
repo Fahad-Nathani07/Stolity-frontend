@@ -134,7 +134,7 @@ export default function FolderDestinationModal({
             <div className="fdm-header-main">
               <div
                 className="fdm-icon-wrap"
-                style={{ "--fdm-accent": meta.accent }}
+                // style={{ "--fdm-accent": meta.accent }}
               >
                 <Icon aria-hidden="true" />
               </div>

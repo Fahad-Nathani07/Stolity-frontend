@@ -54,6 +54,7 @@
   background: rgba(255, 171, 73, 0.14);
   color: #e5660f;
   font-size: 20px;
+  margin-top: 7px;
 }
 
 .rename-modal-header-text {
@@ -62,7 +63,7 @@
 
 .rename-modal-title {
   margin: 0;
-  font-size: 1.125rem;
+  font-size: 1.5rem !important;
   font-weight: 650;
   line-height: 1.3;
   color: #0f172a;

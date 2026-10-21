@@ -3,6 +3,7 @@ import { FiX, FiCheck, FiArrowRight } from "react-icons/fi";
 import { HiOutlineSparkles } from "react-icons/hi2";
 import crownIcon from "../images/crown.svg";
 import "./PremiumUpgradeModal.css";
+import {Crown} from 'lucide-react';
 
 const DEFAULT_PERKS = [
   "File type filters & advanced sort",
@@ -60,6 +61,7 @@ export default function PremiumUpgradeModal({
             <div className="premium-upgrade-icon-ring" aria-hidden="true">
               <div className="premium-upgrade-icon-wrap">
                 <img src={crownIcon} alt="" className="premium-upgrade-crown" />
+                {/* <Crown className="premium-upgrade-crown" color="#c4231c" /> */}
               </div>
             </div>
             <span className="premium-upgrade-badge">

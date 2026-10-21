@@ -120,11 +120,17 @@
   font-size: 30px;
   line-height: 15px;
   flex-shrink: 0;
+  filter: grayscale(1);
+}
+
+.faqBody .faq-title{
+  margin-bottom: 20px;
 }
 
 .faq-toggle-icon.plus {
   font-size: 22px;
   flex-shrink: 0;
+  filter: grayscale(1);
 }
 
 .faq-list-ul {

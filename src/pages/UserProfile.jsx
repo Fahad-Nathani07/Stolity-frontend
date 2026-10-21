@@ -1714,7 +1714,7 @@ const maskEmail = (value) => {
                         type="circle"
                         percent={(usedBytes / totalBytes) * 100}
                         strokeWidth={25}
-                        strokeColor="#F68D2B"
+                        strokeColor="#E5660F"
                         trailColor="#FFE7C6"
                         strokeLinecap="butt"
                         format={() => {
