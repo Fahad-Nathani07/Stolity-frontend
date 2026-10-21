@@ -205,17 +205,7 @@ export default function SupportDashboard() {
       <SideNav />
       <div
         className={`ssd-page${
-<<<<<<< HEAD
           activeTab === "activity" ? " ssd-page--activity" : ""
-=======
-          activeTab === "activity" ||
-          activeTab === "users" ||
-          activeTab === "affiliates" ||
-          activeTab === "callbacks" ||
-          activeTab === "questions"
-            ? " ssd-page--activity"
-            : ""
->>>>>>> e8f0030ca90365a4072057f68104ec5a2e8f1df1
         }`}
       >
         <ScrollReveal
@@ -252,15 +242,11 @@ export default function SupportDashboard() {
 
         <ScrollReveal
           as="div"
-<<<<<<< HEAD
           className={`ssd-chrome${
             activeTab === "users" || activeTab === "questions"
               ? " ssd-chrome--merged"
               : ""
           }`}
-=======
-          className="ssd-chrome"
->>>>>>> e8f0030ca90365a4072057f68104ec5a2e8f1df1
           variant="fadeUp"
           delay={0.1}
           duration={0.85}
@@ -305,67 +291,6 @@ export default function SupportDashboard() {
               </button>
             ))}
           </div>
-<<<<<<< HEAD
-
-          {activeTab === "callbacks" && (
-            <div className="ssd-toolbar">
-              <div className="ssd-filters">
-                <SupportFilterSelect
-                  label="Preferred time"
-                  value={timeFilter}
-                  options={TIME_OPTIONS}
-                  onChange={setTimeFilter}
-                />
-                <SupportMultiFilterSelect
-                  label="Status"
-                  values={statusFilter}
-                  options={STATUS_OPTIONS}
-                  onChange={setStatusFilter}
-                  allLabel="All statuses"
-                  ariaLabel="Filter by status"
-                />
-                <div className="ssd-search-field">
-                  {/* Search */}
-                  <span className="ssd-search-wrap">
-                    <FiSearch aria-hidden="true" />
-                    <input
-                      type="search"
-                      placeholder="Search name or ID…"
-                      value={searchQuery}
-                      onChange={(e) => setSearchQuery(e.target.value)}
-                    />
-                  </span>
-                </div>
-              </div>
-              <div className="ssd-toolbar-right">
-                <div className="ssd-counts">
-                  <span className="ssd-count ssd-count--open">
-                    Available <strong>{available.length}</strong>
-                  </span>
-                  <span className="ssd-count ssd-count--mine">
-                    Mine <strong>{mine.length}</strong>
-                  </span>
-                  <span className="ssd-count ssd-count--taken">
-                    Taken <strong>{taken.length}</strong>
-                  </span>
-                </div>
-                <button
-                  type="button"
-                  className="ssd-btn ssd-btn-ghost ssd-btn-refresh"
-                  onClick={() => {
-                    fetchList({ soft: false });
-                    setRefreshIn(SOFT_REFRESH_MS / 1000);
-                  }}
-                  disabled={loading}
-                >
-                  <FiRefreshCw />
-                  Refresh {refreshIn}s
-                </button>
-              </div>
-            </div>
-          )}
-=======
->>>>>>> e8f0030ca90365a4072057f68104ec5a2e8f1df1
         </ScrollReveal>
 
         {activeTab === "questions" && (

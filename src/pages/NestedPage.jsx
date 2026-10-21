@@ -139,11 +139,7 @@ import {
 } from "../utils/uploadConflictUtils";
 import FileSearchBar from "../components/FileSearchBar";
 import SortHome from "../images/SortHome.svg";
-<<<<<<< HEAD
-import { ChevronDown, MoveLeft, ArrowLeft, SlidersHorizontal } from "lucide-react";
-=======
 import { ChevronDown, ArrowLeft, SlidersHorizontal } from "lucide-react";
->>>>>>> e8f0030ca90365a4072057f68104ec5a2e8f1df1
 import Logo from "../images/logo.png";
 import fullscreeen from "../images/fullscreen.png";
 import zoomin from "../images/zoomin.png";
@@ -6354,11 +6350,7 @@ const handleDragEnd = (e) => {
                   title="Back"
                 >
                   <ArrowLeft size={20} color="#5D6B7A" />
-<<<<<<< HEAD
                 </button>
-=======
-                  </button>
->>>>>>> e8f0030ca90365a4072057f68104ec5a2e8f1df1
 
                 <nav className="np-breadcrumb-nav" aria-label="breadcrumb">
                   <ol

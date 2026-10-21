@@ -38,11 +38,7 @@
   width: 95%;
   height: 100vh;
   max-height: 100vh;
-<<<<<<< HEAD
-  padding: 18px 24px 16px;
-=======
   padding: 16px 8px 14px 22px;
->>>>>>> e8f0030ca90365a4072057f68104ec5a2e8f1df1
   box-sizing: border-box;
   display: flex;
   flex-direction: column;
@@ -57,11 +53,7 @@
   justify-content: space-between;
   align-items: flex-start;
   gap: 16px;
-<<<<<<< HEAD
-  margin-bottom: 14px;
-=======
   margin-bottom: 28px;
->>>>>>> e8f0030ca90365a4072057f68104ec5a2e8f1df1
   flex-shrink: 0;
   min-height: 64px;
   background: transparent;
@@ -229,14 +221,8 @@
 .ssd-tabs {
   display: flex;
   align-items: stretch;
-<<<<<<< HEAD
   gap: 4px;
   padding: 0 12px;
-=======
-  gap: 0;
-  /* Bottom padding keeps the active underline inside the chrome, above the border */
-  padding: 4px 14px 8px;
->>>>>>> e8f0030ca90365a4072057f68104ec5a2e8f1df1
   border-bottom: 1px solid var(--ssd-border);
   background: transparent;
 }
@@ -246,16 +232,10 @@
   border: none;
   background: transparent;
   border-bottom: 2px solid transparent;
-<<<<<<< HEAD
   margin-bottom: -1px;
   padding: 13px 16px;
   font-family: var(--ssd-font);
   font-weight: 650;
-=======
-  margin-bottom: 0;
-  padding: 10px 14px 8px;
-  font-weight: 600;
->>>>>>> e8f0030ca90365a4072057f68104ec5a2e8f1df1
   font-size: 0.875rem;
   letter-spacing: -0.01em;
   cursor: pointer;
@@ -4190,20 +4170,11 @@
   border-radius: 11px;
   background: linear-gradient(180deg, #ffffff 0%, #fffaf5 100%);
   box-sizing: border-box;
-<<<<<<< HEAD
   box-shadow: var(--ssd-shadow-soft, 0 1px 2px rgba(15, 23, 42, 0.03));
-  transition: border-color 0.22s ease, box-shadow 0.22s ease;
-}
-
-.ssd-users-date-field:focus-within {
-  border-color: var(--su-orange);
-  box-shadow: 0 0 0 4px rgba(229, 102, 15, 0.12);
-=======
   font: inherit;
   cursor: pointer;
   color: var(--su-ink, #1e293b);
-  transition: border-color 0.15s ease, box-shadow 0.15s ease, background 0.15s ease;
->>>>>>> e8f0030ca90365a4072057f68104ec5a2e8f1df1
+  transition: border-color 0.22s ease, box-shadow 0.22s ease, background 0.15s ease;
 }
 
 .ssd-date-picker-trigger:hover:not(:disabled) {
@@ -4232,20 +4203,11 @@
 
 .ssd-date-picker-value {
   font-size: 0.8125rem;
-<<<<<<< HEAD
-  font-weight: 500;
-  color: var(--su-ink);
-  height: 100%;
-  padding: 0;
-  min-width: 128px;
-  color-scheme: light;
-=======
   font-weight: 600;
   color: var(--su-ink, #1e293b);
   white-space: nowrap;
   min-width: 6.5em;
   text-align: left;
->>>>>>> e8f0030ca90365a4072057f68104ec5a2e8f1df1
 }
 
 .ssd-date-picker-icon {
@@ -4368,15 +4330,10 @@
 
 .ssd-users-stats {
   display: grid;
-<<<<<<< HEAD
-  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) minmax(0, 1.45fr);
-  gap: 12px;
-=======
   grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) minmax(0, 1.35fr);
   gap: 10px;
   /* Inset so selected card’s 2px orange border isn’t clipped by overflow parents */
   padding: 2px;
->>>>>>> e8f0030ca90365a4072057f68104ec5a2e8f1df1
   flex-shrink: 0;
   align-items: stretch;
 }
@@ -4479,7 +4436,6 @@
     background 0.22s var(--ssd-ease, cubic-bezier(0.22, 1, 0.36, 1));
 }
 
-<<<<<<< HEAD
 .ssd-users-card--action:hover:not(:disabled):not(.is-selected) {
   border-color: rgba(229, 102, 15, 0.32);
   background: linear-gradient(180deg, #fffaf5 0%, #ffffff 100%);
@@ -4510,18 +4466,6 @@
 .ssd-users-card--action.is-selected .ssd-users-card__hint {
   background: var(--su-orange);
   color: #fff;
-=======
-.ssd-users-card--action:hover:not(:disabled) {
-  border-color: rgba(229, 102, 15, 0.4);
-  box-shadow: 0 3px 10px rgba(229, 102, 15, 0.1);
-}
-
-.ssd-users-card--action.is-selected {
-  border: 2px solid var(--su-orange);
-  padding: 9px 11px;
-  background: linear-gradient(180deg, #fffaf4 0%, #fff 100%);
-  box-shadow: 0 4px 12px rgba(229, 102, 15, 0.12);
->>>>>>> e8f0030ca90365a4072057f68104ec5a2e8f1df1
 }
 
 .ssd-users-card--action:disabled {
@@ -5925,9 +5869,6 @@
   .ssd-users-toolbar__left {
     width: 100%;
   }
-<<<<<<< HEAD
-}
-=======
 }
 
 /* Affiliate Links tab */
@@ -6187,4 +6128,3 @@
     grid-template-columns: 1fr;
   }
 }
->>>>>>> e8f0030ca90365a4072057f68104ec5a2e8f1df1

@@ -10,16 +10,11 @@ import {
   FiInbox,
 } from "react-icons/fi";
 import { showToast } from "../components/ToastProvider";
-<<<<<<< HEAD
-import { markPaneScrolling } from "../components/SupportFilterSelect";
-import SupportDateField from "../components/SupportDateField";
-=======
 import SupportFilterSelect, {
   markPaneScrolling,
 } from "../components/SupportFilterSelect";
-import SupportDatePicker from "../components/SupportDatePicker";
+import SupportDateField from "../components/SupportDateField";
 import FilesPaginationFooter from "../components/FilesPaginationFooter";
->>>>>>> e8f0030ca90365a4072057f68104ec5a2e8f1df1
 import SupportUserDetailsModal from "./SupportUserDetailsModal";
 
 const DEFAULT_PAGE_SIZE = 25;
@@ -596,34 +591,20 @@ export default function SupportUsersPane({
           <div className="ssd-users-dates">
             {preset === "custom" && (
               <>
-<<<<<<< HEAD
                 <SupportDateField
-=======
-                <SupportDatePicker
->>>>>>> e8f0030ca90365a4072057f68104ec5a2e8f1df1
                   label="From"
                   value={fromDate}
                   max={toDate || todayKey()}
                   disabled={busy || listMode === "active"}
                   onChange={setFromDate}
-<<<<<<< HEAD
                 />
                 <SupportDateField
-=======
-                  ariaLabel="From date"
-                />
-                <SupportDatePicker
->>>>>>> e8f0030ca90365a4072057f68104ec5a2e8f1df1
                   label="To"
                   value={toDate}
                   min={fromDate || undefined}
                   max={todayKey()}
                   disabled={busy || listMode === "active"}
                   onChange={setToDate}
-<<<<<<< HEAD
-=======
-                  ariaLabel="To date"
->>>>>>> e8f0030ca90365a4072057f68104ec5a2e8f1df1
                 />
               </>
             )}

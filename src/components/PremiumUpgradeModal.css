@@ -249,8 +249,7 @@
 }
 
 .premium-upgrade-btn--primary {
-<<<<<<< HEAD
-  background: var(--h1-gradient);
+  background: var(--h1-gradient, linear-gradient(90deg, #e5660f 0%, #c4231c 100%));
   color: #FFFFFF;
   border: 1px solid rgba(255, 138, 32, 0.35);
   box-shadow: 0 8px 18px rgba(255, 138, 32, 0.22);
@@ -258,20 +257,10 @@
 }
 
 .premium-upgrade-btn--primary:hover {
-  /* background: #ff9a28; */
+  color: #ffffff;
   filter: brightness(0.96);
   transform: translateY(-1px);
   box-shadow: 0 10px 22px rgba(255, 138, 32, 0.28);
-=======
-  background: var(--h1-gradient, linear-gradient(90deg, #e5660f 0%, #c4231c 100%));
-  color: #ffffff;
-  border: none;
-}
-
-.premium-upgrade-btn--primary:hover {
-  color: #ffffff;
-  filter: brightness(1.03);
->>>>>>> e8f0030ca90365a4072057f68104ec5a2e8f1df1
 }
 
 .premium-upgrade-btn--primary:active {
