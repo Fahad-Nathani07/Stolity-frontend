@@ -16,6 +16,7 @@ import {
 } from "react-icons/fi";
 import { HiOutlineTicket } from "react-icons/hi2";
 import SideNav from "../components/SideNav";
+import SupportFilterSelect from "../components/SupportFilterSelect";
 import { showToast } from "../components/ToastProvider";
 import { refreshSupportTicketsUnread } from "../hooks/useSupportTicketsUnread";
 import AvatarDefault from "../images/AvatarDefault.jpg";
@@ -602,20 +603,17 @@ export default function SupportTicketsPage() {
                     </p>
                   </div>
 
-                  <label className="stu-label" htmlFor="stu-category">
-                    Category
-                    <select
-                      id="stu-category"
+                  <div className="stu-label">
+                    <span id="stu-category-label">Category</span>
+                    <SupportFilterSelect
                       value={category}
-                      onChange={(e) => setCategory(e.target.value)}
-                    >
-                      {SUPPORT_TICKET_CATEGORIES.map((c) => (
-                        <option key={c.id} value={c.id}>
-                          {c.label}
-                        </option>
-                      ))}
-                    </select>
-                  </label>
+                      options={SUPPORT_TICKET_CATEGORIES}
+                      onChange={setCategory}
+                      ariaLabel="Category"
+                      placeholder="Select category…"
+                      className="stu-category-select"
+                    />
+                  </div>
 
                   <div className="stu-cat-pills" role="list">
                     {SUPPORT_TICKET_CATEGORIES.map((c) => (
