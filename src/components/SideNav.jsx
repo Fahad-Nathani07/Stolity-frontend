@@ -30,6 +30,7 @@ import { useDispatch, useSelector } from "react-redux";
 
 import axios from "axios";
 import useSupportTicketsUnread from "../hooks/useSupportTicketsUnread";
+import { canViewSupportDashboard } from "../config/supportDashboardAccess";
 import "../css/SideNav.css";
 
 /* Match theme off-canvas hide at max-width 991px (style.css .sidebar-offcanvas) */
@@ -62,7 +63,7 @@ const SideNav = () => {
     sessionStorage.getItem("email") ||
     ""
   ).toLowerCase();
-  const showSupportDashboard = agentEmail.includes("infomanav");
+  const showSupportDashboard = canViewSupportDashboard(agentEmail);
 
   const [isMobile, setIsMobile] = useState(
     () =>

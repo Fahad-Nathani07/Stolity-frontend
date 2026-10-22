@@ -23,6 +23,7 @@ import {
   getStoredReferralCode,
   attributeStoredReferral,
 } from "../utils/referralCapture";
+import { clientPlatformHeaders } from "../utils/clientPlatform";
 
 const REMEMBER_EMAIL_KEY = "stolity_remember_email";
 
@@ -339,7 +340,12 @@ const Login = ({ setSpanExpanded, spanExpanded }) => {
       const res = await axios.post(
         `${apiEndPoint}login-user`,
         { email: loginEmail, password: loginPassword },
-        { headers: { "Content-Type": "application/json" } }
+        {
+          headers: {
+            "Content-Type": "application/json",
+            ...clientPlatformHeaders(),
+          },
+        }
       );
 
       if (res.status === 200) {
@@ -538,7 +544,10 @@ const Login = ({ setSpanExpanded, spanExpanded }) => {
       const res = await axios.post(
         `${apiEndPoint}firebaseAuth`,
         { googleToken: response.credential },
-        { withCredentials: true }
+        {
+          withCredentials: true,
+          headers: { ...clientPlatformHeaders() },
+        }
       );
       const data = res.data;
 

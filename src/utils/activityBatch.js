@@ -3,6 +3,8 @@
  * instead of per-file create + /status.
  */
 
+import { clientPlatformHeaders } from "./clientPlatform";
+
 function buildActivityUrl(apiUrlRaw, path) {
   const base = String(apiUrlRaw || "").replace(/\/+$/, "");
   const ep = String(path || "").replace(/^\/+/, "");
@@ -34,6 +36,7 @@ export async function startActivityBatch({
       headers: {
         Authorization: `Bearer ${token}`,
         "Content-Type": "application/json",
+        ...clientPlatformHeaders(),
       },
       body: JSON.stringify({
         action: String(action || "").toUpperCase(),
@@ -83,6 +86,7 @@ export function finishActivityBatch({
     headers: {
       Authorization: `Bearer ${token}`,
       "Content-Type": "application/json",
+      ...clientPlatformHeaders(),
     },
     body: JSON.stringify({
       status: String(status || "").toUpperCase(),

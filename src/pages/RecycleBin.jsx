@@ -81,6 +81,8 @@ import Dropzone from "react-dropzone";
 import createFolderPopup from "../images/createFolderPopup.svg";
 import StarIcon from "@mui/icons-material/Star"; // Filled star
 import { fetchUserFolderSize } from "../store/subscriptionSlice";
+import { fetchRecycleBin } from "../store/recycleBinSlice";
+import store from "../store/store";
 import svgDoc from "../images/TypesDoc.svg"
 import svgFolder from "../images/TypesFolder.svg"
 
@@ -390,23 +392,24 @@ const [folderToRestore, setFolderToRestore] = useState(null);
   // }, []);
 
   useEffect(() => {
-  const fetchData = async () => {
-    setPlaceholderLoading(true); // Start loading
+    const fetchData = async () => {
+      setPlaceholderLoading(true);
 
-    try {
-      await getFileData(); // Initial load
-      console.log("On root page!!!!!!!");
-      setPlaceholderLoading(false); // End loading
-      dispatch(setIsSharedFalse());
-    } catch (error) {
-      console.log("Error in useEffect:", error);
-    } finally {
-      // setPlaceholderLoading(false); // End loading
-    }
-  };
+      try {
+        // Prefer Redux list from login; only hit API if not loaded yet
+        await getFileData(undefined, { useCache: true });
+        console.log("On root page!!!!!!!");
+        dispatch(setIsSharedFalse());
+      } catch (error) {
+        console.log("Error in useEffect:", error);
+      } finally {
+        setPlaceholderLoading(false);
+      }
+    };
 
-  fetchData();
-}, []);
+    fetchData();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   // useEffect(() => {
   //   // Whenever currentPage or itemsPerPage changes, update displayed data
@@ -1082,36 +1085,98 @@ const dateFilter2 = () => {
   setSortedData([]); // Clear filters and sorting
   setTotalEntries(allEntries.length);
   setCurrentPage(1);
-  getFileData(); // Reload favorites
+  getFileData(undefined, { useCache: true });
   setShowFTPopup(false);
 };
 
   const [isNextNextPage, setIsNextNextPage] = useState(false);
   const [showGoogleAuthPopup, setShowGoogleAuthPopup] = useState(false);
 
-  //Anurag Get Files
-  // Modify your getFileData function to ensure it correctly handles pagination
-const getFileData = async () => {
-  try {
-    const response = await axios.get(`${apiUrl}get-recycle-bin`, {
-      headers: {
-        Authorization: `Bearer ${token}`,
-        "Content-Type": "application/json",
-      },
-    });
+  const applyRecycleBinFiles = (recycleBinFiles) => {
+    const list = Array.isArray(recycleBinFiles) ? recycleBinFiles : [];
+    setAllEntries(list);
+    setTotalEntries(list.length);
+    setFileData(list.slice(0, itemsPerPage));
+    return list;
+  };
 
-    const recycleBinFiles = response.data.result || response.data;
-    setAllEntries(recycleBinFiles);
-    setTotalEntries(recycleBinFiles.length);
-    setFileData(recycleBinFiles.slice(0, itemsPerPage));
+  /** Wait for in-flight login recycle-bin fetch (no error toast). */
+  const waitForRecycleBinInStore = async (timeoutMs = 15000) => {
+    const started = Date.now();
+    while (Date.now() - started < timeoutMs) {
+      const { status, items } = store.getState().recycleBin;
+      if (status === "succeeded") return items || [];
+      if (status === "failed") return null;
+      await new Promise((r) => setTimeout(r, 150));
+    }
+    return null;
+  };
 
-    // Refresh storage info whenever recycle bin is reloaded
-    dispatch(fetchUserFolderSize({ token, force: true }));
-  } catch (error) {
-    console.log("Error fetching recycle bin files", error);
-    showToast("error", "Failed to load recycle bin files");
-  }
-};
+  // Prefer Redux recycle bin from login; refetch after soft-delete / restore / permanent delete
+  const getFileData = async (_page, options = {}) => {
+    const useCache = options.useCache === true;
+    try {
+      let recycleBinFiles;
+
+      if (useCache) {
+        const { status, items } = store.getState().recycleBin;
+        if (status === "succeeded") {
+          recycleBinFiles = items || [];
+        } else if (status === "loading") {
+          const waited = await waitForRecycleBinInStore();
+          if (waited == null) return applyRecycleBinFiles([]);
+          recycleBinFiles = waited;
+        } else {
+          try {
+            const result = await dispatch(
+              fetchRecycleBin({
+                token,
+                force: status === "failed",
+              })
+            ).unwrap();
+            recycleBinFiles = result.items || [];
+          } catch (err) {
+            if (
+              err?.name === "ConditionError" ||
+              /condition/i.test(err?.message || "")
+            ) {
+              const waited = await waitForRecycleBinInStore();
+              if (waited == null) return applyRecycleBinFiles([]);
+              recycleBinFiles = waited;
+            } else {
+              throw err;
+            }
+          }
+        }
+      } else {
+        try {
+          const result = await dispatch(
+            fetchRecycleBin({ token, force: true })
+          ).unwrap();
+          recycleBinFiles = result.items || [];
+        } catch (err) {
+          if (
+            err?.name === "ConditionError" ||
+            /condition/i.test(err?.message || "")
+          ) {
+            const waited = await waitForRecycleBinInStore();
+            if (waited == null) return applyRecycleBinFiles([]);
+            recycleBinFiles = waited;
+          } else {
+            throw err;
+          }
+        }
+        // Storage can change after restore / permanent delete
+        dispatch(fetchUserFolderSize({ token, force: true }));
+      }
+
+      return applyRecycleBinFiles(recycleBinFiles);
+    } catch (error) {
+      console.log("Error fetching recycle bin files", error);
+      showToast("error", "Failed to load recycle bin files");
+      return [];
+    }
+  };
 
   // Pagination control handlers (no API calls now)
   const goToFirstPage = () => setCurrentPage(1);

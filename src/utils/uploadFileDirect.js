@@ -1,5 +1,6 @@
 import axios from "axios";
 import { queueActivityStatus, queueDeleteActivityEvent } from "./activityReport";
+import { clientPlatformHeaders } from "./clientPlatform";
 
 /** Files smaller than this try single PUT first; otherwise multipart direct. */
 export const DIRECT_PUT_MAX_BYTES = 100 * 1024 * 1024;
@@ -63,6 +64,7 @@ function authHeaders(token) {
   return {
     Authorization: `Bearer ${token}`,
     "Content-Type": "application/json",
+    ...clientPlatformHeaders(),
   };
 }
 
@@ -364,6 +366,7 @@ async function uploadMultipartPartProxy({
       Authorization: `Bearer ${token}`,
       // Always octet-stream so body parsers never treat the part as JSON
       "Content-Type": "application/octet-stream",
+      ...clientPlatformHeaders(),
     },
     params: sharedParams(shared),
     signal,

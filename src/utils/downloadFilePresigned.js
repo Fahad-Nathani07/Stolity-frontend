@@ -13,6 +13,7 @@ import {
   finishActivityBatch,
   resolveBatchStatus,
 } from "./activityBatch";
+import { clientPlatformHeaders } from "./clientPlatform";
 
 /** One file at a time (avoids /download-file-url + /status rate limits). */
 const MULTI_DOWNLOAD_CONCURRENCY = 1;
@@ -108,7 +109,10 @@ async function requestDownloadFileUrl({
   if (shared) params.set("shared", shared);
   if (batchId) params.set("batchId", String(batchId));
 
-  const headers = { Authorization: `Bearer ${token}` };
+  const headers = {
+    Authorization: `Bearer ${token}`,
+    ...clientPlatformHeaders(),
+  };
   if (batchId) headers["x-activity-batch-id"] = String(batchId);
 
   const res = await fetch(`${apiUrl}download-file-url?${params.toString()}`, {
@@ -172,7 +176,10 @@ async function fetchViaProxy({ apiUrl, token, filePath, shared, signal }) {
   if (shared) params.set("shared", shared);
 
   const res = await fetch(`${apiUrl}download-file?${params.toString()}`, {
-    headers: { Authorization: `Bearer ${token}` },
+    headers: {
+      Authorization: `Bearer ${token}`,
+      ...clientPlatformHeaders(),
+    },
     signal,
   });
 

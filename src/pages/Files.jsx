@@ -227,6 +227,7 @@ import {
   addFavoriteName,
   removeFavoriteName,
 } from "../store/favoritesSlice";
+import { fetchRecycleBin } from "../store/recycleBinSlice";
 
 import {
   addToken,
@@ -1195,6 +1196,7 @@ function debounce(fn, delay) {
 
     // Refresh storage info in Redux
       dispatch(fetchUserFolderSize({ token, force: true }));
+      dispatch(fetchRecycleBin({ token, force: true }));
 
       showToast(
         "success",
@@ -2831,7 +2833,7 @@ const chkFileorFolder = (file, size) => {
       );
 
       showToast("success", "Added to favorites");
-      dispatch(addFavoriteName(file.fileName));
+      dispatch(addFavoriteName(file));
     } catch (error) {
       console.error("Error adding to favorites:", error);
       showToast("error", "Failed to add to favorites");
@@ -2916,6 +2918,7 @@ const chkFileorFolder = (file, size) => {
         getRootFolderSize();
         }
         showToast("success", "Folder moved to recycle bin successfully");
+        dispatch(fetchRecycleBin({ token, force: true }));
     } else {
       dispatch(setLoader(true));
 
@@ -2938,6 +2941,7 @@ const chkFileorFolder = (file, size) => {
         getRootFolderSize();
       }
         showToast("success", "File moved to recycle bin successfully");
+        dispatch(fetchRecycleBin({ token, force: true }));
       }
     } catch (error) {
       console.error("Soft delete error:", error.response?.data || error.message);
@@ -4517,6 +4521,7 @@ useEffect(()=>{
       }
 
         showToast("success", "File moved to recycle bin successfully");
+      dispatch(fetchRecycleBin({ token, force: true }));
     } catch (error) {
       showToast("error", "There's an error while moving file to recycle bin!");
     } finally {

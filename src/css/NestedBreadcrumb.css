@@ -92,9 +92,17 @@
 }
 
 .np-breadcrumb-sep {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  align-self: center;
   margin: 0 4px 0 2px;
   color: #e75454;
-  font-size: 15px;
+  font-size: 14px;
+  line-height: 1;
+  height: 1.15em;
+  position: relative;
+  top: -1.5px; /* optical center between -1px (low) and -2px (high) */
   user-select: none;
 }
 

@@ -54,6 +54,7 @@ import JobPortalAdmin from "./pages/JobPortal/JobPortalAdmin";
 import { fetchJobPortalByEmail } from './store/jobPortalSlice';
 import { fetchUserSubscription, fetchUserFolderSize } from './store/subscriptionSlice';
 import { fetchFavoriteFiles } from './store/favoritesSlice';
+import { fetchRecycleBin } from './store/recycleBinSlice';
 import { fetchCurrentUserByEmail } from "./store/usersAdminSlice";
 import { ToastRoot } from './components/ToastProvider';
 import { motion } from "framer-motion";
@@ -130,6 +131,7 @@ const {
         dispatch(fetchUserSubscription({ token }));
         dispatch(fetchUserFolderSize({ token }));
         dispatch(fetchFavoriteFiles({ token }));
+        dispatch(fetchRecycleBin({ token }));
       }
     }, [token, dispatch, email]);
   

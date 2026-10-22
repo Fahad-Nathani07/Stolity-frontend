@@ -194,6 +194,12 @@ import {
   setParentFolderName,
   setIsSharedFalse,
 } from "../store/fileSlicer";
+import {
+  fetchFavoriteFiles,
+  removeFavoriteName,
+} from "../store/favoritesSlice";
+import { fetchRecycleBin } from "../store/recycleBinSlice";
+import store from "../store/store";
 import { usePlayAudio } from "../hooks/usePlayAudio";
 import { getFilteredFullFileList } from "../utils/audioPlayer";
 import DownloadModal from "./DownloadModal/DownloadModal";
@@ -463,21 +469,22 @@ const Favourites = () => {
 
   useEffect(() => {
     const fetchData = async () => {
-      setPlaceholderLoading(true); // Start loading
+      setPlaceholderLoading(true);
 
       try {
-        await getFileData(); // Initial load
+        // Prefer Redux list from login; only hit API if not loaded yet
+        await getFileData(undefined, { useCache: true });
         console.log("On root page!!!!!!!");
-        setPlaceholderLoading(false); // End loading
         dispatch(setIsSharedFalse());
       } catch (error) {
         console.log("Error in useEffect:", error);
       } finally {
-        // setPlaceholderLoading(false); // End loading
+        setPlaceholderLoading(false);
       }
     };
 
     fetchData();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
 
@@ -803,6 +810,7 @@ const Favourites = () => {
       }
 
       showToast("success", "Files and folders moved to recycle bin successfully!");
+      dispatch(fetchRecycleBin({ token, force: true }));
     } catch (error) {
       showToast("error", "Some error has occurred");
     } finally {
@@ -1164,10 +1172,12 @@ const Favourites = () => {
     }
   }, [token]);
 
+  // Pagination is client-side from allEntries — do not refetch favorites on page change.
+  // Initial list comes from Redux (login) via the mount useEffect + useCache.
   useEffect(() => {
-    getFileData(currentPage);
     getRootFolderSize();
-  }, [currentPage]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
   //Set image
   const getFileTypeIcon = (fileType) => {
     switch (fileType) {
@@ -1508,26 +1518,87 @@ const Favourites = () => {
     setShowFTPopup(false);
   };
 
-  //Anurag Get Files
-  // Modify your getFileData function to ensure it correctly handles pagination
-  const getFileData = async () => {
+  const applyFavoriteFiles = (favoriteFiles) => {
+    const list = favoriteFiles || [];
+    setAllEntries(list);
+    setTotalEntries(list.length);
+    setFileData(list.slice(0, itemsPerPage));
+    return list;
+  };
+
+  /** Wait for in-flight login favorites fetch (no error toast). */
+  const waitForFavoritesInStore = async (timeoutMs = 15000) => {
+    const started = Date.now();
+    while (Date.now() - started < timeoutMs) {
+      const { status, items } = store.getState().favorites;
+      if (status === "succeeded") return items || [];
+      if (status === "failed") return null;
+      await new Promise((r) => setTimeout(r, 150));
+    }
+    return null;
+  };
+
+  // Prefer Redux favorites from login; refetch only when useCache is false (after mutations)
+  const getFileData = async (_page, options = {}) => {
+    const useCache = options.useCache === true;
     try {
-      const response = await axios.get(
-        `${apiUrl}get-favorite-files`,
-        {
-          headers: {
-            Authorization: `Bearer ${token}`,
-            "Content-Type": "application/json",
-          },
+      let favoriteFiles;
+
+      if (useCache) {
+        const { status, items } = store.getState().favorites;
+        if (status === "succeeded") {
+          favoriteFiles = items || [];
+        } else if (status === "loading") {
+          const waited = await waitForFavoritesInStore();
+          if (waited == null) {
+            console.log("Favorites still loading / failed after wait");
+            return applyFavoriteFiles([]);
+          }
+          favoriteFiles = waited;
+        } else {
+          // idle or failed — start/retry fetch
+          try {
+            const result = await dispatch(
+              fetchFavoriteFiles({
+                token,
+                force: status === "failed",
+              })
+            ).unwrap();
+            favoriteFiles = result.items || [];
+          } catch (err) {
+            if (
+              err?.name === "ConditionError" ||
+              /condition/i.test(err?.message || "")
+            ) {
+              const waited = await waitForFavoritesInStore();
+              if (waited == null) return applyFavoriteFiles([]);
+              favoriteFiles = waited;
+            } else {
+              throw err;
+            }
+          }
         }
-      );
+      } else {
+        try {
+          const result = await dispatch(
+            fetchFavoriteFiles({ token, force: true })
+          ).unwrap();
+          favoriteFiles = result.items || [];
+        } catch (err) {
+          if (
+            err?.name === "ConditionError" ||
+            /condition/i.test(err?.message || "")
+          ) {
+            const waited = await waitForFavoritesInStore();
+            if (waited == null) return applyFavoriteFiles([]);
+            favoriteFiles = waited;
+          } else {
+            throw err;
+          }
+        }
+      }
 
-      const favoriteFiles = response.data.result || [];
-
-      setAllEntries(favoriteFiles);
-      setTotalEntries(favoriteFiles.length);
-      setFileData(favoriteFiles.slice(0, itemsPerPage));
-      return favoriteFiles;
+      return applyFavoriteFiles(favoriteFiles);
     } catch (error) {
       console.log("Error fetching favorites:", error);
       showToast("error", "Failed to load favorite files");
@@ -1558,7 +1629,8 @@ const Favourites = () => {
       );
 
       showToast("success", "Removed from favorites");
-      getFileData(currentPage); // Refresh the list
+      dispatch(removeFavoriteName(file.fileName));
+      getFileData(undefined, { useCache: true });
     } catch (error) {
       console.error("Error removing favorite:", error);
       showToast("error", "Failed to remove from favorites");
@@ -2287,6 +2359,7 @@ const Favourites = () => {
           getRootFolderSize();
         }
         showToast("success", "Folder moved to recycle bin successfully");
+        dispatch(fetchRecycleBin({ token, force: true }));
       } else {
         const dataToSend = {
           sourceFolder,
@@ -2306,6 +2379,7 @@ const Favourites = () => {
           getRootFolderSize();
         }
         showToast("success", "File moved to recycle bin successfully");
+        dispatch(fetchRecycleBin({ token, force: true }));
       }
     } catch (error) {
       showToast(

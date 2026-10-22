@@ -31,6 +31,7 @@ import {
   getStoredReferralCode,
   attributeStoredReferral,
 } from "../utils/referralCapture";
+import { clientPlatformHeaders } from "../utils/clientPlatform";
 
 const Signup = ({ setSpanExpanded, spanExpanded }) => {
   const apiUrl = process.env.REACT_APP_API_ENDPOINT;
@@ -306,7 +307,12 @@ const Signup = ({ setSpanExpanded, spanExpanded }) => {
       const loginRes = await axios.post(
         `${apiUrl}login-user`,
         { email, password },
-        { headers: { "Content-Type": "application/json" } }
+        {
+          headers: {
+            "Content-Type": "application/json",
+            ...clientPlatformHeaders(),
+          },
+        }
       );
 
       const responseData = loginRes.data;
@@ -382,7 +388,10 @@ const Signup = ({ setSpanExpanded, spanExpanded }) => {
       const res = await axios.post(
         `${apiUrl}firebaseAuth`,
         { googleToken: response.credential },
-        { withCredentials: true }
+        {
+          withCredentials: true,
+          headers: { ...clientPlatformHeaders() },
+        }
       );
       const data = res.data;
 

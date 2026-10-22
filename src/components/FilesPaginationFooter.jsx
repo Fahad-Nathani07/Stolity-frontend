@@ -8,10 +8,11 @@ import {
   ChevronRight,
 } from "lucide-react";
 import "./FilesPaginationFooter.css";
+import { MAX_LIST_PAGE_SIZE } from "../utils/listPageSize";
 
 const DEFAULT_PAGE_SIZES = [10, 15, 25, 50, 100];
 const MIN_ROWS = 1;
-const MAX_ROWS = 500;
+const MAX_ROWS = MAX_LIST_PAGE_SIZE;
 
 /**
  * Shared list pagination bar for Files / Nested / Favourites / RecycleBin.

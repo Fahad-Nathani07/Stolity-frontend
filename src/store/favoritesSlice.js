@@ -44,10 +44,17 @@ const favoritesSlice = createSlice({
   name: "favorites",
   initialState,
   reducers: {
+    // Accepts a fileName string OR a full file object (so Favourites page stays in sync)
     addFavoriteName: (state, action) => {
-      const name = action.payload;
+      const payload = action.payload;
+      const name =
+        typeof payload === "string" ? payload : payload?.fileName;
       if (!name || state.fileNames.includes(name)) return;
       state.fileNames.push(name);
+      if (payload && typeof payload === "object" && payload.fileName) {
+        const exists = state.items.some((item) => item.fileName === name);
+        if (!exists) state.items.unshift(payload);
+      }
     },
     removeFavoriteName: (state, action) => {
       const name = action.payload;

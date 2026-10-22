@@ -204,6 +204,7 @@ import {
   addFavoriteName,
   removeFavoriteName,
 } from "../store/favoritesSlice";
+import { fetchRecycleBin } from "../store/recycleBinSlice";
 
 import {
   Tooltip,
@@ -1175,6 +1176,7 @@ const NestedPage = () => {
 
       // Update storage in Redux
       dispatch(fetchUserFolderSize({ token, force: true }));
+      dispatch(fetchRecycleBin({ token, force: true }));
 
       showToast("success", toastMessage);
     } catch (error) {
@@ -1561,7 +1563,7 @@ const NestedPage = () => {
         }
       );
       showToast("success", "Added to favorites");
-      dispatch(addFavoriteName(file.fileName));
+      dispatch(addFavoriteName(file));
     } catch (error) {
       console.error("Error adding to favorites:", error);
       showToast("error", "Failed to add to favorites");
@@ -2514,6 +2516,7 @@ const NestedPage = () => {
         });
 
         showToast("success", "Folder moved to recycle bin successfully!");
+        dispatch(fetchRecycleBin({ token, force: true }));
       } else {
         const apiEndpoint = `${apiUrl}soft-delete`;
 
@@ -2531,6 +2534,7 @@ const NestedPage = () => {
         });
 
         showToast("success", "File moved to recycle bin successfully");
+        dispatch(fetchRecycleBin({ token, force: true }));
       }
 
       if (isStillOnListingPath(startedListing)) {
@@ -5038,6 +5042,7 @@ const NestedPage = () => {
       }
 
       showToast("success", "File moved to recycle bin successfully");
+      dispatch(fetchRecycleBin({ token, force: true }));
     } catch (error) {
       const serverMsg =
         error?.response?.data?.message ||

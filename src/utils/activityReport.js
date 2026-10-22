@@ -6,6 +6,8 @@
  * (2 calls per file) do not hit the API rate limit (300/min).
  */
 
+import { clientPlatformHeaders } from "./clientPlatform";
+
 /** Min gap between successive /activity/.../status calls. */
 const ACTIVITY_STATUS_GAP_MS = 250;
 const ACTIVITY_STATUS_MAX_RETRIES = 3;
@@ -56,6 +58,7 @@ export async function reportActivityStatus({
         headers: {
           Authorization: `Bearer ${token}`,
           "Content-Type": "application/json",
+          ...clientPlatformHeaders(),
         },
         body,
       });
@@ -94,6 +97,7 @@ export async function deleteActivityEvent({ apiUrl, token, eventId }) {
       method: "DELETE",
       headers: {
         Authorization: `Bearer ${token}`,
+        ...clientPlatformHeaders(),
       },
     });
     if (!res.ok) {
@@ -148,6 +152,7 @@ export async function reportClientActivity({
       headers: {
         Authorization: `Bearer ${token}`,
         "Content-Type": "application/json",
+        ...clientPlatformHeaders(),
       },
       body: JSON.stringify({
         action,

@@ -13,7 +13,7 @@ import { getAnalytics, isSupported, logEvent } from "firebase/analytics";
 //   measurementId: "G-SWYERDX8RB",
 // };
 
-// NEW Prod [After 15th October 2026] — Analytics off (no measurementId) [.in email id issue]
+// NEW Prod [After 15th October 2026] — Dont use this... always keep commented... for now
 // const firebaseConfig = {
 //   apiKey: "AIzaSyA8tgXfK4zD6XnXvPR69wr8y3UgoeIOHqE",
 //   authDomain: "stolity-production-2026.firebaseapp.com",
@@ -47,6 +47,8 @@ const firebaseConfig = {
 //   appId: "1:487279488890:web:88089c19d540f155f730c3",
 //   measurementId: "G-W7PTS8B4MY"
 // };
+
+
 
 const app = initializeApp(firebaseConfig);
 

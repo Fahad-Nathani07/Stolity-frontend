@@ -1,12 +1,16 @@
 const STORAGE_KEY = "stolity_list_items_per_page";
 export const DEFAULT_LIST_PAGE_SIZE = 15;
 const MIN_ROWS = 1;
-const MAX_ROWS = 500;
+export const MAX_LIST_PAGE_SIZE = 999;
 
 export function getStoredItemsPerPage() {
   try {
     const parsed = Number(localStorage.getItem(STORAGE_KEY));
-    if (Number.isFinite(parsed) && parsed >= MIN_ROWS && parsed <= MAX_ROWS) {
+    if (
+      Number.isFinite(parsed) &&
+      parsed >= MIN_ROWS &&
+      parsed <= MAX_LIST_PAGE_SIZE
+    ) {
       return parsed;
     }
   } catch {
@@ -17,7 +21,11 @@ export function getStoredItemsPerPage() {
 
 export function setStoredItemsPerPage(size) {
   const parsed = Number(size);
-  if (!Number.isFinite(parsed) || parsed < MIN_ROWS || parsed > MAX_ROWS) {
+  if (
+    !Number.isFinite(parsed) ||
+    parsed < MIN_ROWS ||
+    parsed > MAX_LIST_PAGE_SIZE
+  ) {
     return;
   }
   try {

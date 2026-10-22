@@ -9,6 +9,8 @@ import {
   FiActivity,
   FiArchive,
   FiPackage,
+  FiMonitor,
+  FiSmartphone,
 } from "react-icons/fi";
 import { showToast } from "../components/ToastProvider";
 import {
@@ -180,6 +182,10 @@ export default function SupportActivityPane({
   const [statusFilter, setStatusFilter] = useState([]);
   const [summary, setSummary] = useState(null);
   const [users, setUsers] = useState([]);
+  const [deviceTotals, setDeviceTotals] = useState({
+    uniqueWebUsers: 0,
+    uniqueMobileUsers: 0,
+  });
   const [events, setEvents] = useState([]);
   const [selectedUserId, setSelectedUserId] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -238,6 +244,10 @@ export default function SupportActivityPane({
         ]);
         setSummary(sumRes.data || null);
         setUsers(Array.isArray(usersRes.data?.users) ? usersRes.data.users : []);
+        setDeviceTotals({
+          uniqueWebUsers: Number(usersRes.data?.uniqueWebUsers) || 0,
+          uniqueMobileUsers: Number(usersRes.data?.uniqueMobileUsers) || 0,
+        });
       } catch (err) {
         const msg =
           err?.response?.data?.message ||
@@ -540,6 +550,22 @@ export default function SupportActivityPane({
             </span>
           </div>
         </div>
+        <div className="ssd-stat-card">
+          <FiMonitor aria-hidden />
+          <div>
+            <span className="ssd-stat-label">Web users</span>
+            <strong>{deviceTotals.uniqueWebUsers}</strong>
+            <span className="ssd-stat-sub">Unique in range</span>
+          </div>
+        </div>
+        <div className="ssd-stat-card">
+          <FiSmartphone aria-hidden />
+          <div>
+            <span className="ssd-stat-label">Mobile users</span>
+            <strong>{deviceTotals.uniqueMobileUsers}</strong>
+            <span className="ssd-stat-sub">Unique in range</span>
+          </div>
+        </div>
         <button
           type="button"
           className="ssd-btn ssd-btn-ghost ssd-btn-refresh ssd-activity-refresh"
@@ -731,6 +757,7 @@ export default function SupportActivityPane({
                     <col className="ssd-activity-col-when" />
                     <col className="ssd-activity-col-user" />
                     <col className="ssd-activity-col-action" />
+                    <col className="ssd-activity-col-device" />
                     <col className="ssd-activity-col-path" />
                     <col className="ssd-activity-col-size" />
                     <col className="ssd-activity-col-status" />
@@ -741,6 +768,7 @@ export default function SupportActivityPane({
                       <th scope="col">When</th>
                       <th scope="col">User</th>
                       <th scope="col">Action</th>
+                      <th scope="col">Device</th>
                       <th scope="col">File / path</th>
                       <th scope="col">Size</th>
                       <th scope="col">Status</th>
@@ -760,6 +788,7 @@ export default function SupportActivityPane({
                             <div className="ssd-muted ssd-tiny">Batch</div>
                           )}
                         </td>
+                        <td>{formatLabel(ev.deviceType)}</td>
                         <td title={pathCell.title}>
                           {pathCell.primary}
                           {ev.sourcePath && ev.destinationPath && (

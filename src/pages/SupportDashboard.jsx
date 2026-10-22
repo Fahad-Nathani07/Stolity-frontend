@@ -18,6 +18,7 @@ import SupportUsersPane from "./SupportUsersPane";
 import SupportAffiliatesPane from "./SupportAffiliatesPane";
 import { canViewFileActivity } from "../config/fileActivityAccess";
 import { canViewAffiliateLinks } from "../config/affiliateAccess";
+import { canViewSupportDashboard } from "../config/supportDashboardAccess";
 import "../css/SupportDashboard.css";
 
 const ALL_TABS = [
@@ -75,7 +76,7 @@ export default function SupportDashboard() {
   ).toLowerCase();
   const myId = userProfile.userId || "";
 
-  const isInfomanav = email.includes("infomanav");
+  const canAccessDashboard = canViewSupportDashboard(email);
   const showFileActivity = canViewFileActivity(email);
   const showAffiliates = canViewAffiliateLinks(email);
   const tabs = useMemo(
@@ -161,10 +162,10 @@ export default function SupportDashboard() {
   }, [showAffiliates, activeTab]);
 
   useEffect(() => {
-    if (!isInfomanav) {
+    if (!canAccessDashboard) {
       navigate("/Files", { replace: true });
     }
-  }, [isInfomanav, navigate]);
+  }, [canAccessDashboard, navigate]);
 
   const authHeaders = useMemo(
     () => ({ Authorization: `Bearer ${token}` }),
@@ -172,7 +173,7 @@ export default function SupportDashboard() {
   );
 
   const prefetchCounts = useCallback(async () => {
-    if (!token || !apiUrl || !isInfomanav) return;
+    if (!token || !apiUrl || !canAccessDashboard) return;
     const today = todayKey();
     const reqs = [
       axios
@@ -236,7 +237,7 @@ export default function SupportDashboard() {
     apiUrl,
     authHeaders,
     token,
-    isInfomanav,
+    canAccessDashboard,
     showFileActivity,
     showAffiliates,
   ]);
@@ -256,7 +257,7 @@ export default function SupportDashboard() {
       .replace(/\b\w/g, (c) => c.toUpperCase());
   }, [userProfile, email]);
 
-  if (!isInfomanav) return null;
+  if (!canAccessDashboard) return null;
 
   return (
     <div className="ssd-shell">

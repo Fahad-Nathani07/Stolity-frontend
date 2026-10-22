@@ -39,6 +39,7 @@ import companyMasterReducer from "./companyMasterSlice";
 import interviewMasterReducer from "./interviewMasterSlice";
 import userProfileReducer from "./userProfileSlice";
 import favoritesReducer from "./favoritesSlice";
+import recycleBinReducer from "./recycleBinSlice";
 
 // 1. Create the combined reducer function using combineReducers
 const appReducer = combineReducers({
@@ -50,6 +51,7 @@ const appReducer = combineReducers({
   interviewMaster: interviewMasterReducer,
   userProfile: userProfileReducer,
   favorites: favoritesReducer,
+  recycleBin: recycleBinReducer,
 });
 
 // 2. Root reducer wrapper – now appReducer is a function
