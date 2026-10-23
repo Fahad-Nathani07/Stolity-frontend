@@ -15,6 +15,7 @@ import {
 import { showToast } from "../components/ToastProvider";
 import {
   formatTicketCategory,
+  formatTicketDeviceType,
   formatTicketStatus,
 } from "../utils/supportTicketConstants";
 import "../css/SupportTicketsAdmin.css";
@@ -321,6 +322,7 @@ export default function SupportQuestionsPane({
         item.email,
         item.question,
         item.category,
+        item.deviceType,
         item.status,
         ticketCode(item.id, isTicket ? "T" : "Q"),
         item.assignedTo?.email,
@@ -782,6 +784,7 @@ export default function SupportQuestionsPane({
                 <th>Type</th>
                 <th>User</th>
                 <th>Category</th>
+                <th>Device</th>
                 <th>Preview</th>
                 <th>Status</th>
                 <th>Assigned to</th>
@@ -832,6 +835,9 @@ export default function SupportQuestionsPane({
                     </td>
                     <td>
                       {ticket ? formatTicketCategory(item.category) : "—"}
+                    </td>
+                    <td>
+                      {ticket ? formatTicketDeviceType(item.deviceType) : "—"}
                     </td>
                     <td className="sta-preview" title={item.question || ""}>
                       {preview}
@@ -994,6 +1000,12 @@ export default function SupportQuestionsPane({
                       : "FAQ Ask Question"}
                   </dd>
                 </div>
+                {isTicketSelected ? (
+                  <div>
+                    <dt>Device</dt>
+                    <dd>{formatTicketDeviceType(selected.deviceType)}</dd>
+                  </div>
+                ) : null}
                 <div>
                   <dt>Assigned</dt>
                   <dd>

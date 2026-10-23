@@ -5,9 +5,11 @@ import {
   resolveFileIconPath,
   getCardPreviewUrlFallbacks,
 } from "../utils/fileIcon";
+import { isAudioFile } from "../utils/audioPlayer";
+import { fetchAlbumArtBatch } from "../utils/audioAlbumArt";
 
-/** Soft cap: only this many public image previews load at once. */
-const MAX_VISIBLE_PREVIEWS = 15;
+/** Soft cap: only this many remote card previews (images + audio art) load at once. */
+const MAX_VISIBLE_PREVIEWS = 20;
 
 const previewStore = {
   /** @type {Map<string, number>} id -> visibleSince timestamp */
@@ -57,15 +59,20 @@ const getScrollParent = (el) => {
   return null;
 };
 
+const wantsLazyPreview = (file) =>
+  isCardImagePreview(file) || isAudioFile(file);
+
 /**
- * Card media that only loads public image URLs for ~15 in-view cards.
- * Off-screen / overflow cards keep the local icon to avoid lag with large folders.
+ * Card media that only loads public image URLs / audio album art for ~15 in-view cards.
+ * Off-screen cards keep the local icon to avoid lag with large folders.
  */
 const CardFilePreview = ({
   file,
   sharedIconSrc,
   blackboxIconSrc,
   getIcon,
+  shared = false,
+  sharedName = "",
 }) => {
   const wrapRef = useRef(null);
   const previewId = useRef(
@@ -73,6 +80,7 @@ const CardFilePreview = ({
   );
   const [inView, setInView] = useState(false);
   const [failed, setFailed] = useState(false);
+  const [albumArtUrl, setAlbumArtUrl] = useState(null);
   const previewTryRef = useRef(0);
 
   const allowedSnapshot = useSyncExternalStore(
@@ -89,23 +97,30 @@ const CardFilePreview = ({
       ? getIcon(file)
       : resolveFileIconPath(file, iconOptions);
 
-  const canPreview = isCardImagePreview(file) && !failed;
-  const showPreview = canPreview && inView && canUsePreviewSlot;
-  const src = showPreview
-    ? resolveCardPreviewSrc(file, iconOptions)
-    : iconSrc;
+  const isImage = isCardImagePreview(file) && !failed;
+  const isAudio = isAudioFile(file) && !failed;
+  const showImagePreview = isImage && inView && canUsePreviewSlot;
+  const showAudioProbe = isAudio && inView && canUsePreviewSlot;
+  const showAlbumArt = Boolean(showAudioProbe && albumArtUrl);
+
+  const src = showAlbumArt
+    ? albumArtUrl
+    : showImagePreview
+      ? resolveCardPreviewSrc(file, iconOptions)
+      : iconSrc;
 
   useEffect(() => {
     setFailed(false);
+    setAlbumArtUrl(null);
     previewTryRef.current = 0;
-  }, [file?.fileName, file?.url, file?.fileUrl, file?.ACL]);
+  }, [file?.fileName, file?.url, file?.fileUrl, file?.ACL, file?.fileType]);
 
   useEffect(() => {
     const el = wrapRef.current;
     const id = previewId.current;
     if (!el) return undefined;
 
-    if (!isCardImagePreview(file)) {
+    if (!wantsLazyPreview(file)) {
       setInView(false);
       previewStore.setVisible(id, false);
       return undefined;
@@ -130,11 +145,50 @@ const CardFilePreview = ({
       observer.disconnect();
       previewStore.setVisible(id, false);
     };
-  }, [file?.fileName, file?.url, file?.fileUrl, file?.ACL, file?.isFolder]);
+  }, [
+    file?.fileName,
+    file?.url,
+    file?.fileUrl,
+    file?.ACL,
+    file?.isFolder,
+    file?.fileType,
+  ]);
+
+  // Visible audio cards: batch album-art API (up to 10 paths / request).
+  useEffect(() => {
+    if (!showAudioProbe || !file?.fileName) {
+      return undefined;
+    }
+
+    const ac = new AbortController();
+    let cancelled = false;
+
+    fetchAlbumArtBatch(file.fileName, {
+      shared: shared && sharedName ? sharedName : "",
+      signal: ac.signal,
+    })
+      .then((url) => {
+        if (!cancelled && url) setAlbumArtUrl(url);
+      })
+      .catch(() => {});
+
+    return () => {
+      cancelled = true;
+      ac.abort();
+    };
+  }, [showAudioProbe, file?.fileName, shared, sharedName]);
 
   const handleError = (e) => {
     const img = e.currentTarget;
-    if (!showPreview) {
+    if (showAlbumArt) {
+      setAlbumArtUrl(null);
+      setFailed(true);
+      img.onerror = null;
+      img.src = iconSrc;
+      return;
+    }
+
+    if (!showImagePreview) {
       img.onerror = null;
       img.src = iconSrc;
       return;
@@ -157,10 +211,18 @@ const CardFilePreview = ({
   return (
     <div
       ref={wrapRef}
-      className={`file-icon2${showPreview ? " is-image-preview" : ""}`}
+      className={`file-icon2${
+        showImagePreview ? " is-image-preview" : ""
+      }${showAlbumArt ? " is-album-art" : ""}`}
     >
       <img
-        key={showPreview ? `preview-${file?.fileName}` : `icon-${file?.fileName}`}
+        key={
+          showAlbumArt
+            ? `art-${file?.fileName}`
+            : showImagePreview
+              ? `preview-${file?.fileName}`
+              : `icon-${file?.fileName}`
+        }
         src={src}
         alt=""
         loading="lazy"

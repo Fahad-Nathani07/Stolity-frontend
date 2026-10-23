@@ -87,6 +87,8 @@ import {
 } from "../utils/listingRefreshGuard";
 import { subscribeRootListingRefresh } from "../utils/rootListingRefresh";
 import CardFilePreview from "../components/CardFilePreview";
+import NowPlayingIndicator from "../components/NowPlayingIndicator";
+import { isNowPlayingPath } from "../utils/audioPlayer";
 import UploadFolderPanel from "../components/UploadFolderPanel";
 import FilesPaginationFooter from "../components/FilesPaginationFooter";
 import { useStickyListHeader } from "../hooks/useStickyListHeader";
@@ -248,7 +250,6 @@ import { usePlayAudio } from "../hooks/usePlayAudio";
 
 import DownloadModal from "./DownloadModal/DownloadModal";
 import SelectFolderModal from "./DownloadModal/SelectFolderModal";
-import FileConversionModal from "../components/FileConversionModal";
 // import Loader from "../components/Loader";
 import LoaderRecycleBin from "../components/LoaderRecycleBin";
 import Loader2 from "../components/Loader2";
@@ -463,6 +464,8 @@ const Files = ({setSpanExpanded}) => {
   const [codeFilePath, setCodeFilePath] = useState("");
   const isSharedValue = useSelector((state) => state.getdata.isSharedValue);
   const filenameRedux = useSelector((state) => state.getdata.fileName);
+  const currentAudioFile = useSelector((state) => state.getdata.currentAudioFile);
+  const showAudioPlayer = useSelector((state) => state.getdata.showAudioPlayer);
   const isSoftBan = useSelector((state) => state.usersAdmin?.currentUser?.isSoftBan);
 
   /** Original zip stream folder download (fallback). */
@@ -568,17 +571,6 @@ const Files = ({setSpanExpanded}) => {
   const [currentPage, setCurrentPage] = useState(1);
   const [itemsPerPage, setItemsPerPage] = useListPageSize();
   const [totalEntries, setTotalEntries] = useState(0);
-
-  // *************** File Conversion *************** // 
-
-  const [showConversionModal, setShowConversionModal] = useState(false);
-  const [convertedFiles, setConvertedFiles] = useState([]);
-
-  const handleFilesConverted = (updatedFiles) => {
-    setFiles(updatedFiles);
-    setConvertedFiles(updatedFiles);
-    setShowConversionModal(false);
-  };
 
   const totalPages = Math.ceil(totalEntries / itemsPerPage);
   const startItem = (currentPage - 1) * itemsPerPage + 1;
@@ -4275,7 +4267,6 @@ useEffect(()=>{
     setDragPop(false);
     setShowGoogleAuthPopup(false);
     setShowPrivateWarning(false);
-    setShowConversionModal(false);
     setOpenPDFModal(false);
     setOpenFileUploadModal(false);
     setCreateFolderButton(false);
@@ -5854,6 +5845,11 @@ useEffect(()=>{
                       </thead>
 
                       {filedata.map((file, index) => {
+  const nowPlaying = isNowPlayingPath(
+    file.fileName,
+    currentAudioFile,
+    showAudioPlayer
+  );
   return (
     <tbody
       key={`${file.isShared ? "shared" : "own"}-${file.fileName || "item"}-${index}`}
@@ -5861,7 +5857,8 @@ useEffect(()=>{
       <tr
         className={`hover_cell 
           ${activeRow === 1 ? "active-row" : ""} 
-          ${hoveredFolderName === file.fileName ? "drag-over" : ""}`}
+          ${hoveredFolderName === file.fileName ? "drag-over" : ""}
+          ${nowPlaying ? "is-now-playing" : ""}`}
         draggable={!(file.fileName === "blackbox" || file.isShared)}
         onDragStart={
           (file.fileName === "blackbox" || file.isShared)
@@ -6014,15 +6011,19 @@ useEffect(()=>{
           }}
         >
           <span className="filename_link" style={{ cursor: "pointer" }}>
-            <img
-              src={getFileIcon(file)}
-              height={32}
-              alt="file icon"
-              onError={(e) => {
-                e.target.onerror = null;
-                e.target.src = file.isFolder ? svgFolder : svgDoc;
-              }}
-            />
+            {nowPlaying ? (
+              <NowPlayingIndicator />
+            ) : (
+              <img
+                src={getFileIcon(file)}
+                height={32}
+                alt="file icon"
+                onError={(e) => {
+                  e.target.onerror = null;
+                  e.target.src = file.isFolder ? svgFolder : svgDoc;
+                }}
+              />
+            )}
           </span>
           <div className="file-item">
             <TruncatedTooltip
@@ -6684,12 +6685,19 @@ useEffect(()=>{
                           }
                         />
                       ) : (
-                        filedata.map((file, index) => (
+                        filedata.map((file, index) => {
+  const nowPlaying = isNowPlayingPath(
+    file.fileName,
+    currentAudioFile,
+    showAudioPlayer
+  );
+  return (
                          <div
   className={`grid-item2 
     ${activeRow === 1 ? "active-row" : ""} 
     ${hoveredFolderName === file.fileName ? "border_highlight" : ""} 
-    ${draggedItem?.fileName === file.fileName && !(file.fileName === "blackbox" || file.isShared) ? "dragging" : ""}`}
+    ${draggedItem?.fileName === file.fileName && !(file.fileName === "blackbox" || file.isShared) ? "dragging" : ""}
+    ${nowPlaying ? "is-now-playing" : ""}`}
   key={`${file.isShared ? "shared" : "own"}-${file.fileName || "item"}-${index}`}
   style={{ 
     cursor: (file.fileName === "blackbox" || file.isShared) ? "default" : "pointer" 
@@ -7410,20 +7418,27 @@ useEffect(()=>{
                               </div>
                             </div>
 
-                            {/* File Icon / public image preview (visible cards only) */}
+                            {/* File Icon / public image preview / audio art (visible cards only) */}
                             <CardFilePreview
                               file={file}
                               sharedIconSrc={sharedIcon}
                               blackboxIconSrc={blackboxImg}
                               getIcon={getFileIcon}
+                              shared={isSharedValue}
+                              sharedName={filenameRedux}
                             />
 
                             <div className="files-grid-card-body">
                               <div
-                                className="files-grid-card-name"
+                                className={`files-grid-card-name${
+                                  nowPlaying ? " files-grid-card-name--playing" : ""
+                                }`}
                                 title={file.fileName}
                               >
-                                {file.fileName}
+                                {nowPlaying ? <NowPlayingIndicator /> : null}
+                                <span className="files-grid-card-name__text">
+                                  {file.fileName}
+                                </span>
                               </div>
                               <div className="files-grid-card-meta">
                                 <span className="files-grid-card-date">
@@ -7438,7 +7453,8 @@ useEffect(()=>{
                               </div>
                             </div>
                           </div>
-                        ))
+  );
+                        })
                       )}
                     </div>
                    </div>
@@ -7761,64 +7777,6 @@ useEffect(()=>{
                     Close
                   </button>
 
-                  {/* Convert Files — hidden for now */}
-                  {false && files.length > 0 && (
-                    <button
-                      // onClick={() => setShowConversionModal(true)}
-                      onClick={() => {
-                         if (!isPremium) {
-                          setShowUpgradeModal(true);
-                          return;
-                        }
-                        console.log('Files array:', files);  // Debug
-                        setShowConversionModal(true);
-                      }}
-                      style={{
-                        padding: '14px 28px',
-                        // background: '#FFF1E8',
-                        background: '#ffffffff',
-                        color: '#333',
-                        border: '2px solid #FFD5A9',
-                        borderRadius: '58px',
-                        cursor: 'pointer',
-                        fontWeight: '600',
-                        // fontSize: '0.95em',
-                        fontSize: '14px',
-                        transition: 'all 0.2s',
-                        boxShadow: '0 2px 6px rgba(255, 171, 73, 0.15)',
-                        letterSpacing: '0.3px',
-                        display: 'flex',
-                        alignItems: 'center',
-                        gap: '8px',
-                      }}
-                      onMouseEnter={(e) => {
-                        e.target.style.background = '#FFF1E8';
-                        e.target.style.color = 'black';
-                        e.target.style.borderColor = '#E5660F';
-                        e.target.style.transform = 'translateY(-2px)';
-                        e.target.style.boxShadow = '0 4px 12px rgba(255, 171, 73, 0.3)';
-                      }}
-                      onMouseLeave={(e) => {
-                        e.target.style.background = '#ffffffff';
-                        e.target.style.color = '#333';
-                        e.target.style.borderColor = '#FFD5A9';
-                        e.target.style.transform = 'translateY(0)';
-                        e.target.style.boxShadow = '0 2px 6px rgba(255, 171, 73, 0.15)';
-                      }}
-                      onMouseDown={(e) => {
-                        e.target.style.transform = 'translateY(-1px) scale(0.98)';
-                      }}
-                      onMouseUp={(e) => {
-                        e.target.style.transform = 'translateY(-2px) scale(1)';
-                      }}
-                    >
-                      Convert Files
-                       {!isPremium && <span className="context-menu-icon">
-            <img src={svgCrown} alt="" style={{ height: "20px" }}  />
-            </span>}
-                    </button>
-
-                  )}
                   <button
                     onClick={handleFileUpload}
                     className="btn_width_same ripple_effect btn-upload"
@@ -8077,13 +8035,6 @@ useEffect(()=>{
         onDownload={handleDownload}
         openPathSelectionModal={openPathSelectionModal}
         reloadAfterTast={getFileData}
-      />
-
-      <FileConversionModal
-        isOpen={showConversionModal}
-        onClose={() => setShowConversionModal(false)}
-        files={files}
-        onFilesUpdated={handleFilesConverted}
       />
 
       {loader2 && (<Loader2/>)}

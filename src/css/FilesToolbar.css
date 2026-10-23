@@ -1225,10 +1225,10 @@
   }
 }
 
-/* Tablet / narrow desktop (769–1100)
-   overflow-x on #listViewContent breaks position:sticky on thead (header
-   jumps into the middle of rows). Keep thead in normal flow here. */
-@media screen and (min-width: 768px) and (max-width: 1100px) {
+/* Tablet / mid desktop (768–1530)
+   Fixed table + truncating name so Action stays on-screen.
+   overflow-x on #listViewContent breaks sticky thead — keep overflow visible. */
+@media screen and (min-width: 768px) and (max-width: 1530px) {
   .files-layout .files-page #listViewContent {
     overflow: visible !important;
   }
@@ -1239,19 +1239,12 @@
     table-layout: fixed;
   }
 
-  .files-layout .stolity-list-sticky #filestable thead th {
-    position: static !important;
-    top: auto !important;
-    z-index: auto !important;
-    white-space: nowrap;
-    vertical-align: middle;
-    background-color: #fff6eb;
-  }
-
   .files-layout .files-page #filestable thead th {
     padding-left: 8px !important;
     padding-right: 8px !important;
     font-size: 13px;
+    white-space: nowrap;
+    vertical-align: middle;
   }
 
   .files-layout .files-page #filestable thead th .column-name-new {
@@ -1275,11 +1268,35 @@
     width: 40px !important;
   }
 
+  /* Name takes remaining width and can shrink; long names ellipsize */
   .files-layout .files-page #filestable .files-col-name,
+  .files-layout .files-page #filestable thead th.files-col-name,
+  .files-layout .files-page #filestable tbody td.files-col-name,
   .files-layout .files-page #filestable tbody td:has(.file-item) {
     width: auto;
+    max-width: 100%;
+    min-width: 0 !important;
+    overflow: hidden !important;
+  }
+
+  .files-layout .files-page #filestable tbody td.files-col-name,
+  .files-layout .files-page #filestable tbody td:has(.file-item) {
+    display: flex !important;
+    align-items: center;
+    gap: 10px;
+    min-width: 0 !important;
+  }
+
+  .files-layout .files-page #filestable tbody td.files-col-name > .filename_link,
+  .files-layout .files-page #filestable tbody td:has(.file-item) > .filename_link {
+    flex: 0 0 auto;
+  }
+
+  .files-layout .files-page #filestable .file-item {
+    flex: 1 1 0%;
+    min-width: 0 !important;
+    max-width: 100%;
     overflow: hidden;
-    text-overflow: ellipsis;
   }
 
   .files-layout .files-page #filestable .files-col-size,
@@ -1288,18 +1305,51 @@
   .files-layout .files-page #filestable td.fileSizeTD {
     width: 110px;
     overflow: hidden;
+    white-space: nowrap;
   }
 
   .files-layout .files-page #filestable .files-col-action,
   .files-layout .files-page #filestable tbody td:last-child {
     width: 52px !important;
+    min-width: 52px !important;
+    max-width: 52px !important;
   }
 
-  .files-layout .files-page #filestable .file-name {
+  .files-layout .files-page #filestable .file-name,
+  .files-layout .files-page #filestable .file-name.filename_link,
+  .files-layout .files-page #filestable .trunc-tip-text.file-name {
+    display: block;
     max-width: 100%;
+    min-width: 0;
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
+  }
+
+  .files-layout .files-page #filestable .file-item > .trunc-tip-wrap {
+    flex: 1 1 0%;
+    min-width: 0;
+    max-width: 100%;
+  }
+}
+
+/* ≤1100: sticky thead breaks with this layout — keep header in flow */
+@media screen and (min-width: 768px) and (max-width: 1100px) {
+  .files-layout .stolity-list-sticky #filestable thead th {
+    position: static !important;
+    top: auto !important;
+    z-index: auto !important;
+    background-color: #fff6eb;
+  }
+}
+
+/* Mid band: slightly tighter Size/Date so name gets more room */
+@media screen and (min-width: 1101px) and (max-width: 1530px) {
+  .files-layout .files-page #filestable .files-col-size,
+  .files-layout .files-page #filestable .files-col-date,
+  .files-layout .files-page #filestable td.fileSizeTL,
+  .files-layout .files-page #filestable td.fileSizeTD {
+    width: 100px;
   }
 }
 
@@ -1637,11 +1687,31 @@
   z-index: 2;
 }
 
-/* ---------- Grid cards: name + meta footer ---------- */
+/* ---------- Grid cards: fixed media slot (icon / image / album art) ---------- */
 .grid-item2 .file-icon2 {
-  flex: 1 1 auto;
-  min-height: 148px;
+  flex: 0 0 160px;
+  height: 160px;
+  min-height: 160px;
+  max-height: 160px;
+  box-sizing: border-box;
   border-bottom: 1px solid #f1f5f9;
+  overflow: hidden;
+}
+
+.grid-item2 .file-icon2.is-image-preview,
+.grid-item2 .file-icon2.is-album-art {
+  padding: 0;
+  background: #f3f4f6;
+}
+
+.grid-item2 .file-icon2.is-album-art img {
+  width: 100%;
+  height: 100%;
+  max-width: none;
+  max-height: none;
+  margin: 0;
+  object-fit: cover;
+  display: block;
 }
 
 .grid-item2 .files-grid-card-body {
@@ -1713,4 +1783,166 @@
   text-align: right;
   color: #64748b;
   font-variant-numeric: tabular-nums;
+}
+
+/* ---------- Now playing: soft highlight + equalizer ---------- */
+/* Hover = instant (all cells together). 1s fade only for now-playing. */
+#filestable tbody tr.hover_cell > td {
+  box-shadow: none;
+  transition: box-shadow 1s ease;
+}
+
+#filestable tbody tr.hover_cell > td:first-child,
+#filestable tbody tr.hover_cell > td.files-col-check {
+  box-shadow: inset 3px 0 0 transparent;
+}
+
+#filestable tbody tr.hover_cell .file-name {
+  transition: color 1s ease;
+}
+
+#filestable tbody tr.hover_cell:hover:not(.is-now-playing) > td {
+  background-color: #f5f5f5;
+}
+
+#filestable tbody tr.hover_cell.is-now-playing > td,
+#filestable tbody tr.hover_cell.is-now-playing > td.files-col-check,
+#filestable tbody tr.hover_cell.is-now-playing > td.files-col-name,
+#filestable tbody tr.hover_cell.is-now-playing > td.files-col-size,
+#filestable tbody tr.hover_cell.is-now-playing > td.files-col-date,
+#filestable tbody tr.hover_cell.is-now-playing > td.files-col-action {
+  background-color: #fff6eb !important; /* same as thead */
+  transition: background-color 1s ease, box-shadow 1s ease;
+}
+
+#filestable tbody tr.hover_cell.is-now-playing > td:first-child,
+#filestable tbody tr.hover_cell.is-now-playing > td.files-col-check {
+  box-shadow: inset 3px 0 0 #ffab49;
+}
+
+#filestable tbody tr.hover_cell.is-now-playing .file-name {
+  color: #c45f00;
+}
+
+/*
+ * Mobile list is display:flex + gap on <tr>. Painting each <td> makes the
+ * highlight look like broken islands. Paint the whole row instead.
+ */
+@media screen and (max-width: 768px) {
+  .files-layout .files-page #filestable tbody tr.hover_cell.is-now-playing {
+    background: #fff6eb !important;
+    box-shadow: inset 3px 0 0 #ffab49;
+  }
+
+  .files-layout .files-page #filestable tbody tr.hover_cell.is-now-playing > td,
+  .files-layout .files-page #filestable tbody tr.hover_cell.is-now-playing > td.files-col-check,
+  .files-layout .files-page #filestable tbody tr.hover_cell.is-now-playing > td.files-col-name,
+  .files-layout .files-page #filestable tbody tr.hover_cell.is-now-playing > td.files-col-action,
+  .files-layout .files-page #filestable tbody tr.hover_cell.is-now-playing > td:first-child {
+    background-color: transparent !important;
+    box-shadow: none !important;
+  }
+
+  .files-layout .files-page #filestable tbody tr.hover_cell:hover:not(.is-now-playing) {
+    background: #f5f5f5 !important;
+  }
+
+  .files-layout .files-page #filestable tbody tr.hover_cell:hover:not(.is-now-playing) > td {
+    background-color: transparent !important;
+  }
+}
+
+.grid-item2 {
+  transition:
+    background-color 1s ease,
+    border-color 1s ease,
+    box-shadow 1s ease;
+}
+
+/* Solid border (inset shadow is clipped by overflow:hidden on .grid-item2) */
+.grid-item2.is-now-playing {
+  background: #FFF6EB !important;
+  border: 3px solid #ffd29c !important;
+  box-shadow: 0px 0px 12px rgba(0, 0, 0, 0.06) !important;
+}
+
+.grid-item2 .files-grid-card-name,
+.grid-item2 .file-name2 {
+  transition: color 1s ease;
+}
+
+.grid-item2.is-now-playing .files-grid-card-name,
+.grid-item2.is-now-playing .file-name2 {
+  color: #c45f00;
+}
+
+.now-playing-eq {
+  display: inline-flex;
+  align-items: flex-end;
+  justify-content: center;
+  gap: 2px;
+  width: 32px;
+  height: 28px;
+  flex-shrink: 0;
+}
+
+.now-playing-eq__bar {
+  display: block;
+  width: 3px;
+  height: 40%;
+  border-radius: 1px;
+  background: #ffab49;
+  animation: now-playing-eq-bounce 0.85s ease-in-out infinite;
+}
+
+.now-playing-eq__bar:nth-child(1) {
+  animation-delay: 0s;
+}
+.now-playing-eq__bar:nth-child(2) {
+  animation-delay: 0.15s;
+}
+.now-playing-eq__bar:nth-child(3) {
+  animation-delay: 0.3s;
+}
+.now-playing-eq__bar:nth-child(4) {
+  animation-delay: 0.45s;
+}
+
+.now-playing-eq.is-paused .now-playing-eq__bar {
+  animation-play-state: paused;
+  height: 35%;
+}
+
+@keyframes now-playing-eq-bounce {
+  0%,
+  100% {
+    height: 28%;
+  }
+  50% {
+    height: 95%;
+  }
+}
+
+.files-grid-card-name--playing {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+}
+
+.files-grid-card-name--playing .files-grid-card-name__text,
+.files-grid-card-name--playing .file-name2__text {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.files-grid-card-name--playing .now-playing-eq {
+  width: 18px;
+  height: 16px;
+}
+
+.files-grid-card-name--playing .now-playing-eq__bar {
+  width: 2px;
 }

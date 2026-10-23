@@ -67,6 +67,12 @@
   object-fit: contain;
 }
 
+.ap-bar-art.has-cover img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
 .ap-bar-meta {
   min-width: 0;
   flex: 1;
@@ -510,6 +516,17 @@
   object-fit: contain;
 }
 
+.ap-mini-art.has-cover {
+  overflow: hidden;
+}
+
+.ap-mini-art.has-cover img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  border-radius: 50%;
+}
+
 .ap-mini-meta {
   min-width: 0;
   flex: 1;
@@ -676,6 +693,12 @@
   .ap-bar-art img {
     width: 20px;
     height: 20px;
+  }
+
+  .ap-bar-art.has-cover img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
   }
 
   .ap-bar-title {

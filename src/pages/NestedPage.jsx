@@ -98,6 +98,8 @@ import { refreshRootListingIfDestinationIsRoot } from "../utils/rootListingRefre
 import "../css/FilesToolbar.css";
 import "../css/NestedBreadcrumb.css";
 import CardFilePreview from "../components/CardFilePreview";
+import NowPlayingIndicator from "../components/NowPlayingIndicator";
+import { isNowPlayingPath } from "../utils/audioPlayer";
 import UploadFolderPanel from "../components/UploadFolderPanel";
 import FilesPaginationFooter from "../components/FilesPaginationFooter";
 import { useStickyListHeader } from "../hooks/useStickyListHeader";
@@ -181,7 +183,6 @@ import SortIcon from "../images/sort-style-1.svg";
 import createFolderPopup from "../images/createFolderPopup.svg";
 import IconVideo from "../images/video.svg";
 import { Link } from "react-router-dom";
-import FileConversionModal from '../components/FileConversionModal';
 import StarIcon from "@mui/icons-material/Star";
 import StarBorderIcon from "@mui/icons-material/StarBorder";
 import svgDoc from "../images/TypesDoc.svg"
@@ -444,6 +445,8 @@ const NestedPage = () => {
   const select = useSelector((state) => state.getdata.userdata);
   const isSharedValue = useSelector((state) => state.getdata.isSharedValue);
   const filenameRedux = useSelector((state) => state.getdata.fileName);
+  const currentAudioFile = useSelector((state) => state.getdata.currentAudioFile);
+  const showAudioPlayer = useSelector((state) => state.getdata.showAudioPlayer);
 
   /** Original zip stream folder download (fallback). */
   const downloadFolderViaZipProxy = useCallback(
@@ -595,16 +598,6 @@ const NestedPage = () => {
   }, [folderSize])
 
   // console.log("Get Is Shared value :", getIsShared)
-
-  // File Conversion
-  const [showConversionModal, setShowConversionModal] = useState(false);
-  const [convertedFiles, setConvertedFiles] = useState([]);
-
-  const handleFilesConverted = (updatedFiles) => {
-    setFiles(updatedFiles);
-    setConvertedFiles(updatedFiles);
-    setShowConversionModal(false);
-  };
 
   const [fileInfo, setFileInfo] = useState({
     fileName: "",
@@ -6635,12 +6628,18 @@ const NestedPage = () => {
                         </thead>
 
                         {paginatedData.map((file, index) => {
+                          const nowPlaying = isNowPlayingPath(
+                            file.fileName,
+                            currentAudioFile,
+                            showAudioPlayer
+                          );
                           return (
                             <tbody>
                               <tr
                                 className={`hover_cell 
                                 ${activeRow === 1 ? "active-row" : ""} 
-                                ${hoveredFolderName === file.fileName ? "drag-over" : ""}`}   // ← added
+                                ${hoveredFolderName === file.fileName ? "drag-over" : ""}
+                                ${nowPlaying ? "is-now-playing" : ""}`}
                                 draggable={true}
                                 onDragStart={(e) => handleDragStart(e, file)}
                                 onDragOver={file.isFolder ? handleDragOver : undefined}
@@ -6813,16 +6812,19 @@ const NestedPage = () => {
                                     className="filename_link"
                                     style={{ cursor: "pointer" }}
                                   >
-                                    {/* <img src={file.icon} height={32} /> */}
-                                    <img
-                                      src={getFileIcon(file)}
-                                      height={32}
-                                      alt="file icon"
-                                      onError={(e) => {
-                                        e.target.onerror = null;
-                                        e.target.src = file.isFolder ? svgFolder : svgDoc;
-                                      }}
-                                    />
+                                    {nowPlaying ? (
+                                      <NowPlayingIndicator />
+                                    ) : (
+                                      <img
+                                        src={getFileIcon(file)}
+                                        height={32}
+                                        alt="file icon"
+                                        onError={(e) => {
+                                          e.target.onerror = null;
+                                          e.target.src = file.isFolder ? svgFolder : svgDoc;
+                                        }}
+                                      />
+                                    )}
                                   </span>
 
                                   <div className="file-item">
@@ -7566,17 +7568,19 @@ const NestedPage = () => {
                           }
                         />
                       ) : (
-                        paginatedData.map((file, index) => (
+                        paginatedData.map((file, index) => {
+                          const nowPlaying = isNowPlayingPath(
+                            file.fileName,
+                            currentAudioFile,
+                            showAudioPlayer
+                          );
+                          return (
                           <div
-                            // className={`grid-item2 ${
-                            //   draggedItem?.fileName === file.fileName
-                            //     ? "dragging"
-                            //     : ""
-                            // }`}
                             className={`grid-item2 
                                 ${activeRow === 1 ? "active-row" : ""} 
                                 ${hoveredFolderName === file.fileName ? "border_highlight" : ""} 
-                                ${draggedItem?.fileName === file.fileName ? "dragging" : ""}`}
+                                ${draggedItem?.fileName === file.fileName ? "dragging" : ""}
+                                ${nowPlaying ? "is-now-playing" : ""}`}
                             key={index}
                             style={{ cursor: "pointer" }}
                             // draggable={true}
@@ -8225,18 +8229,25 @@ const NestedPage = () => {
                               </div>
                             )}
 
-                            {/* File Icon / public image preview (visible cards only) */}
+                            {/* File Icon / public image preview / audio art (visible cards only) */}
                             <CardFilePreview
                               file={file}
                               getIcon={getFileIcon}
+                              shared={isSharedValue}
+                              sharedName={filenameRedux}
                             />
 
                             <div className="files-grid-card-body">
                               <div
-                                className="files-grid-card-name"
+                                className={`files-grid-card-name${
+                                  nowPlaying ? " files-grid-card-name--playing" : ""
+                                }`}
                                 title={getTextAfterLastSlash(file.fileName)}
                               >
-                                {getTextAfterLastSlash(file.fileName)}
+                                {nowPlaying ? <NowPlayingIndicator /> : null}
+                                <span className="files-grid-card-name__text">
+                                  {getTextAfterLastSlash(file.fileName)}
+                                </span>
                               </div>
                               {getTextBeforeLastSlash(file.fileName) ? (
                                 <div
@@ -8265,7 +8276,8 @@ const NestedPage = () => {
                               </div>
                             </div>
                           </div>
-                        ))
+                          );
+                        })
                       )}
                     </div>
                   </>
@@ -8506,66 +8518,6 @@ const NestedPage = () => {
                   >
                     Close
                   </button>
-
-                  {/* Convert Files — hidden for now */}
-                  {false && files.length > 0 && (
-
-                    <button
-
-                      // onClick={() => setShowConversionModal(true)}
-                      onClick={() => {
-                        if (!isPremium) {
-                          setShowUpgradeModal(true);
-                          return;
-                        }
-                        console.log('Files array:', files);  // Debug
-                        setShowConversionModal(true);
-                      }}
-                      style={{
-                        padding: '14px 28px',
-                        // background: '#FFF1E8',
-                        background: '#ffffffff',
-                        color: '#333',
-                        border: '2px solid #FFD5A9',
-                        borderRadius: '58px',
-                        cursor: 'pointer',
-                        fontWeight: '600',
-                        // fontSize: '0.95em',
-                        fontSize: '14px',
-                        transition: 'all 0.2s',
-                        boxShadow: '0 2px 6px rgba(255, 171, 73, 0.15)',
-                        letterSpacing: '0.3px',
-                        display: 'flex',
-                        alignItems: 'center',
-                        gap: '8px',
-                      }}
-                      onMouseEnter={(e) => {
-                        e.target.style.background = '#FFF1E8';
-                        e.target.style.color = 'black';
-                        e.target.style.borderColor = '#E5660F';
-                        e.target.style.transform = 'translateY(-2px)';
-                        e.target.style.boxShadow = '0 4px 12px rgba(255, 171, 73, 0.3)';
-                      }}
-                      onMouseLeave={(e) => {
-                        e.target.style.background = '#ffffffff';
-                        e.target.style.color = '#333';
-                        e.target.style.borderColor = '#FFD5A9';
-                        e.target.style.transform = 'translateY(0)';
-                        e.target.style.boxShadow = '0 2px 6px rgba(255, 171, 73, 0.15)';
-                      }}
-                      onMouseDown={(e) => {
-                        e.target.style.transform = 'translateY(-1px) scale(0.98)';
-                      }}
-                      onMouseUp={(e) => {
-                        e.target.style.transform = 'translateY(-2px) scale(1)';
-                      }}
-                    >
-                      Convert Files
-                      {!isPremium && <span className="context-menu-icon">
-                        <img src={svgCrown} alt="" style={{ height: "20px" }} />
-                      </span>}
-                    </button>
-                  )}
 
                   <button
                     onClick={handleFileUpload}
@@ -8811,16 +8763,6 @@ const NestedPage = () => {
             </div>
           </div>
         </div>
-      )}
-
-      {/* File Conversion Modal */}
-      {showConversionModal && (
-        <FileConversionModal
-          isOpen={showConversionModal}
-          onClose={() => setShowConversionModal(false)}
-          files={files}
-          onFilesUpdated={handleFilesConverted}
-        />
       )}
 
       {loader2 && <Loader2 />}

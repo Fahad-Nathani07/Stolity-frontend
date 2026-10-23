@@ -16,6 +16,7 @@ const initialState = {
   isGoogleAuth: storedGoogleAuth,
   showAudioPlayer: false,
   currentAudioFile: null,
+  isAudioPlaying: false,
   audioQueue: [],
   originalAudioQueue: [],
   currentTrackIndex: 0,
@@ -223,10 +224,15 @@ const fileSlicer = createSlice({
         playAudio: (state, action) => {
       state.currentAudioFile = action.payload;
       state.showAudioPlayer = true;
+      state.isAudioPlaying = true;
+    },
+    setAudioPlaying: (state, action) => {
+      state.isAudioPlaying = Boolean(action.payload);
     },
     closeAudioPlayer: (state) => {
       state.showAudioPlayer = false;
       state.currentAudioFile = null;
+      state.isAudioPlaying = false;
       state.audioQueue = [];
       state.originalAudioQueue = [];
       state.currentTrackIndex = 0;
@@ -322,6 +328,7 @@ const fileSlicer = createSlice({
       }
 
       state.showAudioPlayer = true;
+      state.isAudioPlaying = true;
     },
 
 
@@ -352,6 +359,7 @@ export const {
   resetFolderList,
   removeLastFolder2,
   playAudio,
+  setAudioPlaying,
   closeAudioPlayer,
   playNextTrack,
   playPrevTrack,

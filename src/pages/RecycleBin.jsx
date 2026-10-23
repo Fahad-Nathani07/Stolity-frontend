@@ -144,7 +144,6 @@ import {
 import { isAudioExtension } from "../utils/audioPlayer";
 import DownloadModal from "./DownloadModal/DownloadModal";
 import SelectFolderModal from "./DownloadModal/SelectFolderModal";
-import FileConversionModal from "../components/FileConversionModal";
 import LoaderRestore from "../components/LoaderRestore";
 import LoaderPermanentDelete from "../components/LoaderPermanentDelete";
 import { showToast } from "../components/ToastProvider";
@@ -366,17 +365,6 @@ const [modalFolderKeys, setModalFolderKeys] = useState([]);
 const [folderToRestore, setFolderToRestore] = useState(null);
 
   const [sortedData, setSortedData] = useState([]); // Stores sorted results
-
-  // *************** File Conversion *************** // 
-  
-  const [showConversionModal, setShowConversionModal] = useState(false);
-  const [convertedFiles, setConvertedFiles] = useState([]);
-
-  const handleFilesConverted = (updatedFiles) => {
-    setFiles(updatedFiles);
-    setConvertedFiles(updatedFiles);
-    setShowConversionModal(false);
-  };
 
   const totalPages = Math.ceil(totalEntries / itemsPerPage);
   const startItem = (currentPage - 1) * itemsPerPage + 1;
@@ -2618,16 +2606,6 @@ const fetchFoldersAtLevel = async (folderPath = "") => {
     }
   }
 
-  const customTruncateFileName = (name, maxLength) => {
-    if (name.length > maxLength) {
-      return `${name.substring(0, maxLength - 9)} of the ${name.substring(
-        maxLength - 6,
-        maxLength
-      )}...`;
-    }
-    return name;
-  };
-
   function getFileNameWithoutExtension(fileName) {
     const lastDotIndex = fileName.lastIndexOf(".");
 
@@ -4188,9 +4166,7 @@ const isMultiSizeExceeded = selectedTotalBytes > remainingBytes;
                                           setShowAccessDeniedModal(true);
                                         }}
                                       >
-                                        {getTextAfterLastSlash(
-                                          customTruncateFileName(file.fileName, 55)
-                                        )}
+                                        {getTextAfterLastSlash(file.fileName)}
                                       </TruncatedTooltip>
 
                                     

@@ -64,7 +64,6 @@ import SalaryIcon from "../../images/SalaryIcon.svg"
 import AddNewBrand from "../../images/AddNewBrand.svg"
 import redAlertIcon from "../../images/redAlertIcon.svg"
 import UploadLogo1 from "../../images/UploadLogo1.svg"
-import DemoCompanyLogo1 from "../../images/DemoCompanyLogo1.svg"
 import location from "../../images/location.svg"
 import CallIcon from "../../images/CallIcon.svg"
 import PostedDaysAgo from "../../images/PostedDaysAgo.svg"
@@ -5722,7 +5721,7 @@ fontStyle: "Medium", fontSize: "14px", lineHeight: "20px", color:"#575757"}}>Mai
           flexShrink: 0,
         }}
       >
-       <img src={DemoCompanyLogo1} />
+       <img src={UploadLogo1} />
         {/* <span style={{ color: "#fff", fontSize: "10px" }}>Logo</span> */}
       </div>
 
@@ -5842,7 +5841,7 @@ fontStyle: "Medium", fontSize: "14px", lineHeight: "20px", color:"#575757"}}>Mai
           flexShrink: 0,
         }}
       >
-       <img src={DemoCompanyLogo1} />
+       <img src={UploadLogo1} />
         {/* <span style={{ color: "#fff", fontSize: "10px" }}>Logo</span> */}
       </div>
 
@@ -6849,7 +6848,7 @@ fontStyle: "Medium", fontSize: "14px", lineHeight: "20px", color:"#575757"}}>Mai
                       }}
                     >
                      
-                      <img src={DemoCompanyLogo1} alt="" />
+                      <img src={UploadLogo1} alt="" />
                     </div>
                   </div>
                   <div style={{ fontSize: "16px", color: "#989898", marginBottom: "12px", textAlign:"center" }}>

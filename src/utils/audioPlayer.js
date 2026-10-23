@@ -12,6 +12,12 @@ export function isAudioFile(file) {
   return Boolean(file && !file.isFolder && isAudioExtension(file.fileType));
 }
 
+/** True when this row/card matches the global player's current track. */
+export function isNowPlayingPath(fileName, currentAudioFile, showAudioPlayer) {
+  if (!showAudioPlayer || !currentAudioFile || !fileName) return false;
+  return String(currentAudioFile) === String(fileName);
+}
+
 export function buildAudioQueueFromFiles(files, currentFileName) {
   const queue = (files || []).filter(isAudioFile).map((f) => f.fileName);
   const index = queue.findIndex((name) => name === currentFileName);

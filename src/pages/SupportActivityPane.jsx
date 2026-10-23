@@ -71,6 +71,31 @@ function formatBytes(bytes) {
   return `${v < 10 && i > 0 ? v.toFixed(2) : v < 100 && i > 0 ? v.toFixed(1) : Math.round(v)} ${units[i]}`;
 }
 
+/** UI device label — missing/unknown → Website */
+function formatDeviceLabel(deviceType) {
+  const t = String(deviceType || "")
+    .trim()
+    .toLowerCase();
+  if (t === "mobile" || t === "app" || t === "android" || t === "ios") {
+    return "Mobile";
+  }
+  return "Website";
+}
+
+function userDevicePill(user) {
+  if (user?.deviceLabel) return user.deviceLabel;
+  if (user?.usedWeb && user?.usedMobile) return "Both";
+  if (user?.usedMobile) return "Mobile";
+  return "Website";
+}
+
+function devicePillClass(label) {
+  const t = String(label || "").toLowerCase();
+  if (t === "mobile") return "ssd-device-pill--mobile";
+  if (t === "both") return "ssd-device-pill--both";
+  return "ssd-device-pill--web";
+}
+
 function formatWhen(iso) {
   if (!iso) return "—";
   try {
@@ -553,7 +578,7 @@ export default function SupportActivityPane({
         <div className="ssd-stat-card">
           <FiMonitor aria-hidden />
           <div>
-            <span className="ssd-stat-label">Web users</span>
+            <span className="ssd-stat-label">Website users</span>
             <strong>{deviceTotals.uniqueWebUsers}</strong>
             <span className="ssd-stat-sub">Unique in range</span>
           </div>
@@ -606,39 +631,178 @@ export default function SupportActivityPane({
               <ul className="ssd-activity-user-list">
                 {users.map((u) => {
                   const selected = selectedUserId === u.userId;
+                  const pill = userDevicePill(u);
+                  const webUp = Number(u.uploadedBytesWeb) || 0;
+                  const webDown = Number(u.downloadedBytesWeb) || 0;
+                  const webZip = Number(u.zipBytesWeb) || 0;
+                  const webUnzip = Number(u.unzipBytesWeb) || 0;
+                  const webEvents = Number(u.eventCountWeb) || 0;
+                  const mobUp = Number(u.uploadedBytesMobile) || 0;
+                  const mobDown = Number(u.downloadedBytesMobile) || 0;
+                  const mobZip = Number(u.zipBytesMobile) || 0;
+                  const mobUnzip = Number(u.unzipBytesMobile) || 0;
+                  const mobEvents = Number(u.eventCountMobile) || 0;
                   return (
                     <li key={u.userId}>
                       <button
                         type="button"
-                        className={`ssd-activity-user${
+                        className={`ssd-activity-user ssd-activity-user--premium${
                           selected ? " is-selected" : ""
                         }`}
                         onClick={() =>
                           setSelectedUserId(selected ? null : u.userId)
                         }
                       >
-                        <span className="ssd-activity-user-avatar" aria-hidden>
-                          {personInitials(u.email || u.userId)}
-                        </span>
-                        <span className="ssd-activity-user-body">
-                          <span className="ssd-activity-user-email">
-                            {u.email || u.userId}
+                        <div className="ssd-activity-user-top">
+                          <span className="ssd-activity-user-avatar" aria-hidden>
+                            {personInitials(u.email || u.userId)}
                           </span>
-                          <span className="ssd-activity-user-metrics">
-                            <span className="ssd-activity-metric ssd-activity-metric--up">
-                              <FiUpload />
-                              {formatBytes(u.uploadedBytes)}
+                          <span className="ssd-activity-user-head">
+                            <span className="ssd-activity-user-email">
+                              {u.email || u.userId}
                             </span>
-                            <span className="ssd-activity-metric ssd-activity-metric--down">
-                              <FiDownload />
-                              {formatBytes(u.downloadedBytes)}
+                            <span
+                              className={`ssd-device-pill ${devicePillClass(
+                                pill
+                              )}`}
+                            >
+                              {pill === "Both" ? "Both devices" : pill}
                             </span>
                           </span>
-                        </span>
-                        <span className="ssd-activity-user-count">
-                          {Number(u.eventCount) || 0}
-                          <small>events</small>
-                        </span>
+                          <span className="ssd-activity-user-count">
+                            {Number(u.eventCount) || 0}
+                            <small>events</small>
+                          </span>
+                        </div>
+
+                        <div className="ssd-activity-device-rows">
+                          <div className="ssd-activity-device-row ssd-activity-device-row--web">
+                            <span className="ssd-activity-device-row__label">
+                              <FiMonitor aria-hidden />
+                              Website
+                            </span>
+                            <span className="ssd-activity-device-row__metrics">
+                              <span
+                                className="ssd-activity-metric ssd-activity-metric--up"
+                                title="Website uploaded"
+                              >
+                                <FiUpload />
+                                <span className="ssd-activity-metric__k">Up</span>
+                                {formatBytes(webUp)}
+                              </span>
+                              <span
+                                className="ssd-activity-metric ssd-activity-metric--down"
+                                title="Website downloaded"
+                              >
+                                <FiDownload />
+                                <span className="ssd-activity-metric__k">Down</span>
+                                {formatBytes(webDown)}
+                              </span>
+                              <span
+                                className="ssd-activity-metric ssd-activity-metric--zip"
+                                title="Website zip"
+                              >
+                                <FiArchive />
+                                <span className="ssd-activity-metric__k">Zip</span>
+                                {formatBytes(webZip)}
+                              </span>
+                              <span
+                                className="ssd-activity-metric ssd-activity-metric--unzip"
+                                title="Website unzip"
+                              >
+                                <FiPackage />
+                                <span className="ssd-activity-metric__k">Unzip</span>
+                                {formatBytes(webUnzip)}
+                              </span>
+                              <span
+                                className="ssd-activity-metric ssd-activity-metric--events"
+                                title="Website events"
+                              >
+                                <FiActivity />
+                                <span className="ssd-activity-metric__k">Ev</span>
+                                {webEvents}
+                              </span>
+                            </span>
+                          </div>
+                          <div className="ssd-activity-device-row ssd-activity-device-row--mobile">
+                            <span className="ssd-activity-device-row__label">
+                              <FiSmartphone aria-hidden />
+                              Mobile
+                            </span>
+                            <span className="ssd-activity-device-row__metrics">
+                              <span
+                                className="ssd-activity-metric ssd-activity-metric--up"
+                                title="Mobile uploaded"
+                              >
+                                <FiUpload />
+                                <span className="ssd-activity-metric__k">Up</span>
+                                {formatBytes(mobUp)}
+                              </span>
+                              <span
+                                className="ssd-activity-metric ssd-activity-metric--down"
+                                title="Mobile downloaded"
+                              >
+                                <FiDownload />
+                                <span className="ssd-activity-metric__k">Down</span>
+                                {formatBytes(mobDown)}
+                              </span>
+                              <span
+                                className="ssd-activity-metric ssd-activity-metric--zip"
+                                title="Mobile zip"
+                              >
+                                <FiArchive />
+                                <span className="ssd-activity-metric__k">Zip</span>
+                                {formatBytes(mobZip)}
+                              </span>
+                              <span
+                                className="ssd-activity-metric ssd-activity-metric--unzip"
+                                title="Mobile unzip"
+                              >
+                                <FiPackage />
+                                <span className="ssd-activity-metric__k">Unzip</span>
+                                {formatBytes(mobUnzip)}
+                              </span>
+                              <span
+                                className="ssd-activity-metric ssd-activity-metric--events"
+                                title="Mobile events"
+                              >
+                                <FiActivity />
+                                <span className="ssd-activity-metric__k">Ev</span>
+                                {mobEvents}
+                              </span>
+                            </span>
+                          </div>
+                        </div>
+
+                        <div className="ssd-activity-user-totals">
+                          <span>
+                            Up {Number(u.uploadCount) || 0} · Down{" "}
+                            {Number(u.downloadCount) || 0}
+                          </span>
+                          <span>
+                            Zip {Number(u.zipCount) || 0} · Unzip{" "}
+                            {Number(u.unzipCount) || 0}
+                          </span>
+                          <span>
+                            Copy {Number(u.copyCount) || 0} · Move{" "}
+                            {Number(u.moveCount) || 0}
+                          </span>
+                          <span>
+                            Del {Number(u.deleteCount) || 0} · Rest{" "}
+                            {Number(u.restoreCount) || 0}
+                          </span>
+                          <span>
+                            Other {Number(u.otherCount) || 0}
+                          </span>
+                          <span title="Total transfer volume">
+                            Σ {formatBytes(
+                              (Number(u.uploadedBytes) || 0) +
+                                (Number(u.downloadedBytes) || 0) +
+                                (Number(u.zipBytes) || 0) +
+                                (Number(u.unzipBytes) || 0)
+                            )}
+                          </span>
+                        </div>
                       </button>
                     </li>
                   );
@@ -788,7 +952,15 @@ export default function SupportActivityPane({
                             <div className="ssd-muted ssd-tiny">Batch</div>
                           )}
                         </td>
-                        <td>{formatLabel(ev.deviceType)}</td>
+                        <td>
+                          <span
+                            className={`ssd-device-pill ssd-device-pill--sm ${devicePillClass(
+                              formatDeviceLabel(ev.deviceType)
+                            )}`}
+                          >
+                            {formatDeviceLabel(ev.deviceType)}
+                          </span>
+                        </td>
                         <td title={pathCell.title}>
                           {pathCell.primary}
                           {ev.sourcePath && ev.destinationPath && (

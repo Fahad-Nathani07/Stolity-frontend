@@ -8,6 +8,12 @@ export const SUPPORT_TICKET_CATEGORIES = [
   { id: "other", label: "Other" },
 ];
 
+export const SUPPORT_TICKET_DEVICE_TYPES = [
+  { id: "website", label: "Website" },
+  { id: "mobile_android", label: "Mobile - Android" },
+  { id: "mobile_ios", label: "Mobile - iOS" },
+];
+
 export const TICKET_STATUS_LABELS = {
   open: "Open",
   in_progress: "In Progress",
@@ -20,6 +26,15 @@ export const TICKET_STATUS_LABELS = {
 
 export function formatTicketCategory(id) {
   const found = SUPPORT_TICKET_CATEGORIES.find((c) => c.id === id);
+  if (found) return found.label;
+  if (!id) return "—";
+  return String(id)
+    .replace(/_/g, " ")
+    .replace(/\b\w/g, (c) => c.toUpperCase());
+}
+
+export function formatTicketDeviceType(id) {
+  const found = SUPPORT_TICKET_DEVICE_TYPES.find((d) => d.id === id);
   if (found) return found.label;
   if (!id) return "—";
   return String(id)

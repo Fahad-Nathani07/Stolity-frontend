@@ -100,6 +100,7 @@ import {
 import "../css/FilesToolbar.css";
 import "../css/FilesPage.css";
 import CardFilePreview from "../components/CardFilePreview";
+import NowPlayingIndicator from "../components/NowPlayingIndicator";
 import FilesPaginationFooter from "../components/FilesPaginationFooter";
 import { useStickyListHeader } from "../hooks/useStickyListHeader";
 import RenameModal from "../components/RenameModal";
@@ -201,10 +202,9 @@ import {
 import { fetchRecycleBin } from "../store/recycleBinSlice";
 import store from "../store/store";
 import { usePlayAudio } from "../hooks/usePlayAudio";
-import { getFilteredFullFileList } from "../utils/audioPlayer";
+import { getFilteredFullFileList, isNowPlayingPath } from "../utils/audioPlayer";
 import DownloadModal from "./DownloadModal/DownloadModal";
 import SelectFolderModal from "./DownloadModal/SelectFolderModal";
-import FileConversionModal from "../components/FileConversionModal";
 import CustomFileModal from "./CustomFileModal";
 import LoaderRecycleBin from "../components/LoaderRecycleBin";
 import { showToast } from "../components/ToastProvider";
@@ -326,6 +326,8 @@ const Favourites = () => {
 
   const isSharedValue = useSelector((state) => state.getdata.isSharedValue);
   const filenameRedux = useSelector((state) => state.getdata.fileName);
+  const currentAudioFile = useSelector((state) => state.getdata.currentAudioFile);
+  const showAudioPlayer = useSelector((state) => state.getdata.showAudioPlayer);
   const subscription = useSelector((state) => state.subscription.subscription);
   const isPremium =
     !!subscription &&
@@ -448,19 +450,8 @@ const Favourites = () => {
 
   const [sortedData, setSortedData] = useState([]); // Stores sorted results
 
-  // *************** File Conversion *************** // 
-
-  const [showConversionModal, setShowConversionModal] = useState(false);
-  const [convertedFiles, setConvertedFiles] = useState([]);
-
   const [showPrivateWarning, setShowPrivateWarning] = useState(false);
   const [fileToShare, setFileToShare] = useState(null);
-
-  const handleFilesConverted = (updatedFiles) => {
-    setFiles(updatedFiles);
-    setConvertedFiles(updatedFiles);
-    setShowConversionModal(false);
-  };
 
   const totalPages = Math.ceil(totalEntries / itemsPerPage);
   const startItem = (currentPage - 1) * itemsPerPage + 1;
@@ -2834,16 +2825,6 @@ const Favourites = () => {
       endZipping();
     }
   }
-
-  const customTruncateFileName = (name, maxLength) => {
-    if (name.length > maxLength) {
-      return `${name.substring(0, maxLength - 9)} of the ${name.substring(
-        maxLength - 6,
-        maxLength
-      )}...`;
-    }
-    return name;
-  };
 
   const getLastSegment = (text) => {
     // Check if the text contains a slash
@@ -5569,11 +5550,16 @@ const Favourites = () => {
                         </thead>
 
                         {filedata.map((file, index) => {
+                          const nowPlaying = isNowPlayingPath(
+                            file.fileName,
+                            currentAudioFile,
+                            showAudioPlayer
+                          );
                           return (
                             <tbody>
                               <tr
-                                className={`hover_cell ${activeRow === 1 ? "active-row" : ""
-                                  }`}
+                                className={`hover_cell ${activeRow === 1 ? "active-row" : ""}
+                                  ${nowPlaying ? "is-now-playing" : ""}`}
                                 draggable={true}
                                 onDragStart={(e) => handleDragStart(e, file)}
                                 onDragOver={
@@ -5687,16 +5673,19 @@ const Favourites = () => {
                                     className="filename_link"
                                     style={{ cursor: "pointer" }}
                                   >
-                                    {/* Check if the file is shared and display the sharedIcon, otherwise display file.icon */}
-                                    <img
-                                      src={getFileIcon(file)}
-                                      height={32}
-                                      alt="file icon"
-                                      onError={(e) => {
-                                        e.target.onerror = null;
-                                        e.target.src = "/images/icons/doc.svg";
-                                      }}
-                                    />
+                                    {nowPlaying ? (
+                                      <NowPlayingIndicator />
+                                    ) : (
+                                      <img
+                                        src={getFileIcon(file)}
+                                        height={32}
+                                        alt="file icon"
+                                        onError={(e) => {
+                                          e.target.onerror = null;
+                                          e.target.src = "/images/icons/doc.svg";
+                                        }}
+                                      />
+                                    )}
                                   </span>
                                   <div className="file-item">
                                     <TruncatedTooltip
@@ -5786,12 +5775,7 @@ const Favourites = () => {
                                       }}
 
                                     >
-                                      {getTextAfterLastSlash(
-                                        customTruncateFileName(
-                                          file.fileName,
-                                          55
-                                        )
-                                      )}
+                                      {getTextAfterLastSlash(file.fileName)}
                                     </TruncatedTooltip>
                                     <span
                                       className="file-path"
@@ -6198,12 +6182,18 @@ const Favourites = () => {
                           }
                         />
                       ) : (
-                        filedata.map((file, index) => (
+                        filedata.map((file, index) => {
+                          const nowPlaying = isNowPlayingPath(
+                            file.fileName,
+                            currentAudioFile,
+                            showAudioPlayer
+                          );
+                          return (
                           <div
                             className={`grid-item2 ${draggedItem?.fileName === file.fileName
                                 ? "dragging"
                                 : ""
-                              }`}
+                              }${nowPlaying ? " is-now-playing" : ""}`}
                             key={index}
                             style={{ cursor: "pointer" }}
                             draggable={true}
@@ -6743,17 +6733,22 @@ const Favourites = () => {
                             <div style={{ padding: "18px" }}>
                               {/* File Name */}
                               <div
-                                className="file-name2"
+                                className={`file-name2${
+                                  nowPlaying ? " files-grid-card-name--playing" : ""
+                                }`}
                                 style={{
                                   cursor: "pointer",
-                                  whiteSpace: "nowrap",
+                                  whiteSpace: nowPlaying ? "normal" : "nowrap",
                                   overflow: "hidden",
                                   textOverflow: "ellipsis",
                                   maxWidth: "100%",
                                 }}
                                 title={file.fileName}
                               >
-                                {getTextAfterLastSlash(file.fileName)}
+                                {nowPlaying ? <NowPlayingIndicator /> : null}
+                                <span className="file-name2__text">
+                                  {getTextAfterLastSlash(file.fileName)}
+                                </span>
                               </div>
 
                               {/* File Path */}
@@ -6785,7 +6780,8 @@ const Favourites = () => {
                             </div>
 
                           </div>
-                        ))
+                          );
+                        })
                       )}
                     </div>
                   </>
@@ -7027,53 +7023,6 @@ const Favourites = () => {
                   >
                     Close
                   </button>
-                  {/* Convert Files — hidden for now */}
-                  {false && files.length > 0 && (
-                    <button
-                      // onClick={() => setShowConversionModal(true)}
-                      onClick={() => {
-                        console.log('Files array:', files);  // Debug
-                        setShowConversionModal(true);
-                      }}
-                      style={{
-                        padding: '14px 28px',
-                        // background: '#FFF1E8',
-                        background: '#ffffffff',
-                        color: '#333',
-                        border: '2px solid #FFD5A9',
-                        borderRadius: '58px',
-                        cursor: 'pointer',
-                        fontWeight: '600',
-                        fontSize: '0.95em',
-                        transition: 'all 0.2s',
-                        boxShadow: '0 2px 6px rgba(255, 171, 73, 0.15)',
-                        letterSpacing: '0.3px'
-                      }}
-                      onMouseEnter={(e) => {
-                        e.target.style.background = '#FFF1E8';
-                        e.target.style.color = 'black';
-                        e.target.style.borderColor = '#E5660F';
-                        e.target.style.transform = 'translateY(-2px)';
-                        e.target.style.boxShadow = '0 4px 12px rgba(255, 171, 73, 0.3)';
-                      }}
-                      onMouseLeave={(e) => {
-                        e.target.style.background = '#ffffffff';
-                        e.target.style.color = '#333';
-                        e.target.style.borderColor = '#FFD5A9';
-                        e.target.style.transform = 'translateY(0)';
-                        e.target.style.boxShadow = '0 2px 6px rgba(255, 171, 73, 0.15)';
-                      }}
-                      onMouseDown={(e) => {
-                        e.target.style.transform = 'translateY(-1px) scale(0.98)';
-                      }}
-                      onMouseUp={(e) => {
-                        e.target.style.transform = 'translateY(-2px) scale(1)';
-                      }}
-                    >
-                      Convert Files (Optional)
-                    </button>
-
-                  )}
                   <button
                     onClick={handleFileUpload}
                     className="btn_width_same ripple_effect btn-upload"
@@ -7431,13 +7380,6 @@ const Favourites = () => {
         onDownload={handleDownload}
         openPathSelectionModal={openPathSelectionModal}
         reloadAfterTast={getFileData}
-      />
-
-      <FileConversionModal
-        isOpen={showConversionModal}
-        onClose={() => setShowConversionModal(false)}
-        files={files}
-        onFilesUpdated={handleFilesConverted}
       />
 
       <UploadBatchLimitModal

@@ -22,7 +22,9 @@ import { refreshSupportTicketsUnread } from "../hooks/useSupportTicketsUnread";
 import AvatarDefault from "../images/AvatarDefault.jpg";
 import {
   SUPPORT_TICKET_CATEGORIES,
+  SUPPORT_TICKET_DEVICE_TYPES,
   formatTicketCategory,
+  formatTicketDeviceType,
   formatTicketStatus,
   ticketDisplayCode,
   TICKET_MESSAGE_MIN,
@@ -114,6 +116,7 @@ export default function SupportTicketsPage() {
   const [selected, setSelected] = useState(null);
   const [detailLoading, setDetailLoading] = useState(false);
   const [category, setCategory] = useState("other");
+  const [deviceType, setDeviceType] = useState("");
   const [message, setMessage] = useState("");
   const [submitting, setSubmitting] = useState(false);
   const [replyText, setReplyText] = useState("");
@@ -279,6 +282,10 @@ export default function SupportTicketsPage() {
   const handleCreate = async (e) => {
     e.preventDefault();
     const text = message.trim();
+    if (!deviceType) {
+      showToast("warning", "Please select which device you are using.");
+      return;
+    }
     if (text.length < TICKET_MESSAGE_MIN) {
       showToast("warning", "Please enter a short message.");
       return;
@@ -287,12 +294,13 @@ export default function SupportTicketsPage() {
       setSubmitting(true);
       const res = await axios.post(
         `${apiUrl}support/tickets`,
-        { category, message: text },
+        { category, deviceType, message: text },
         { headers: authHeaders() }
       );
       const id = res.data?.id || res.data?.result?.id;
       showToast("success", "Ticket created");
       setMessage("");
+      setDeviceType("");
       await fetchTickets();
       if (id) navigate(`/SupportTickets/${id}`);
       else navigate("/SupportTickets");
@@ -598,8 +606,8 @@ export default function SupportTicketsPage() {
                   <div className="stu-form-head">
                     <h2>New support ticket</h2>
                     <p>
-                      Choose a category and describe the issue. Our team will
-                      reply in this chat.
+                      Choose a category, tell us which device you use, and
+                      describe the issue. Our team will reply in this chat.
                     </p>
                   </div>
 
@@ -631,6 +639,34 @@ export default function SupportTicketsPage() {
                     ))}
                   </div>
 
+                  <div className="stu-label">
+                    <span id="stu-device-label">Device</span>
+                    <SupportFilterSelect
+                      value={deviceType}
+                      options={SUPPORT_TICKET_DEVICE_TYPES}
+                      onChange={setDeviceType}
+                      ariaLabel="Device type"
+                      placeholder="Select device…"
+                      className="stu-category-select"
+                    />
+                  </div>
+
+                  <div className="stu-cat-pills" role="list">
+                    {SUPPORT_TICKET_DEVICE_TYPES.map((d) => (
+                      <button
+                        key={d.id}
+                        type="button"
+                        role="listitem"
+                        className={`stu-cat-pill${
+                          deviceType === d.id ? " is-active" : ""
+                        }`}
+                        onClick={() => setDeviceType(d.id)}
+                      >
+                        {d.label}
+                      </button>
+                    ))}
+                  </div>
+
                   <label className="stu-label" htmlFor="stu-message">
                     How can we help?
                     <textarea
@@ -652,6 +688,7 @@ export default function SupportTicketsPage() {
                       className="stu-btn stu-btn--primary stu-btn--lg"
                       disabled={
                         submitting ||
+                        !deviceType ||
                         message.trim().length < TICKET_MESSAGE_MIN
                       }
                     >
@@ -687,6 +724,9 @@ export default function SupportTicketsPage() {
                       <div>
                         <p className="stu-chat-kicker">
                           {formatTicketCategory(selected.category)}
+                          {selected.deviceType
+                            ? ` · ${formatTicketDeviceType(selected.deviceType)}`
+                            : ""}
                         </p>
                         <h2>{ticketDisplayCode(selected.id)}</h2>
                       </div>

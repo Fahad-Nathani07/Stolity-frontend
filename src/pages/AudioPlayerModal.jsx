@@ -1,7 +1,9 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useDispatch } from "react-redux";
 import { useLocation } from "react-router-dom";
 import Draggable from "react-draggable";
 import "../css/AudioPlayerModal.css";
+import { setAudioPlaying } from "../store/fileSlicer";
 import {
   FaPause,
   FaPlay,
@@ -17,6 +19,7 @@ import {
 import { LuRepeat, LuRepeat1 } from "react-icons/lu";
 import { TbRepeatOff } from "react-icons/tb";
 import { resolveFileIconPath } from "../utils/fileIcon";
+import { fetchAlbumArtUrl } from "../utils/audioAlbumArt";
 import { PAUSE_GLOBAL_AUDIO_EVENT } from "../utils/mediaPlaybackGuard";
 import ApTooltip from "../components/ApTooltip";
 
@@ -74,6 +77,7 @@ const AudioPlayerModal = ({
   repeatMode,
   onSetRepeatMode,
 }) => {
+  const dispatch = useDispatch();
   const location = useLocation();
   const sitsAboveFooter = useMemo(
     () => pathHasTableFooter(location.pathname),
@@ -92,15 +96,37 @@ const AudioPlayerModal = ({
   const [duration, setDuration] = useState(0);
   const [volume, setVolume] = useState(0.85);
   const [isMuted, setIsMuted] = useState(false);
+  const [coverUrl, setCoverUrl] = useState(null);
 
   const displayName = getFileName(fileName);
   const displayNameShort = truncateText(displayName, 30);
   const folderPath = getFolderPath(fileName);
   const fileIcon = resolveFileIconPath({ fileName: displayName });
+  const artSrc = coverUrl || fileIcon;
 
   useEffect(() => {
     hasRepeatedOnceRef.current = false;
   }, [audioSrc]);
+
+  // Album art for current track only — keep file icon until cover loads (or miss).
+  useEffect(() => {
+    setCoverUrl(null);
+    if (!audioSrc || !fileName) return undefined;
+
+    const ac = new AbortController();
+    let cancelled = false;
+
+    fetchAlbumArtUrl(audioSrc, fileName, ac.signal)
+      .then((url) => {
+        if (!cancelled && url) setCoverUrl(url);
+      })
+      .catch(() => {});
+
+    return () => {
+      cancelled = true;
+      ac.abort();
+    };
+  }, [audioSrc, fileName]);
 
   useEffect(() => {
     if (isPlaying && displayName) {
@@ -152,8 +178,14 @@ const AudioPlayerModal = ({
 
     const onTimeUpdate = () => setCurrentTime(audioEl.currentTime);
     const onLoadedMetadata = () => setDuration(audioEl.duration || 0);
-    const onPlay = () => setIsPlaying(true);
-    const onPause = () => setIsPlaying(false);
+    const onPlay = () => {
+      setIsPlaying(true);
+      dispatch(setAudioPlaying(true));
+    };
+    const onPause = () => {
+      setIsPlaying(false);
+      dispatch(setAudioPlaying(false));
+    };
     const onEnded = () => {
       if (repeatMode === "on") {
         audioEl.currentTime = 0;
@@ -170,6 +202,7 @@ const AudioPlayerModal = ({
         hasRepeatedOnceRef.current = false;
       }
       setIsPlaying(false);
+      dispatch(setAudioPlaying(false));
       onNext();
     };
 
@@ -186,7 +219,7 @@ const AudioPlayerModal = ({
       audioEl.removeEventListener("pause", onPause);
       audioEl.removeEventListener("ended", onEnded);
     };
-  }, [onNext, repeatMode]);
+  }, [dispatch, onNext, repeatMode]);
 
   const togglePlay = useCallback(() => {
     const audioEl = audioRef.current;
@@ -201,11 +234,18 @@ const AudioPlayerModal = ({
       if (!audioEl) return;
       if (!audioEl.paused) audioEl.pause();
       setIsPlaying(false);
+      dispatch(setAudioPlaying(false));
     };
     window.addEventListener(PAUSE_GLOBAL_AUDIO_EVENT, pauseForVideo);
     return () =>
       window.removeEventListener(PAUSE_GLOBAL_AUDIO_EVENT, pauseForVideo);
-  }, []);
+  }, [dispatch]);
+
+  useEffect(() => {
+    return () => {
+      dispatch(setAudioPlaying(false));
+    };
+  }, [dispatch]);
 
   const handleProgressClick = useCallback(
     (event) => {
@@ -307,8 +347,12 @@ const AudioPlayerModal = ({
                   if (e.key === "Enter" || e.key === " ") setIsMinimized(false);
                 }}
               >
-                <div className={`ap-mini-art${isPlaying ? " is-playing" : ""}`}>
-                  <img src={fileIcon} alt="" />
+                <div
+                  className={`ap-mini-art${isPlaying ? " is-playing" : ""}${
+                    coverUrl ? " has-cover" : ""
+                  }`}
+                >
+                  <img src={artSrc} alt="" />
                 </div>
                 <div className="ap-mini-meta">
                   <span className="ap-mini-title">{truncateText(displayName, 18)}</span>
@@ -340,8 +384,8 @@ const AudioPlayerModal = ({
           aria-label="Audio player"
         >
           <div className="ap-bar-track">
-            <div className="ap-bar-art">
-              <img src={fileIcon} alt="" />
+            <div className={`ap-bar-art${coverUrl ? " has-cover" : ""}`}>
+              <img src={artSrc} alt="" />
             </div>
             <div className="ap-bar-meta">
               <ApTooltip label={displayName}>
