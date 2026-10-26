@@ -132,7 +132,9 @@ export default function ZippingProgressModal({
 
           <div className="tp-summary">
             <div className="tp-summary-top">
-              <span className="tp-summary-label">{displayName}</span>
+              <span className="tp-summary-label" title={displayName}>
+                {displayName}
+              </span>
             </div>
             <div
               className="tp-bar-wrap tp-bar-wrap--indeterminate"

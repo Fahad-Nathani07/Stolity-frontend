@@ -175,7 +175,7 @@ const [creatingFolder, setCreatingFolder] = useState(false);
       Array.isArray(subscription.entitlement_ids) &&
       subscription.entitlement_ids.length > 0;
 
-  
+
 
   // const { addUpload, updateUploadProgress, removeUpload } = useContext(UploadContext);
   // const { addUpload, updateUploadProgress, updateUploadMeta, removeUpload, abortUpload } = useContext(UploadContext);
@@ -345,7 +345,7 @@ const [showMultiRestoreModal, setShowMultiRestoreModal] = useState(false);
     const { role, companies: assignedCompanyIds } = useSelector(
         (state) => state.jobPortal
       );
-  
+
 
   // Restore modal states
 // Restore modal states
@@ -380,24 +380,24 @@ const [folderToRestore, setFolderToRestore] = useState(null);
   // }, []);
 
   useEffect(() => {
-    const fetchData = async () => {
+  const fetchData = async () => {
       setPlaceholderLoading(true);
 
-      try {
+    try {
         // Prefer Redux list from login; only hit API if not loaded yet
         await getFileData(undefined, { useCache: true });
-        console.log("On root page!!!!!!!");
-        dispatch(setIsSharedFalse());
-      } catch (error) {
-        console.log("Error in useEffect:", error);
-      } finally {
+      console.log("On root page!!!!!!!");
+      dispatch(setIsSharedFalse());
+    } catch (error) {
+      console.log("Error in useEffect:", error);
+    } finally {
         setPlaceholderLoading(false);
-      }
-    };
+    }
+  };
 
-    fetchData();
+  fetchData();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+}, []);
 
   // useEffect(() => {
   //   // Whenever currentPage or itemsPerPage changes, update displayed data
@@ -597,12 +597,12 @@ const handleMulDelete = async () => {
 
       try {
         await axios.delete(`${apiUrl}delete-file?fromRecycleBin=true`, {
-          data: dataToSend,
-          headers: {
-            Authorization: `Bearer ${token}`,
-            "Content-Type": "application/json",
-          },
-        });
+        data: dataToSend,
+        headers: {
+          Authorization: `Bearer ${token}`,
+          "Content-Type": "application/json",
+        },
+      });
       } catch (fileErr) {
         if (!isRecycleNotFoundError(fileErr)) throw fileErr;
       }
@@ -616,15 +616,15 @@ const handleMulDelete = async () => {
       // Assuming your backend now expects the same format as single delete
       try {
         await axios.delete(`${apiUrl}delete-folder?fromRecycleBin=true`, { ...LONG_RUNNING_AWS_REQUEST_OPTIONS, 
-          data: {
+        data: {
             folderName: keys2.map((name) => resolveRecycleFolderKey(name)),
-            fromRecycleBin: true,
-          },
-          headers: {
-            Authorization: `Bearer ${token}`,
-            "Content-Type": "application/json",
-          },
-        });
+          fromRecycleBin: true,
+        },
+        headers: {
+          Authorization: `Bearer ${token}`,
+          "Content-Type": "application/json",
+        },
+      });
       } catch (folderErr) {
         if (!isRecycleNotFoundError(folderErr)) throw folderErr;
       }
@@ -915,7 +915,7 @@ const closeOnlyPopup = () => {
     setSelectedFileTypes([]);
     setCustomExtInput("");
     applyFilter([], { keepOpen: true });
-  };
+};
 
 const handleFTypeSelect = (eventKey) => {
   clearSearchBar();
@@ -1038,32 +1038,32 @@ const parseSizeToBytes = (sizeStr) => {
 };
 
 const nameFilter1 = () => {
-  clearSearchBar();
+    clearSearchBar();
   applyTypeAndSort(selectedFileTypes, "By Name(A-Z)");
 };
 
 const nameFilter2 = () => {
-  clearSearchBar();
+    clearSearchBar();
   applyTypeAndSort(selectedFileTypes, "By Name(Z-A)");
 };
 
 const sizeFilter1 = () => {
-  clearSearchBar();
+    clearSearchBar();
   applyTypeAndSort(selectedFileTypes, "By Size(Asc)");
 };
 
 const sizeFilter2 = () => {
-  clearSearchBar();
+    clearSearchBar();
   applyTypeAndSort(selectedFileTypes, "By Size(Desc)");
 };
 
 const dateFilter1 = () => {
-  clearSearchBar();
+    clearSearchBar();
   applyTypeAndSort(selectedFileTypes, "By Date(Oldest)");
 };
 
 const dateFilter2 = () => {
-  clearSearchBar();
+    clearSearchBar();
   applyTypeAndSort(selectedFileTypes, "By Date(Newest)");
 };
 
@@ -1159,9 +1159,9 @@ const dateFilter2 = () => {
       }
 
       return applyRecycleBinFiles(recycleBinFiles);
-    } catch (error) {
-      console.log("Error fetching recycle bin files", error);
-      showToast("error", "Failed to load recycle bin files");
+  } catch (error) {
+    console.log("Error fetching recycle bin files", error);
+    showToast("error", "Failed to load recycle bin files");
       return [];
     }
   };
@@ -1304,7 +1304,7 @@ const dateFilter2 = () => {
       const url = await resolveMediaPlayUrl({
         apiUrl,
         token,
-        filePath: filename,
+          filePath: filename,
         inline: true,
       });
       await preloadStreamedImage(url);
@@ -1358,7 +1358,7 @@ const dateFilter2 = () => {
       const url = await resolveMediaPlayUrl({
         apiUrl,
         token,
-        filePath: filename,
+          filePath: filename,
         inline: true,
       });
       setIsProgressVisible(false);
@@ -1375,7 +1375,7 @@ const dateFilter2 = () => {
       const url = await resolveDocumentBlobUrl({
         apiUrl,
         token,
-        filePath: filename,
+          filePath: filename,
       });
       setPdfSrc(url);
     } catch (error) {
@@ -1521,7 +1521,7 @@ const dateFilter2 = () => {
   const [wholeFile, setWholeFile] = useState(null);
   const [renamePop, setRenamepop] = useState(false);
   const [extension, setExtension] = useState("");
- 
+
 
   const handlePChange = (e) => {
     // console.log("public private", e.target.value);
@@ -1730,10 +1730,10 @@ const openRestorePicker = () => {
   setShowRestoreChoiceModal(false);
   setShowRestoreFolderModal(false);
   setShowMultiRestoreConfirm(false);
-  setShowRestoreModal(true);
+    setShowRestoreModal(true);
   setSelectedDestination("");
-  setFolderNavigationPath([]);
-  fetchFoldersAtLevel("");
+    setFolderNavigationPath([]);
+    fetchFoldersAtLevel("");
 };
 
 const openMultiRestorePicker = () => {
@@ -1752,7 +1752,7 @@ const handleRestore = (file) => {
   setModalFolderKeys([]);
   if (canRestoreToOriginal(file)) {
     setShowRestoreChoiceModal(true);
-  } else {
+        } else {
     // Legacy file without originalPath — picker only
     openRestorePicker();
   }
@@ -1763,14 +1763,14 @@ const prepareMultiRestoreChoice = () => {
   const folderKeys = getFolderSelectionKeys();
   const uniqueFolders = Array.from(new Set(folderKeys));
 
-  const hasSharedFolders = uniqueFolders.some((folder) => {
+    const hasSharedFolders = uniqueFolders.some((folder) => {
     const file = findRecycleEntryByName(folder);
-    return file && file.isShared;
-  });
-  if (hasSharedFolders) {
-    showToast("error", "Shared folders cannot be restored.");
-    return;
-  }
+      return file && file.isShared;
+    });
+    if (hasSharedFolders) {
+      showToast("error", "Shared folders cannot be restored.");
+      return;
+    }
 
   if (fileKeys.length === 0 && uniqueFolders.length === 0) {
     showToast("error", "No items selected to restore.");
@@ -1979,7 +1979,7 @@ const performFolderMultiRestore = async (
           "Some folders could not be restored (missing from recycle bin)."
         );
       } else {
-        showToast("success", "Folders restored successfully!");
+      showToast("success", "Folders restored successfully!");
       }
     });
 
@@ -2517,7 +2517,7 @@ const fetchFoldersAtLevel = async (folderPath = "") => {
     c++;
   }
 
-  
+
 
   const [isLoading1, setIsLoading1] = useState(false);
   const [codeChunks, setCodeChunks] = useState([]); // chunks of lines
@@ -2995,13 +2995,13 @@ const handleFileUpload = async () => {
     const delay = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
 
     const uploadEntries = files.map((file, i) => {
-      const originalName = file.name;
-      const sanitizedName = isVideoFile(originalName)
-        ? sanitizeFilename(originalName)
-        : originalName;
-      const uploadUiId = Date.now() + i;
-      const controller =
-        typeof AbortController !== "undefined" ? new AbortController() : null;
+        const originalName = file.name;
+        const sanitizedName = isVideoFile(originalName)
+          ? sanitizeFilename(originalName)
+          : originalName;
+        const uploadUiId = Date.now() + i;
+        const controller =
+          typeof AbortController !== "undefined" ? new AbortController() : null;
       addUpload(uploadUiId, "Uploading " + sanitizedName, {
         controller,
         operation: "upload",
@@ -3157,16 +3157,16 @@ const handleFileUpload = async () => {
         }
 
         if (!partFailed) {
-          // 3) Complete multipart upload
-          try {
-            await completeMultipart({ key, uploadId, parts: partsArray });
-            removeUpload(uploadUiId);
+        // 3) Complete multipart upload
+        try {
+          await completeMultipart({ key, uploadId, parts: partsArray });
+          removeUpload(uploadUiId);
             results.push({ status: "fulfilled", value: "success" });
-          } catch (err) {
-            try {
-              await abortMultipart({ key, uploadId });
-            } catch {}
-            removeUpload(uploadUiId);
+        } catch (err) {
+          try {
+            await abortMultipart({ key, uploadId });
+          } catch {}
+          removeUpload(uploadUiId);
             results.push({ status: "rejected", reason: err });
           }
         }
@@ -3480,12 +3480,12 @@ const isMultiSizeExceeded = selectedTotalBytes > remainingBytes;
         },
       });
       await finishAfterDelete();
-    } catch (error) {
+        } catch (error) {
       // Missing object → treat as deleted so UI advances / drops the name
       if (isRecycleNotFoundError(error)) {
         await finishAfterDelete();
         return;
-      }
+        }
       showToast("error", `There's an error while deleting file!`);
     }
   };
@@ -3615,7 +3615,7 @@ const isMultiSizeExceeded = selectedTotalBytes > remainingBytes;
 
   return (
     <>
-{deletePop && (
+      {deletePop && (
         <div className="rename_popup_wrapper">
           <div className="rename_modal">
             <div
@@ -3676,8 +3676,8 @@ const isMultiSizeExceeded = selectedTotalBytes > remainingBytes;
                     <span className="files-nav-welcome__name">
                       {userProfile.name || userData?.userData?.name || userData?.name || name}
                     </span>
-                  </div>
-                </div>
+          </div>
+            </div>
               </div>
 
               <button
@@ -3754,14 +3754,14 @@ const isMultiSizeExceeded = selectedTotalBytes > remainingBytes;
                         sortIcon={SortHome}
                         crownIcon={svgCrown}
                       />
-                      </div>
+                    </div>
 
                       <div
                         className={`files-toolbar__filetype${
                           selectedFileTypes.length > 0 ? " is-active" : ""
                         }${showFTPopup ? " is-open" : ""}`}
                         ref={fileTypeDropdownRef}
-                      >
+                    >
                       <Dropdown
                         noCaret
                         onSelect={handleFTypeSelect}
@@ -3825,7 +3825,7 @@ const isMultiSizeExceeded = selectedTotalBytes > remainingBytes;
                           >
                             <div className="ft-filter-popup-header">
                               <div className="ft-filter-popup-title">
-                                File Type Filter
+                            File Type Filter
                               </div>
                               <div className="ft-filter-popup-subtitle">
                                 Choose formats to filter
@@ -3897,40 +3897,40 @@ const isMultiSizeExceeded = selectedTotalBytes > remainingBytes;
                                   selectedFileTypes.includes(fileType);
                                 return (
                                   <label
-                                    key={fileType}
+                                key={fileType}
                                     className={`ft-filter-type-item${
                                       isSelected ? " is-selected" : ""
                                     }`}
-                                  >
-                                    <input
-                                      type="checkbox"
+                              >
+                                <input
+                                  type="checkbox"
                                       checked={isSelected}
-                                      onChange={() =>
-                                        handleFTCheckboxChange(fileType)
-                                      }
+                                  onChange={() =>
+                                    handleFTCheckboxChange(fileType)
+                                  }
                                     />
                                     <span>{fileType.toUpperCase()}</span>
-                                  </label>
+                                </label>
                                 );
                               })}
-                            </div>
+                              </div>
 
                             <div className="ft-filter-popup-footer">
-                              <button
+                            <button
                                 type="button"
                                 className="ft-filter-btn-cancel"
                                 onClick={closeOnlyPopup}
-                              >
+                            >
                                 Done
-                              </button>
-                              <button
+                            </button>
+                            <button
                                 type="button"
                                 className="ft-filter-btn-apply"
                                 onClick={clearFileTypeFilter}
-                              >
+                            >
                                 Clear
-                              </button>
-                            </div>
+                            </button>
+                          </div>
                           </div>,
                           document.body
                         )}
@@ -3953,11 +3953,11 @@ const isMultiSizeExceeded = selectedTotalBytes > remainingBytes;
                 }}
                 onDelete={() => {
                   if (!hasFileSelection()) {
-                    showToast("error", "No items selected to delete");
-                  } else {
-                    setShowDeleteModal(true);
-                  }
-                }}
+                                showToast("error", "No items selected to delete");
+                              } else {
+                                setShowDeleteModal(true);
+                              }
+                            }}
               />
 
                 <div id="dataView" style={{ position: "relative", zIndex: 30 }}>
@@ -3973,7 +3973,7 @@ const isMultiSizeExceeded = selectedTotalBytes > remainingBytes;
                           rows={11}
                           columns={5}
                           active
-                          style={{
+                            style={{
                             paddingLeft: 20,
                             paddingRight: 20,
                             paddingTop: 12,
@@ -3989,7 +3989,7 @@ const isMultiSizeExceeded = selectedTotalBytes > remainingBytes;
                             query.trim().length > 0
                           }
                         />
-                      </div>
+                </div>
                     ) : (
                     <div className="table-responsive" id="listViewContent">
                       <table id="filestable" className="table table-striped">
@@ -4112,8 +4112,8 @@ const isMultiSizeExceeded = selectedTotalBytes > remainingBytes;
                           </tr>
                         </thead>
 
- 
 
+ 
                       {filedata.map((file, index) => {
     return (
                               <tbody>
@@ -4270,7 +4270,7 @@ const isMultiSizeExceeded = selectedTotalBytes > remainingBytes;
                                             <div className="file-size">{file.fileSize}</div>
                                           </div>
                                         </a>
-                                      
+
 
                                        {/* Restore option */}
                                         <a
@@ -4330,7 +4330,7 @@ const isMultiSizeExceeded = selectedTotalBytes > remainingBytes;
                             query.trim().length > 0
                           }
                         />
-                      ) : (
+                        ) : (
                           filedata.map((file, index) => (
   <div
     className={`grid-item2 ${
@@ -4515,7 +4515,7 @@ const isMultiSizeExceeded = selectedTotalBytes > remainingBytes;
                     </>
                   )}
                 </div>
-           
+
 
            
 
@@ -4992,22 +4992,22 @@ const isMultiSizeExceeded = selectedTotalBytes > remainingBytes;
     creatingFolder={creatingFolder}
     footerExtra={
       <div className="fdm-storage-hint">
-        <div className="filesize-warning-div" style={{ gap: 0 }}>
-          <span className="filesize-warning-span">
-            <div className="warning-icon">!</div>
-            {`Storage left: ${(remainingBytes / 1_000_000_000).toFixed(2)} GB`}
-          </span>
-          <span
-            className="filesize-warning-span"
-            style={{
-              marginTop: "8px",
+            <div className="filesize-warning-div" style={{ gap: 0 }}>
+              <span className="filesize-warning-span">
+                <div className="warning-icon">!</div>
+                {`Storage left: ${(remainingBytes / 1_000_000_000).toFixed(2)} GB`}
+              </span>
+              <span
+                className="filesize-warning-span"
+                style={{
+                  marginTop: "8px",
               color: isSizeExceeded ? "red" : "#5d5d5d",
-            }}
-          >
-            {`Current file size: ${fileSizeDisplay}`}
-          </span>
-        </div>
-      </div>
+                }}
+              >
+                {`Current file size: ${fileSizeDisplay}`}
+              </span>
+            </div>
+          </div>
     }
   >
     <FolderPickerListPanel
@@ -5033,10 +5033,10 @@ const isMultiSizeExceeded = selectedTotalBytes > remainingBytes;
       setFileToAccess(null);
     }}
     onRestore={() => {
-      setShowAccessDeniedModal(false);
-      handleRestore(fileToAccess);
-      setFileToAccess(null);
-    }}
+              setShowAccessDeniedModal(false);
+              handleRestore(fileToAccess);
+              setFileToAccess(null);
+            }}
   />
 )}
 
@@ -5471,22 +5471,22 @@ const isMultiSizeExceeded = selectedTotalBytes > remainingBytes;
     creatingFolder={creatingFolder}
     footerExtra={
       <div className="fdm-storage-hint">
-        <div className="filesize-warning-div" style={{ gap: 0 }}>
-          <span className="filesize-warning-span">
-            <div className="warning-icon">!</div>
-            Storage left: {formatStorageSize(remainingBytes)}
-          </span>
-          <span
-            className="filesize-warning-span"
-            style={{
-              marginTop: "8px",
-              color: isMultiSizeExceeded ? "red" : "#5d5d5d",
-            }}
-          >
-            {`Selected files total size: ${selectedTotalGB} GB`}
-          </span>
-        </div>
-      </div>
+            <div className="filesize-warning-div" style={{ gap: 0 }}>
+              <span className="filesize-warning-span">
+                <div className="warning-icon">!</div>
+                Storage left: {formatStorageSize(remainingBytes)}
+              </span>
+              <span
+                className="filesize-warning-span"
+                style={{
+                  marginTop: "8px",
+                  color: isMultiSizeExceeded ? "red" : "#5d5d5d",
+                }}
+              >
+                {`Selected files total size: ${selectedTotalGB} GB`}
+              </span>
+            </div>
+          </div>
     }
   >
     <FolderPickerListPanel
@@ -5513,14 +5513,14 @@ const isMultiSizeExceeded = selectedTotalBytes > remainingBytes;
         <div className="rename_popup_wrapper">
           <div className="rename_modal">
             <div
-              style={{
+          style={{
                 display: "flex",
                 justifyContent: "center",
                 marginBottom: "15px",
               }}
             >
               <img src={warningIcon} alt="" style={{ height: "48px" }} />
-            </div>
+        </div>
             <h2 className="rename_title2">Recycle Bin retention</h2>
             <p className="rename_subtext">
               Items in the Recycle Bin are kept for{" "}

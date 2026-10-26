@@ -19,6 +19,7 @@ import NestedPage from './pages/NestedPage';
 import Loader from './pages/Loader';
 import PageLoaders from './pages/PageLoaders';
 import ToastExamples from './pages/ToastExamples';
+import UnsupportedUIPreview from './pages/UnsupportedUIPreview';
 import { UploadProvider } from './pages/UploadContext';
 import UploadProgressModal from './pages/UploadProgressModal';
 import ServerActionProgressHost from './components/ServerActionProgressHost';
@@ -212,6 +213,7 @@ const {
               <Route path="/Industries/:slug" element={<IndustryDetail />} />
               <Route path="/terms-and-conditions" element={<TermsAndConditions />} />
               <Route path="/privacy-policy" element={<PrivacyPolicy />} />
+              <Route path="/unsupportedUI" element={<UnsupportedUIPreview />} />
               <Route path="/:companySlug/careers" element={<CareerJobListing />} />
               {/* <Route path="/" element={<PreLogin />} /> */}
               <Route path="/" element={<Home1 />} />

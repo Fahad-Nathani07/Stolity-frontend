@@ -1231,6 +1231,8 @@
 @media screen and (min-width: 768px) and (max-width: 1530px) {
   .files-layout .files-page #listViewContent {
     overflow: visible !important;
+    /* padding-right: var(--files-align-inset, 20px);
+    box-sizing: border-box; */
   }
 
   .files-layout .files-page #filestable {
@@ -1262,10 +1264,28 @@
     height: 14px;
   }
 
-  .files-layout .files-page #filestable .files-col-check,
-  .files-layout .files-page #filestable th:first-child,
-  .files-layout .files-page #filestable td:first-child:has(> input[type="checkbox"]) {
-    width: 40px !important;
+  /*
+   * Fixed layout + thead inline widths (40%+20%+25%+15% = 100%) PLUS a 40px
+   * check column over-allocates — check column grows and leaves a big left
+   * gap. Pin check tightly on thead+tbody; give name the remainder in px/% override.
+   */
+  .files-layout .files-page #filestable thead th.files-col-check,
+  .files-layout .files-page #filestable thead th:first-child,
+  .files-layout .files-page #filestable tbody td.files-col-check,
+  .files-layout .files-page #filestable tbody td:first-child:has(input[type="checkbox"]) {
+    width: 28px !important;
+    min-width: 28px !important;
+    max-width: 28px !important;
+    padding-left: 15px !important;
+    padding-right: 15px !important;
+    text-align: left !important;
+    vertical-align: middle;
+  }
+
+  .files-layout .files-page #filestable thead th.files-col-check input[type="checkbox"],
+  .files-layout .files-page #filestable tbody td.files-col-check input[type="checkbox"],
+  .files-layout .files-page #filestable tbody td:first-child:has(input[type="checkbox"]) input[type="checkbox"] {
+    margin: 0 !important;
   }
 
   /* Name takes remaining width and can shrink; long names ellipsize */
@@ -1273,8 +1293,7 @@
   .files-layout .files-page #filestable thead th.files-col-name,
   .files-layout .files-page #filestable tbody td.files-col-name,
   .files-layout .files-page #filestable tbody td:has(.file-item) {
-    width: auto;
-    max-width: 100%;
+    width: auto !important;
     min-width: 0 !important;
     overflow: hidden !important;
   }
@@ -1285,6 +1304,8 @@
     align-items: center;
     gap: 10px;
     min-width: 0 !important;
+    /* Tight to checkbox — match >1530; no !important so NestedPage blackbox 35px wins */
+    padding-left: 20px;
   }
 
   .files-layout .files-page #filestable tbody td.files-col-name > .filename_link,
@@ -1299,20 +1320,48 @@
     overflow: hidden;
   }
 
+  .files-layout .files-page #filestable thead th.files-col-size,
+  .files-layout .files-page #filestable thead th.files-col-date,
   .files-layout .files-page #filestable .files-col-size,
   .files-layout .files-page #filestable .files-col-date,
   .files-layout .files-page #filestable td.fileSizeTL,
   .files-layout .files-page #filestable td.fileSizeTD {
-    width: 110px;
+    width: 170px !important;
+    min-width: 170px !important;
     overflow: hidden;
     white-space: nowrap;
+    padding-left: 16px !important;
+    padding-right: 16px !important;
+  }
+
+  .files-layout .files-page #filestable thead th.files-col-action {
+    width: 96px !important;
+    min-width: 96px !important;
+    max-width: 96px !important;
+    padding-right: 16px !important;
+    padding-left: 16px !important;
+  }
+
+  /* Align Size / Modified headers with centered body cells */
+  .files-layout .files-page #filestable thead th.files-col-size,
+  .files-layout .files-page #filestable thead th.files-col-date {
+    text-align: center !important;
+  }
+
+  .files-layout .files-page #filestable thead th.files-col-size .column-name-new,
+  .files-layout .files-page #filestable thead th.files-col-date .column-name-new {
+    display: inline-flex !important;
+    justify-content: center !important;
+    width: 100%;
   }
 
   .files-layout .files-page #filestable .files-col-action,
   .files-layout .files-page #filestable tbody td:last-child {
-    width: 52px !important;
-    min-width: 52px !important;
-    max-width: 52px !important;
+    width: 96px !important;
+    min-width: 96px !important;
+    max-width: 96px !important;
+    padding-right: 16px !important;
+    padding-left: 16px !important;
   }
 
   .files-layout .files-page #filestable .file-name,
@@ -1343,13 +1392,14 @@
   }
 }
 
-/* Mid band: slightly tighter Size/Date so name gets more room */
+/* Mid band: keep Size/Date/Action roomy (same as 768–1530 block) */
 @media screen and (min-width: 1101px) and (max-width: 1530px) {
   .files-layout .files-page #filestable .files-col-size,
   .files-layout .files-page #filestable .files-col-date,
   .files-layout .files-page #filestable td.fileSizeTL,
   .files-layout .files-page #filestable td.fileSizeTD {
-    width: 100px;
+    width: 170px !important;
+    min-width: 170px !important;
   }
 }
 
@@ -1505,6 +1555,60 @@
 .has-bulk-selection .dropdown .dropdown-toggle {
   opacity: 0.4;
   cursor: not-allowed !important;
+}
+
+/*
+ * Long file names ellipsis — table-layout:fixed so content cannot
+ * widen columns. Do NOT use max-width:0 on flex name cells (hides text).
+ */
+.files-layout .files-page #filestable {
+  table-layout: fixed;
+  width: 100%;
+}
+
+.files-layout .files-page #filestable thead th.files-col-name,
+.files-layout .files-page #filestable tbody td.files-col-name,
+.files-layout .files-page #filestable tbody td:has(.file-item) {
+  min-width: 0 !important;
+  overflow: hidden !important;
+}
+
+.files-layout .files-page #filestable tbody td.files-col-name,
+.files-layout .files-page #filestable tbody td:has(.file-item) {
+  display: flex !important;
+  align-items: center;
+  gap: 10px;
+}
+
+.files-layout .files-page #filestable tbody td.files-col-name > .filename_link,
+.files-layout .files-page #filestable tbody td:has(.file-item) > .filename_link {
+  flex: 0 0 auto;
+}
+
+.files-layout .files-page #filestable .file-item {
+  flex: 1 1 0%;
+  min-width: 0 !important;
+  max-width: 100%;
+  overflow: hidden;
+}
+
+.files-layout .files-page #filestable .file-item > .trunc-tip-wrap {
+  flex: 1 1 0%;
+  min-width: 0;
+  max-width: 100%;
+  display: block;
+  overflow: hidden;
+}
+
+.files-layout .files-page #filestable .file-name,
+.files-layout .files-page #filestable .file-name.filename_link,
+.files-layout .files-page #filestable .trunc-tip-text.file-name {
+  display: block !important;
+  max-width: 100% !important;
+  min-width: 0 !important;
+  overflow: hidden !important;
+  text-overflow: ellipsis !important;
+  white-space: nowrap !important;
 }
 
 #filestable .files-col-check {

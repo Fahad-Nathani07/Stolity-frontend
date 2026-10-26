@@ -232,6 +232,7 @@
 
 .tp-summary {
   padding: 14px 18px 16px;
+  min-width: 0;
 }
 
 .tp-summary-top {
@@ -240,13 +241,22 @@
   justify-content: space-between;
   gap: 12px;
   margin-bottom: 8px;
+  min-width: 0;
+  width: 100%;
+  box-sizing: border-box;
 }
 
 .tp-summary-label {
+  flex: 1 1 auto;
+  min-width: 0;
+  max-width: 100%;
   font-size: 12px;
   font-weight: 600;
   color: #64748b;
   letter-spacing: 0.01em;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .tp-percent {

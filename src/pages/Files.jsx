@@ -5772,7 +5772,7 @@ useEffect(()=>{
                               width: "20%",
                               fontWeight: 600,
                               color: "#181818",
-                              justifyContent: "center",
+                              textAlign: "center",
                             }}
                           >
                             <span
@@ -5804,7 +5804,7 @@ useEffect(()=>{
                               width: "25%",
                               fontWeight: 600,
                               color: "#181818",
-                              justifyContent: "center",
+                              textAlign: "center",
                             }}
                           >
                             <span
@@ -6014,15 +6014,15 @@ useEffect(()=>{
             {nowPlaying ? (
               <NowPlayingIndicator />
             ) : (
-              <img
-                src={getFileIcon(file)}
-                height={32}
-                alt="file icon"
-                onError={(e) => {
-                  e.target.onerror = null;
-                  e.target.src = file.isFolder ? svgFolder : svgDoc;
-                }}
-              />
+            <img
+              src={getFileIcon(file)}
+              height={32}
+              alt="file icon"
+              onError={(e) => {
+                e.target.onerror = null;
+                e.target.src = file.isFolder ? svgFolder : svgDoc;
+              }}
+            />
             )}
           </span>
           <div className="file-item">
@@ -7437,7 +7437,7 @@ useEffect(()=>{
                               >
                                 {nowPlaying ? <NowPlayingIndicator /> : null}
                                 <span className="files-grid-card-name__text">
-                                  {file.fileName}
+                                {file.fileName}
                                 </span>
                               </div>
                               <div className="files-grid-card-meta">

@@ -236,17 +236,17 @@ const Favourites = () => {
 
   const {
     uploads,
-    addUpload,
-    updateUploadProgress,
-    updateUploadMeta,
-    removeUpload,
-    abortUpload,
-    pauseUpload,
-    resumeUpload,
-    getUpload,
-    isPausing, // <-- new
+  addUpload,
+  updateUploadProgress,
+  updateUploadMeta,
+  removeUpload,
+  abortUpload,
+  pauseUpload,
+  resumeUpload,
+  getUpload,
+  isPausing, // <-- new
     registerCancelRefresh,
-  } = useContext(UploadContext);
+} = useContext(UploadContext);
 
   const {
     addDownload,
@@ -325,7 +325,7 @@ const Favourites = () => {
   const [placeholderLoading, setPlaceholderLoading] = useState(true);
 
   const isSharedValue = useSelector((state) => state.getdata.isSharedValue);
-  const filenameRedux = useSelector((state) => state.getdata.fileName);
+    const filenameRedux = useSelector((state) => state.getdata.fileName);
   const currentAudioFile = useSelector((state) => state.getdata.currentAudioFile);
   const showAudioPlayer = useSelector((state) => state.getdata.showAudioPlayer);
   const subscription = useSelector((state) => state.subscription.subscription);
@@ -334,10 +334,10 @@ const Favourites = () => {
     Array.isArray(subscription.entitlement_ids) &&
     subscription.entitlement_ids.length > 0;
 
-  const email = sessionStorage.getItem("email");
-  const { role, companies: assignedCompanyIds } = useSelector(
-    (state) => state.jobPortal
-  );
+      const email = sessionStorage.getItem("email");
+      const { role, companies: assignedCompanyIds } = useSelector(
+          (state) => state.jobPortal
+        );
 
 
   useEffect(() => {
@@ -388,8 +388,8 @@ const Favourites = () => {
   const [show, setShow] = useState(false);
   const [showImage, setShowImage] = useState(false);
   const [codeFilePath, setCodeFilePath] = useState("");
-  //   const [showAudioPlayer, setShowAudioPlayer] = useState(false);
-  // const [currentAudioFile, setCurrentAudioFile] = useState(null);
+//   const [showAudioPlayer, setShowAudioPlayer] = useState(false);
+// const [currentAudioFile, setCurrentAudioFile] = useState(null);
 
   useEffect(() => {
     const lockScroll = () => {
@@ -432,10 +432,10 @@ const Favourites = () => {
   };
 
   const [loader_Recycle, setLoader_Recycle] = useState(false);
-  const [loader2, setLoader2] = useState(false);
+    const [loader2, setLoader2] = useState(false);
 
   const docBlobRef = useRef(null);
-
+  
   useEffect(() => {
     return () => {
       // cleanup: revoke blob URL on unmount
@@ -459,26 +459,26 @@ const Favourites = () => {
   const isNextPage = currentPage < totalPages;
 
   useEffect(() => {
-    const fetchData = async () => {
+  const fetchData = async () => {
       setPlaceholderLoading(true);
 
-      try {
+    try {
         // Prefer Redux list from login; only hit API if not loaded yet
         await getFileData(undefined, { useCache: true });
-        console.log("On root page!!!!!!!");
-        dispatch(setIsSharedFalse());
-      } catch (error) {
-        console.log("Error in useEffect:", error);
-      } finally {
+      console.log("On root page!!!!!!!");
+      dispatch(setIsSharedFalse());
+    } catch (error) {
+      console.log("Error in useEffect:", error);
+    } finally {
         setPlaceholderLoading(false);
-      }
-    };
+    }
+  };
 
-    fetchData();
+  fetchData();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+}, []);
 
-
+  
   const fileTypes = ["pdf", "jpg", "jpeg", "png", "mov", "mp3", "mp4", "zip"];
   const [selectedFileTypes, setSelectedFileTypes] = useState([]);
 
@@ -494,12 +494,12 @@ const Favourites = () => {
     return () => document.removeEventListener("mousedown", handleOutside);
   }, [showFTPopup]);
 
-  useEffect(() => {
-    // Use sortedData if available, otherwise use allEntries
-    const dataSource =
-      sortedData.length > 0 || (sortedData.length === 0 && selectedFileTypes.length > 0)
-        ? sortedData
-        : allEntries;
+useEffect(() => {
+  // Use sortedData if available, otherwise use allEntries
+  const dataSource =
+    sortedData.length > 0 || (sortedData.length === 0 && selectedFileTypes.length > 0)
+      ? sortedData
+      : allEntries;
 
     const q = query.trim().toLowerCase();
     const filtered = !q
@@ -514,8 +514,8 @@ const Favourites = () => {
 
     setTotalEntries(filtered.length);
 
-    const startIndex = (currentPage - 1) * itemsPerPage;
-    const endIndex = startIndex + itemsPerPage;
+  const startIndex = (currentPage - 1) * itemsPerPage;
+  const endIndex = startIndex + itemsPerPage;
 
     setFileData(filtered.slice(startIndex, endIndex));
   }, [currentPage, itemsPerPage, allEntries, sortedData, selectedFileTypes, query]);
@@ -673,63 +673,63 @@ const Favourites = () => {
     return true;
   };
 
-  //  const handleMulDelete = async () => {
-  //   try {
-  //     // Check if any selected item is a shared folder
-  //     const hasSharedFolders = filedata.some(
-  //       (file) => file.isShared && keys2.includes(file.fileName)
-  //     );
+//  const handleMulDelete = async () => {
+//   try {
+//     // Check if any selected item is a shared folder
+//     const hasSharedFolders = filedata.some(
+//       (file) => file.isShared && keys2.includes(file.fileName)
+//     );
 
-  //     if (hasSharedFolders) {
-  //       // showToast("error", "Shared folders cannot be deleted.");
-  //       return;
-  //     }
+//     if (hasSharedFolders) {
+//       // showToast("error", "Shared folders cannot be deleted.");
+//       return;
+//     }
 
-  //     // Soft delete files if keys have items
-  //     if (keys.length > 0) {
-  //       const payload = {
-  //         sourceFolder: path || "",  // Use current folder path or empty string if undefined
-  //         keys: keys,
-  //       };
+//     // Soft delete files if keys have items
+//     if (keys.length > 0) {
+//       const payload = {
+//         sourceFolder: path || "",  // Use current folder path or empty string if undefined
+//         keys: keys,
+//       };
   //       // const res = await axios.delete('https://filesapi.infomanav.in/api/aws/soft-delete', { ...LONG_RUNNING_AWS_REQUEST_OPTIONS, 
   //       const res = await axios.delete(`${apiUrl}soft-delete`, { ...LONG_RUNNING_AWS_REQUEST_OPTIONS, 
-  //         data: payload,
-  //         headers: {
-  //           Authorization: `Bearer ${token}`,
-  //           "Content-Type": "application/json",
-  //         },
-  //       });
-  //       showToast("success", "Files moved to recycle bin successfully!");
-  //     }
+//         data: payload,
+//         headers: {
+//           Authorization: `Bearer ${token}`,
+//           "Content-Type": "application/json",
+//         },
+//       });
+//       showToast("success", "Files moved to recycle bin successfully!");
+//     }
 
-  //     // Permanently delete folders if keys2 have items
-  //     if (keys2.length > 0) {
+//     // Permanently delete folders if keys2 have items
+//     if (keys2.length > 0) {
   //       const resFolders = await axios.delete(`${apiUrl}delete-folder`, { ...LONG_RUNNING_AWS_REQUEST_OPTIONS, 
-  //         data: { folderName: keys2 },
-  //         headers: {
-  //           Authorization: `Bearer ${token}`,
-  //           "Content-Type": "application/json",
-  //         },
-  //       });
-  //       showToast("success", "Folder deleted Successfully!");
-  //     }
+//         data: { folderName: keys2 },
+//         headers: {
+//           Authorization: `Bearer ${token}`,
+//           "Content-Type": "application/json",
+//         },
+//       });
+//       showToast("success", "Folder deleted Successfully!");
+//     }
 
-  //     // After successful delete, reset states and refresh data
-  //     getLatestFolderList();
-  //     setIsSelectAll(false);
-  //     setSelectStatus(false);
-  //     getFileData(1); // Refresh file data
-  //     setCurrentPage(1);
-  //     getRootFolderSize(); // Refresh folder size
-  //     setKeys([]); // Reset keys for files
-  //     setKeys2([]); // Reset keys for folders
-  //   } catch (error) {
-  //     showToast("error", "Some error has occurred");
-  //   }
-  // };
+//     // After successful delete, reset states and refresh data
+//     getLatestFolderList();
+//     setIsSelectAll(false);
+//     setSelectStatus(false);
+//     getFileData(1); // Refresh file data
+//     setCurrentPage(1);
+//     getRootFolderSize(); // Refresh folder size
+//     setKeys([]); // Reset keys for files
+//     setKeys2([]); // Reset keys for folders
+//   } catch (error) {
+//     showToast("error", "Some error has occurred");
+//   }
+// };
 
   // Copy text to clipboard
-
+ 
 
   // Helper function to get the appropriate icon (local /public/images/icons)
   const getFileIcon = (file) =>
@@ -737,8 +737,8 @@ const Favourites = () => {
       sharedIconSrc: sharedIcon,
     });
 
-
-  const handleMulDelete = async () => {
+  
+const handleMulDelete = async () => {
     const keys = getFileSelectionKeys();
     const keys2 = getFolderSelectionKeys();
 
@@ -763,63 +763,63 @@ const Favourites = () => {
     });
 
     try {
-      // Soft delete files if keys have items
-      if (keys.length > 0) {
-        const payload = {
-          sourceFolder: path || "",  // Use current folder path or empty string if undefined
-          keys: keys,
-        };
-        await axios.delete(`${apiUrl}soft-delete`, {
+    // Soft delete files if keys have items
+    if (keys.length > 0) {
+      const payload = {
+        sourceFolder: path || "",  // Use current folder path or empty string if undefined
+        keys: keys,
+      };
+      await axios.delete(`${apiUrl}soft-delete`, {
           ...LONG_RUNNING_AWS_REQUEST_OPTIONS,
-          data: payload,
-          headers: {
-            Authorization: `Bearer ${token}`,
-            "Content-Type": "application/json",
-          },
-        });
-      }
+        data: payload,
+        headers: {
+          Authorization: `Bearer ${token}`,
+          "Content-Type": "application/json",
+        },
+      });
+    }
 
-      // Soft delete folders if keys2 have items
-      if (keys2.length > 0) {
-        await axios.delete(`${apiUrl}soft-delete-folder`, {
+    // Soft delete folders if keys2 have items
+    if (keys2.length > 0) {
+      await axios.delete(`${apiUrl}soft-delete-folder`, {
           ...LONG_RUNNING_AWS_REQUEST_OPTIONS,
-          data: { sourceFolders: keys2 },
-          headers: {
-            Authorization: `Bearer ${token}`,
-            "Content-Type": "application/json",
-          },
-        });
-      }
+        data: { sourceFolders: keys2 },
+        headers: {
+          Authorization: `Bearer ${token}`,
+          "Content-Type": "application/json",
+        },
+      });
+    }
 
       clearFileSelection();
-      setSelectStatus(false);
+    setSelectStatus(false);
       if (isStillOnListingPath(startedListing)) {
         getLatestFolderList();
         getFileData(1);
-        setCurrentPage(1);
+    setCurrentPage(1);
         getRootFolderSize();
       }
 
       showToast("success", "Files and folders moved to recycle bin successfully!");
       dispatch(fetchRecycleBin({ token, force: true }));
-    } catch (error) {
-      showToast("error", "Some error has occurred");
+  } catch (error) {
+    showToast("error", "Some error has occurred");
     } finally {
       endZipping();
     }
   };
 
-  // NOTE: if you want to change concurrency at runtime, add this state in your component:
-  const [downloadConcurrency, setDownloadConcurrency] = useState(1);
-  // Then this function will pick that value. If you don't add it, the function falls back to 1.
+// NOTE: if you want to change concurrency at runtime, add this state in your component:
+const [downloadConcurrency, setDownloadConcurrency] = useState(1);
+// Then this function will pick that value. If you don't add it, the function falls back to 1.
 
-  const handleMulDownload = async () => {
+const handleMulDownload = async () => {
     const keys = getFileSelectionKeys();
     const keys2 = getFolderSelectionKeys();
-    if (keys.length === 0 && keys2.length === 0) {
-      showToast("error", "No files or folders selected!");
-      return;
-    }
+  if (keys.length === 0 && keys2.length === 0) {
+    showToast("error", "No files or folders selected!");
+    return;
+  }
 
     let gateStats;
     try {
@@ -884,16 +884,16 @@ const Favourites = () => {
       return;
     }
 
-    const items = [
-      ...keys.map((fileName) => ({ fileName, isFolder: false })),
-      ...keys2.map((fileName) => ({ fileName, isFolder: true })),
-    ];
+  const items = [
+    ...keys.map((fileName) => ({ fileName, isFolder: false })),
+    ...keys2.map((fileName) => ({ fileName, isFolder: true })),
+  ];
 
     // Per-file AbortController so row ✕ cancels only that file.
     // Batch controller is for "Cancel all" and cascades to each file.
     const batchAbortController = new AbortController();
-    items.forEach((item, i) => {
-      const downloadId = Date.now() + Math.random() + i;
+  items.forEach((item, i) => {
+    const downloadId = Date.now() + Math.random() + i;
       const fileAbortController = new AbortController();
       batchAbortController.signal.addEventListener(
         "abort",
@@ -1051,7 +1051,7 @@ const Favourites = () => {
                   delayMs: 0,
                 });
               }
-            } else {
+        } else {
               failed += 1;
               if (item) {
                 scheduleDownloadRemoval(removeDownload, item.downloadId, {
@@ -1060,10 +1060,10 @@ const Favourites = () => {
               }
             }
           });
-        } catch (err) {
+    } catch (err) {
           if (isDownloadCancelledError(err)) {
             cancelled += fileItems.length;
-          } else {
+      } else {
             failed += fileItems.length;
           }
           fileItems.forEach((item) =>
@@ -1136,8 +1136,8 @@ const Favourites = () => {
         nativeHandedOff,
       });
       cleanupProgress();
-    } catch (err) {
-      console.error("Queue error:", err);
+  } catch (err) {
+    console.error("Queue error:", err);
       if (isDownloadCancelledError(err)) {
         toastBatchDownloadSummary(showToast, {
           total: items.length,
@@ -1256,8 +1256,8 @@ const Favourites = () => {
 
   //   closeOnlyPopup(); // 👈 Don't reset selection or reload here
   // };
-
-
+  
+  
   const applyTypeAndSort = (typesOverride, sortLabel = selectedFilter) => {
     const types = Array.isArray(typesOverride)
       ? typesOverride
@@ -1327,13 +1327,13 @@ const Favourites = () => {
     if (!keepOpen) closeOnlyPopup();
   };
 
-  const closeOnlyPopup = () => {
+const closeOnlyPopup = () => {
     clearSearchBar();
     setShowFTPopup(false);
   };
 
   const handleFTCheckboxChange = (fileType) => {
-    clearSearchBar();
+  clearSearchBar();
     const next = selectedFileTypes.includes(fileType)
       ? selectedFileTypes.filter((type) => type !== fileType)
       : [...selectedFileTypes, fileType];
@@ -1363,28 +1363,28 @@ const Favourites = () => {
     setSelectedFileTypes([]);
     setCustomExtInput("");
     applyFilter([], { keepOpen: true });
-  };
+};
 
-  const handleFTypeSelect = (eventKey) => {
-    clearSearchBar();
-    if (eventKey === "File Type") {
-      setShowFTPopup(true);
-    }
-  };
+const handleFTypeSelect = (eventKey) => {
+  clearSearchBar();
+  if (eventKey === "File Type") {
+    setShowFTPopup(true);
+  }
+};
 
   const getFileNameOnly = (fullName) => {
-    const parts = fullName.split("/");
-    return parts.length > 0 ? parts[parts.length - 1] : fullName;
-  };
+  const parts = fullName.split("/");
+  return parts.length > 0 ? parts[parts.length - 1] : fullName;
+};
 
-  const getFilePathOnly = (fullName) => {
-    const parts = fullName.split("/");
-    if (parts.length > 1) {
-      const pathPart = parts.slice(0, parts.length - 1).join("/");
-      return pathPart && pathPart.trim().length > 0 ? pathPart : "/";
-    }
-    return "/";
-  };
+const getFilePathOnly = (fullName) => {
+  const parts = fullName.split("/");
+  if (parts.length > 1) {
+    const pathPart = parts.slice(0, parts.length - 1).join("/");
+    return pathPart && pathPart.trim().length > 0 ? pathPart : "/";
+  }
+  return "/";
+};
 
   const handleFilterSelect = (eventKey) => {
     if (
@@ -1459,15 +1459,15 @@ const Favourites = () => {
     return [...sharedFolders, ...files];
   };
 
-  // Helper function to convert file size string to bytes for sorting
-  const parseSizeToBytes = (sizeStr) => {
-    if (!sizeStr) return 0;
+// Helper function to convert file size string to bytes for sorting
+const parseSizeToBytes = (sizeStr) => {
+  if (!sizeStr) return 0;
     const units = { 'B': 1, 'KB': 1024, 'MB': 1024 ** 2, 'GB': 1024 ** 3, 'TB': 1024 ** 4 };
-    const match = sizeStr.match(/^([\d.]+)\s*(\w+)$/);
-    if (!match) return 0;
-    const [, size, unit] = match;
-    return parseFloat(size) * (units[unit.toUpperCase()] || 1);
-  };
+  const match = sizeStr.match(/^([\d.]+)\s*(\w+)$/);
+  if (!match) return 0;
+  const [, size, unit] = match;
+  return parseFloat(size) * (units[unit.toUpperCase()] || 1);
+};
 
   const nameFilter1 = () => {
     clearSearchBar();
@@ -1500,14 +1500,14 @@ const Favourites = () => {
   };
 
   const closePopup = () => {
-    setSelectedFileTypes([]);
+  setSelectedFileTypes([]);
     setCustomExtInput("");
-    setSortedData([]); // Clear filters and sorting
+  setSortedData([]); // Clear filters and sorting
     setTotalEntries(allEntries.length);
-    setCurrentPage(1);
-    getFileData(); // Reload favorites
-    setShowFTPopup(false);
-  };
+  setCurrentPage(1);
+  getFileData(); // Reload favorites
+  setShowFTPopup(false);
+};
 
   const applyFavoriteFiles = (favoriteFiles) => {
     const list = favoriteFiles || [];
@@ -1590,9 +1590,9 @@ const Favourites = () => {
       }
 
       return applyFavoriteFiles(favoriteFiles);
-    } catch (error) {
-      console.log("Error fetching favorites:", error);
-      showToast("error", "Failed to load favorite files");
+  } catch (error) {
+    console.log("Error fetching favorites:", error);
+    showToast("error", "Failed to load favorite files");
       return [];
     }
   };
@@ -1606,27 +1606,27 @@ const Favourites = () => {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [registerCancelRefresh]);
 
-  const handleRemoveFromFavorites = async (file) => {
-    try {
-      const response = await axios.post(
-        `${apiUrl}unmark-as-favorite`,
-        { filePath: file.fileName },
-        {
-          headers: {
-            Authorization: `Bearer ${token}`,
-            "Content-Type": "application/json",
-          },
-        }
-      );
-
-      showToast("success", "Removed from favorites");
+const handleRemoveFromFavorites = async (file) => {
+  try {
+    const response = await axios.post(
+      `${apiUrl}unmark-as-favorite`,
+      { filePath: file.fileName },
+      {
+        headers: {
+          Authorization: `Bearer ${token}`,
+          "Content-Type": "application/json",
+        },
+      }
+    );
+    
+    showToast("success", "Removed from favorites");
       dispatch(removeFavoriteName(file.fileName));
       getFileData(undefined, { useCache: true });
-    } catch (error) {
-      console.error("Error removing favorite:", error);
-      showToast("error", "Failed to remove from favorites");
-    }
-  };
+  } catch (error) {
+    console.error("Error removing favorite:", error);
+    showToast("error", "Failed to remove from favorites");
+  }
+};
 
   // Pagination control handlers (no API calls now)
   const goToFirstPage = () => setCurrentPage(1);
@@ -1803,7 +1803,7 @@ const Favourites = () => {
       const url = await resolveMediaPlayUrl({
         apiUrl,
         token,
-        filePath: filename,
+          filePath: filename,
         shared: isSharedValue,
         sharedName: filenameRedux,
         inline: true,
@@ -1822,7 +1822,7 @@ const Favourites = () => {
       const url = await resolveMediaPlayUrl({
         apiUrl,
         token,
-        filePath: filename,
+          filePath: filename,
         inline: true,
       });
       setIsProgressVisible(false);
@@ -1839,7 +1839,7 @@ const Favourites = () => {
       const url = await resolveDocumentBlobUrl({
         apiUrl,
         token,
-        filePath: filename,
+          filePath: filename,
         shared: isSharedValue,
         sharedName: filenameRedux,
       });
@@ -1855,11 +1855,11 @@ const Favourites = () => {
   const getDocInfo = async (filename) => {
     try {
       setIsProgressVisible(true);
-
-      if (docBlobRef.current && typeof docBlobRef.current === "string" && docBlobRef.current.startsWith("blob:")) {
-        try { URL.revokeObjectURL(docBlobRef.current); } catch (e) { /* ignore */ }
-      }
-
+  
+        if (docBlobRef.current && typeof docBlobRef.current === "string" && docBlobRef.current.startsWith("blob:")) {
+          try { URL.revokeObjectURL(docBlobRef.current); } catch (e) { /* ignore */ }
+        }
+  
       const url = await resolveDocumentBlobUrl({
         apiUrl,
         token,
@@ -1867,13 +1867,13 @@ const Favourites = () => {
         shared: isSharedValue,
         sharedName: filenameRedux,
       });
-      docBlobRef.current = url;
-
-      setImageSrc("");
-      setVideoSrc("");
-      setAudioSrc("");
-      setPdfSrc("");
-      setDocSrc(url);
+        docBlobRef.current = url;
+  
+        setImageSrc("");
+        setVideoSrc("");
+        setAudioSrc("");
+        setPdfSrc("");
+        setDocSrc(url);
     } catch (error) {
       console.error("getDocInfo: final error ->", error);
       showToast?.("error", "Failed to load document preview");
@@ -1882,7 +1882,7 @@ const Favourites = () => {
     }
   };
 
-
+  
   //Anurag View Image, Video
   const openFile = async (file) => {
     const filename = file.fileName;
@@ -2239,68 +2239,68 @@ const Favourites = () => {
   //   }
   // };
 
-  //   const handleFileDelete = async (file) => {
-  //   if (file?.isFolder == true) {
-  //     // Folder delete remains permanent delete as before
-  //     try {
+//   const handleFileDelete = async (file) => {
+//   if (file?.isFolder == true) {
+//     // Folder delete remains permanent delete as before
+//     try {
   //       const res = await axios.delete(`${apiUrl}delete-folder`, { ...LONG_RUNNING_AWS_REQUEST_OPTIONS, 
-  //         data: { folderName: [checkLastHash(file.fileName)] },
-  //         headers: {
-  //           Authorization: `Bearer ${token}`,
-  //           "Content-Type": "application/json",
-  //         },
-  //       });
+//         data: { folderName: [checkLastHash(file.fileName)] },
+//         headers: {
+//           Authorization: `Bearer ${token}`,
+//           "Content-Type": "application/json",
+//         },
+//       });
 
-  //       getLatestFolderList();
-  //       handleCloseDeletePopover();
-  //       getFileData(currentPage);
-  //       getRootFolderSize();
-  //       showToast("success", "Folder deleted successfully");
-  //     } catch (error) {
-  //       showToast("error", `There's an error while deleting folder`);
-  //     }
-  //   } else {
-  //     // For files, use soft-delete API
-  //     const deleteKey = file.fileName;
+//       getLatestFolderList();
+//       handleCloseDeletePopover();
+//       getFileData(currentPage);
+//       getRootFolderSize();
+//       showToast("success", "Folder deleted successfully");
+//     } catch (error) {
+//       showToast("error", `There's an error while deleting folder`);
+//     }
+//   } else {
+//     // For files, use soft-delete API
+//     const deleteKey = file.fileName;
 
-  //     // Extract folder and filename if file is nested
-  //     let sourceFolder = "";
-  //     let keyOnly = deleteKey;
+//     // Extract folder and filename if file is nested
+//     let sourceFolder = "";
+//     let keyOnly = deleteKey;
 
-  //     if (file.relativePath) {
-  //       const lastSlashIndex = file.relativePath.lastIndexOf("/");
-  //       if (lastSlashIndex !== -1) {
-  //         sourceFolder = file.relativePath.substring(0, lastSlashIndex);
-  //         sourceFolder = sourceFolder.replace(/\/$/, ""); // Remove trailing slash
-  //         keyOnly = file.relativePath.substring(lastSlashIndex + 1);
-  //       }
-  //     }
+//     if (file.relativePath) {
+//       const lastSlashIndex = file.relativePath.lastIndexOf("/");
+//       if (lastSlashIndex !== -1) {
+//         sourceFolder = file.relativePath.substring(0, lastSlashIndex);
+//         sourceFolder = sourceFolder.replace(/\/$/, ""); // Remove trailing slash
+//         keyOnly = file.relativePath.substring(lastSlashIndex + 1);
+//       }
+//     }
 
-  //     const dataToSend = {
-  //       sourceFolder,
-  //       keys: [keyOnly],
-  //     };
+//     const dataToSend = {
+//       sourceFolder,
+//       keys: [keyOnly],
+//     };
 
-  //     try {
+//     try {
   //       const res = await axios.delete('https://filesapi.infomanav.in/prod/api/aws/soft-delete', { ...LONG_RUNNING_AWS_REQUEST_OPTIONS, 
-  //         data: dataToSend,
-  //         headers: {
-  //           Authorization: `Bearer ${token}`,
-  //           "Content-Type": "application/json",
-  //         },
-  //       });
-  //       showToast("success", "File moved to recycle bin successfully");
-  //       handleCloseDeletePopover();
-  //       getFileData(currentPage);
-  //       getRootFolderSize();
-  //     } catch (error) {
-  //       showToast("error", "There's an error while moving file to recycle bin!");
-  //     }
-  //   }
-  // };
+//         data: dataToSend,
+//         headers: {
+//           Authorization: `Bearer ${token}`,
+//           "Content-Type": "application/json",
+//         },
+//       });
+//       showToast("success", "File moved to recycle bin successfully");
+//       handleCloseDeletePopover();
+//       getFileData(currentPage);
+//       getRootFolderSize();
+//     } catch (error) {
+//       showToast("error", "There's an error while moving file to recycle bin!");
+//     }
+//   }
+// };
 
-  const handleFileDelete = async (file) => {
-    handleCloseDeletePopover();
+const handleFileDelete = async (file) => {
+  handleCloseDeletePopover();
 
     let sourceFolder = "";
     let keyOnly = file.fileName;
@@ -2338,36 +2338,36 @@ const Favourites = () => {
         await axios.delete(`${apiUrl}soft-delete-folder`, {
           ...LONG_RUNNING_AWS_REQUEST_OPTIONS,
           data: { sourceFolders: [folderKey] },
-          headers: {
-            Authorization: `Bearer ${token}`,
-            "Content-Type": "application/json",
-          },
-        });
+        headers: {
+          Authorization: `Bearer ${token}`,
+          "Content-Type": "application/json",
+        },
+      });
 
         if (isStillOnListingPath(startedListing)) {
-          getLatestFolderList();
-          getFileData(currentPage);
-          getRootFolderSize();
+      getLatestFolderList();
+      getFileData(currentPage);
+      getRootFolderSize();
         }
         showToast("success", "Folder moved to recycle bin successfully");
         dispatch(fetchRecycleBin({ token, force: true }));
-      } else {
-        const dataToSend = {
-          sourceFolder,
-          keys: [keyOnly],
-        };
+  } else {
+    const dataToSend = {
+      sourceFolder,
+      keys: [keyOnly],
+    };
 
         await axios.delete(`${apiUrl}soft-delete`, {
           ...LONG_RUNNING_AWS_REQUEST_OPTIONS,
-          data: dataToSend,
-          headers: {
-            Authorization: `Bearer ${token}`,
-            "Content-Type": "application/json",
-          },
-        });
+        data: dataToSend,
+        headers: {
+          Authorization: `Bearer ${token}`,
+          "Content-Type": "application/json",
+        },
+      });
         if (isStillOnListingPath(startedListing)) {
-          getFileData(currentPage);
-          getRootFolderSize();
+      getFileData(currentPage);
+      getRootFolderSize();
         }
         showToast("success", "File moved to recycle bin successfully");
         dispatch(fetchRecycleBin({ token, force: true }));
@@ -2434,7 +2434,7 @@ const Favourites = () => {
       const endpoint = `${apiUrl}get-root-folders`;
       const response = await axios.get(endpoint, config);
 
-
+      
 
       const folders = response.data;
 
@@ -2559,7 +2559,7 @@ const Favourites = () => {
     }
 
     const downloadId = Date.now();
-    const abortController = new AbortController();
+     const abortController = new AbortController();
     let succeeded = false;
     let handedToBrowser = false;
 
@@ -2597,16 +2597,16 @@ const Favourites = () => {
             isFolder: true,
             required: true,
           });
-          const response = await fetch(
+      const response = await fetch(
             `${apiUrl}download-folder?filePath=${encodeURIComponent(fileName)}`,
-            {
-              headers: {
-                Authorization: `Bearer ${token}`,
-              },
+        {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
               signal: abortController.signal,
-            }
-          );
-          if (!response.ok) throw new Error("Network response was not ok");
+        }
+      );
+      if (!response.ok) throw new Error("Network response was not ok");
           await streamDownloadResponse({
             response,
             fileName,
@@ -2638,18 +2638,18 @@ const Favourites = () => {
       }
     } catch (error) {
       if (isDownloadCancelledError(error)) {
-        console.warn("Download canceled by user");
+    console.warn("Download canceled by user");
         showToast("info", "Download cancelled.");
-      } else {
-        console.error("Download error:", error);
-        showToast("error", "Error downloading file. Please try again.");
-      }
+  } else {
+    console.error("Download error:", error);
+    showToast("error", "Error downloading file. Please try again.");
+  }
     } finally {
       isSetLoading(false);
       scheduleDownloadRemoval(removeDownload, downloadId, {
         delayMs: succeeded && !handedToBrowser ? 500 : 0,
       });
-    }
+}
   };
 
   const handleCancelDownload = () => {
@@ -2846,33 +2846,33 @@ const Favourites = () => {
     }
   }
 
-  const getTextBeforeLastSlash = (text) => {
-    // Check if the text contains a slash
-    if (text.includes("/")) {
-      return text.slice(0, text.lastIndexOf("/")).replace(/\//g, ">"); // Replace all '/' with '>'
-    }
-    return "/"; // If no slash, return "/" for root folder
-  };
-
-  function getTextAfterLastSlash(text) {
-    if (text.includes("/")) {
-      return text.substring(text.lastIndexOf("/") + 1);
-    } else {
-      return text;
-    }
+ const getTextBeforeLastSlash = (text) => {
+  // Check if the text contains a slash
+  if (text.includes("/")) {
+    return text.slice(0, text.lastIndexOf("/")).replace(/\//g, ">"); // Replace all '/' with '>'
   }
+  return "/"; // If no slash, return "/" for root folder
+};
 
-  function getModifiedRecentFolderText(input) {
-    const index = input.indexOf("/");
-    if (index !== -1 && index < input.length - 1) {
-      // Extract the substring after the first slash
-      const textAfterSlash = input.substring(index + 1);
-      // Replace all '/' with '<'
-      return textAfterSlash.replace(/\//g, "<");
-    } else {
-      return "";
-    }
+function getTextAfterLastSlash(text) {
+  if (text.includes("/")) {
+    return text.substring(text.lastIndexOf("/") + 1);
+  } else {
+    return text;
   }
+}
+
+function getModifiedRecentFolderText(input) {
+  const index = input.indexOf("/");
+  if (index !== -1 && index < input.length - 1) {
+    // Extract the substring after the first slash
+    const textAfterSlash = input.substring(index + 1);
+    // Replace all '/' with '<'
+    return textAfterSlash.replace(/\//g, "<");
+  } else {
+    return "";
+  }
+}
 
   //Create Folder
   const createJustFolder = async (event) => {
@@ -2903,24 +2903,24 @@ const Favourites = () => {
     setIsCreatingFolder(true);
     try {
       await axios.post(
-        `${apiUrl}create-folder`,
-        { folderName: folderName },
-        {
-          headers: {
-            Authorization: `Bearer ${token}`,
-            "Content-Type": "application/x-www-form-urlencoded",
-          },
-        }
-      );
-      handleCloseFileUploadModal();
-      getLatestFolderList();
-      getFolderList();
-      getFileData(currentPage);
-      handleCloseCreateFolder();
-      setOpenFileUploadModal(false);
-      showToast("success", "Folder created successfully!");
-    } catch (error) {
-      console.error(`There's error at ${error}`);
+          `${apiUrl}create-folder`,
+          { folderName: folderName },
+          {
+            headers: {
+              Authorization: `Bearer ${token}`,
+              "Content-Type": "application/x-www-form-urlencoded",
+            },
+          }
+        );
+        handleCloseFileUploadModal();
+        getLatestFolderList();
+        getFolderList();
+        getFileData(currentPage);
+        handleCloseCreateFolder();
+        setOpenFileUploadModal(false);
+        showToast("success", "Folder created successfully!");
+      } catch (error) {
+        console.error(`There's error at ${error}`);
       const message = getCreateFolderErrorMessage(error);
       setFolderFieldError(message);
       showToast("error", message);
@@ -2961,10 +2961,10 @@ const Favourites = () => {
       getUpload,
       isPausing,
       onBeforeStart: () => {
-        setOpenFileUploadModal(false);
-        setFiles([]);
-      },
-    });
+      setOpenFileUploadModal(false);
+      setFiles([]);
+        },
+      });
 
     if (result.status === "busy") {
       showToast(
@@ -2977,7 +2977,7 @@ const Favourites = () => {
     const { displayName, allCanceled, anyFailed, anySucceeded, anyCanceled } =
       result;
     if (anySucceeded && !anyFailed && !anyCanceled) {
-      setPubPri3("private");
+        setPubPri3("private");
       showToast("success", `Folder "${displayName}" uploaded successfully!`);
       await getFileData(1);
     } else if (anySucceeded && anyCanceled) {
@@ -2992,7 +2992,7 @@ const Favourites = () => {
       showToast("error", "Error uploading folder files.");
     }
 
-    handleCloseFileUploadModal();
+      handleCloseFileUploadModal();
   };
 
   // const uploadFolder = async () => {
@@ -3319,111 +3319,111 @@ const Favourites = () => {
   };
 
   // Updated Upload Code
-  // const handleFileUpload = async () => {
-  //   if (files.length === 0) {
-  //     showToast("error", "Please select a file to upload.");
-  //     return;
-  //   }
+// const handleFileUpload = async () => {
+//   if (files.length === 0) {
+//     showToast("error", "Please select a file to upload.");
+//     return;
+//   }
 
-  //   handleCloseFileUploadModal();
+//   handleCloseFileUploadModal();
 
-  //   try {
-  //     // console.log("Starting file upload process...");
-  //     // console.log("Files to upload:", files.length);
-  //     // console.log("Path:", path);
-  //     // console.log("Visibility:", pubpri);
+//   try {
+//     // console.log("Starting file upload process...");
+//     // console.log("Files to upload:", files.length);
+//     // console.log("Path:", path);
+//     // console.log("Visibility:", pubpri);
+    
+//     // Array to hold all file upload promises
+//     const uploadPromises = files.map((file, i) => {
+//       const originalName = file.name;
+//       const sanitizedName = isVideoFile(originalName)
+//         ? sanitizeFilename(originalName)
+//         : originalName;
+      
+//       const uploadId = Date.now() + i;
+//       addUpload(uploadId, "Uploading " + sanitizedName);
 
-  //     // Array to hold all file upload promises
-  //     const uploadPromises = files.map((file, i) => {
-  //       const originalName = file.name;
-  //       const sanitizedName = isVideoFile(originalName)
-  //         ? sanitizeFilename(originalName)
-  //         : originalName;
+//       // Build query parameters like React Native version
+//       const queryParams = [];
+      
+//       // Add folderPath parameter (clean the path)
+//       const cleanPath = path.replace(/\/$/, "");
+//       if (cleanPath) {
+//         queryParams.push(`folderPath=${encodeURIComponent(cleanPath)}`);
+//       }
+      
+//       // Build the endpoint URL with query parameters
+//       let endpoint = `${apiUrl}upload-file`;
+//       if (queryParams.length > 0) {
+//         endpoint += `?${queryParams.join('&')}`;
+//       }
 
-  //       const uploadId = Date.now() + i;
-  //       addUpload(uploadId, "Uploading " + sanitizedName);
+//       // console.log(`Uploading file ${i+1}/${files.length}:`, sanitizedName);
+//       // console.log("Endpoint:", endpoint);
 
-  //       // Build query parameters like React Native version
-  //       const queryParams = [];
+//       const formData = new FormData();
+//       formData.append("files", file);
+//       formData.append("isPrivate", pubpri === "private" ? "private" : "public-read");
+//       formData.append("storageClass", "STANDARD");
 
-  //       // Add folderPath parameter (clean the path)
-  //       const cleanPath = path.replace(/\/$/, "");
-  //       if (cleanPath) {
-  //         queryParams.push(`folderPath=${encodeURIComponent(cleanPath)}`);
-  //       }
+//       // Individual file upload request
+//       return axios
+//         .post(endpoint, formData, {
+//           headers: {
+//             Authorization: `Bearer ${token}`,
+//             "Content-Type": "multipart/form-data",
+//           },
+//           onUploadProgress: (progressEvent) => {
+//             const totalLength = progressEvent.lengthComputable
+//               ? progressEvent.total
+//               : file.size;
 
-  //       // Build the endpoint URL with query parameters
-  //       let endpoint = `${apiUrl}upload-file`;
-  //       if (queryParams.length > 0) {
-  //         endpoint += `?${queryParams.join('&')}`;
-  //       }
+//             if (totalLength) {
+//               const progress = Math.round(
+//                 (progressEvent.loaded * 100) / totalLength
+//               );
+//               console.log(`Progress for ${sanitizedName}: ${progress}%`);
+//               updateUploadProgress(uploadId, progress);
+//             }
+//           },
+//         })
+//         .then((response) => {
+//           // console.log(`Upload completed for ${sanitizedName}:`, response.data);
+//           removeUpload(uploadId);
+//         })
+//         .catch((error) => {
+//           console.error(`Upload failed for ${sanitizedName}:`, error);
+//           removeUpload(uploadId);
+//           throw new Error(`Error uploading file: ${sanitizedName} - ${error.message}`);
+//         });
+//     });
 
-  //       // console.log(`Uploading file ${i+1}/${files.length}:`, sanitizedName);
-  //       // console.log("Endpoint:", endpoint);
+//     // Wait for all file uploads to complete
+//     // console.log("Waiting for all uploads to complete...");
+//     await Promise.all(uploadPromises);
+    
+//     // console.log("All files uploaded successfully!");
+//     showToast("success", "Files uploaded successfully!");
+//     setCurrentPage(1);
+//     setPubPri("private");
+//     getFileData(1);
+//   } catch (error) {
+//     console.error("Upload Error:", error);
+//     showToast("error", error.message || "Error uploading files");
+//   }
 
-  //       const formData = new FormData();
-  //       formData.append("files", file);
-  //       formData.append("isPrivate", pubpri === "private" ? "private" : "public-read");
-  //       formData.append("storageClass", "STANDARD");
-
-  //       // Individual file upload request
-  //       return axios
-  //         .post(endpoint, formData, {
-  //           headers: {
-  //             Authorization: `Bearer ${token}`,
-  //             "Content-Type": "multipart/form-data",
-  //           },
-  //           onUploadProgress: (progressEvent) => {
-  //             const totalLength = progressEvent.lengthComputable
-  //               ? progressEvent.total
-  //               : file.size;
-
-  //             if (totalLength) {
-  //               const progress = Math.round(
-  //                 (progressEvent.loaded * 100) / totalLength
-  //               );
-  //               console.log(`Progress for ${sanitizedName}: ${progress}%`);
-  //               updateUploadProgress(uploadId, progress);
-  //             }
-  //           },
-  //         })
-  //         .then((response) => {
-  //           // console.log(`Upload completed for ${sanitizedName}:`, response.data);
-  //           removeUpload(uploadId);
-  //         })
-  //         .catch((error) => {
-  //           console.error(`Upload failed for ${sanitizedName}:`, error);
-  //           removeUpload(uploadId);
-  //           throw new Error(`Error uploading file: ${sanitizedName} - ${error.message}`);
-  //         });
-  //     });
-
-  //     // Wait for all file uploads to complete
-  //     // console.log("Waiting for all uploads to complete...");
-  //     await Promise.all(uploadPromises);
-
-  //     // console.log("All files uploaded successfully!");
-  //     showToast("success", "Files uploaded successfully!");
-  //     setCurrentPage(1);
-  //     setPubPri("private");
-  //     getFileData(1);
-  //   } catch (error) {
-  //     console.error("Upload Error:", error);
-  //     showToast("error", error.message || "Error uploading files");
-  //   }
-
-  //   setFiles([]);
-  // };
+//   setFiles([]);
+// };
 
   // ================= Direct Spaces upload (<100MB PUT, else multipart) =================
 
-  // -------------------- Updated handleFileUpload --------------------
+// -------------------- Updated handleFileUpload --------------------
 
-  const handleFileUpload = async () => {
-    if (files.length === 0) {
-      showToast("error", "Please select a file to upload.");
-      return;
-    }
+const handleFileUpload = async () => {
+  if (files.length === 0) {
+    showToast("error", "Please select a file to upload.");
+    return;
+  }
 
     const batchChoice = await confirmUploadBatch(files);
     if (batchChoice === UPLOAD_BATCH_CANCEL) {
@@ -3434,32 +3434,32 @@ const Favourites = () => {
       return;
     }
 
-    handleCloseFileUploadModal();
+  handleCloseFileUploadModal();
 
-    // Helper: waits until upload is resumed or removed (cancelled)
-    const waitUntilResumed = (uploadUiId) =>
-      new Promise((resolve, reject) => {
-        const interval = setInterval(() => {
-          const pausingIntent = isPausing ? !!isPausing(uploadUiId) : false;
-          const u = getUpload ? getUpload(uploadUiId) : null;
+  // Helper: waits until upload is resumed or removed (cancelled)
+  const waitUntilResumed = (uploadUiId) =>
+    new Promise((resolve, reject) => {
+      const interval = setInterval(() => {
+        const pausingIntent = isPausing ? !!isPausing(uploadUiId) : false;
+        const u = getUpload ? getUpload(uploadUiId) : null;
 
-          if (pausingIntent) return; // still pausing → keep waiting
+        if (pausingIntent) return; // still pausing → keep waiting
 
-          if (u && !u.paused) {
-            clearInterval(interval);
-            resolve(); // resumed
-            return;
-          }
+        if (u && !u.paused) {
+          clearInterval(interval);
+          resolve(); // resumed
+          return;
+        }
 
-          if (!pausingIntent && !u) {
-            clearInterval(interval);
-            reject(new Error("upload-removed"));
-            return;
-          }
-        }, 300);
-      });
+        if (!pausingIntent && !u) {
+          clearInterval(interval);
+          reject(new Error("upload-removed"));
+          return;
+        }
+      }, 300);
+    });
 
-    try {
+  try {
       // Queue all files in UI first, then upload one-by-one with a gap
       const MULTI_UPLOAD_GAP_MS = DIRECT_UPLOAD_GAP_MS;
       const delay = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
@@ -3579,9 +3579,9 @@ const Favourites = () => {
               err?.name === "UploadCanceled" ||
               err?.message === "upload-removed" ||
               (err &&
-                (err.name === "CanceledError" ||
-                  err.code === "ERR_CANCELED" ||
-                  /canceled/i.test(err.message || "") ||
+              (err.name === "CanceledError" ||
+                err.code === "ERR_CANCELED" ||
+                /canceled/i.test(err.message || "") ||
                   /abort/i.test(err.message || "")));
 
             if (activeKey && activeUploadId) {
@@ -3593,7 +3593,7 @@ const Favourites = () => {
                 mode: activeMode,
               });
             }
-            removeUpload(uploadUiId);
+                  removeUpload(uploadUiId);
             if (canceled) {
               results.push({ status: "fulfilled", value: "canceled" });
             } else {
@@ -3609,13 +3609,13 @@ const Favourites = () => {
         }
       }
 
-      const allCanceled = results.every(
-        (r) => r.status === "fulfilled" && r.value === "canceled"
-      );
-      const anyFailed = results.some((r) => r.status === "rejected");
-      const anySucceeded = results.some(
-        (r) => r.status === "fulfilled" && r.value === "success"
-      );
+    const allCanceled = results.every(
+      (r) => r.status === "fulfilled" && r.value === "canceled"
+    );
+    const anyFailed = results.some((r) => r.status === "rejected");
+    const anySucceeded = results.some(
+      (r) => r.status === "fulfilled" && r.value === "success"
+    );
       const anyCanceled = results.some(
         (r) => r.status === "fulfilled" && r.value === "canceled"
       );
@@ -3662,118 +3662,118 @@ const Favourites = () => {
       }
 
       if (anySucceeded && !anyFailed && !anyCanceled) {
-        showToast("success", "Files uploaded successfully!");
-        setCurrentPage(1);
-        setPubPri("private");
-        getFileData(1);
+      showToast("success", "Files uploaded successfully!");
+      setCurrentPage(1);
+      setPubPri("private");
+      getFileData(1);
       } else if (anySucceeded && anyCanceled) {
         // List already refreshed on cancel-all; just toast
         showToast("info", "Upload stopped. Finished files are available.");
-      } else if (anySucceeded && anyFailed) {
-        showToast("warning", "Some files failed to upload.");
+    } else if (anySucceeded && anyFailed) {
+      showToast("warning", "Some files failed to upload.");
         getFileData(1);
-      } else if (allCanceled) {
-        showToast("info", "Uploads were canceled successfully.");
-      } else if (anyFailed) {
-        showToast("error", "Error uploading some files.");
-      }
-    } catch (error) {
-      showToast("error", error.message || "Error uploading files");
+    } else if (allCanceled) {
+      showToast("info", "Uploads were canceled successfully.");
+    } else if (anyFailed) {
+      showToast("error", "Error uploading some files.");
     }
+  } catch (error) {
+    showToast("error", error.message || "Error uploading files");
+  }
 
-    setFiles([]);
-  };
+  setFiles([]);
+};
 
-  // const handleFileUpload = async () => {
-  //   if (files.length === 0) {
-  //     showToast("error", "Please select a file to upload.");
-  //     return;
-  //   }
+// const handleFileUpload = async () => {
+//   if (files.length === 0) {
+//     showToast("error", "Please select a file to upload.");
+//     return;
+//   }
 
-  //   handleCloseFileUploadModal();
+//   handleCloseFileUploadModal();
 
-  //   try {
-  //     // Step 1: Prepare metadata for all files
-  //     const metadataFiles = files.map((file) => {
-  //       const originalName = file.name;
-  //       const sanitizedName = isVideoFile(originalName)
-  //         ? sanitizeFilename(originalName)
-  //         : originalName;
+//   try {
+//     // Step 1: Prepare metadata for all files
+//     const metadataFiles = files.map((file) => {
+//       const originalName = file.name;
+//       const sanitizedName = isVideoFile(originalName)
+//         ? sanitizeFilename(originalName)
+//         : originalName;
 
-  //       return {
-  //         fileName: sanitizedName,
-  //         fileSize: file.size,
-  //         filePath: path.replace(/\/$/, ""), // Base folder path
-  //         acl: pubpri === "private" ? "private" : "public-read",
-  //       };
-  //     });
+//       return {
+//         fileName: sanitizedName,
+//         fileSize: file.size,
+//         filePath: path.replace(/\/$/, ""), // Base folder path
+//         acl: pubpri === "private" ? "private" : "public-read",
+//       };
+//     });
 
-  //     // Step 2: Single API call to get presigned URLs
-  //     const presignedResponse = await axios.post(
-  //       `${apiUrl}get-upload-url`,
-  //       { files: metadataFiles },
-  //       {
-  //         headers: {
-  //           Authorization: `Bearer ${token}`,
-  //         },
-  //       }
-  //     );
+//     // Step 2: Single API call to get presigned URLs
+//     const presignedResponse = await axios.post(
+//       `${apiUrl}get-upload-url`,
+//       { files: metadataFiles },
+//       {
+//         headers: {
+//           Authorization: `Bearer ${token}`,
+//         },
+//       }
+//     );
 
-  //     const uploadUrls = presignedResponse.data.data;
+//     const uploadUrls = presignedResponse.data.data;
 
-  //     // Step 3: Upload each file using its presigned URL
-  //     const uploadPromises = files.map((file, i) => {
-  //       const sanitizedName = metadataFiles[i].fileName;
-  //       const uploadId = Date.now() + i;
-  //       const presignedUrl = uploadUrls[i]?.url;
+//     // Step 3: Upload each file using its presigned URL
+//     const uploadPromises = files.map((file, i) => {
+//       const sanitizedName = metadataFiles[i].fileName;
+//       const uploadId = Date.now() + i;
+//       const presignedUrl = uploadUrls[i]?.url;
 
-  //       if (!presignedUrl) {
-  //         throw new Error(`Presigned URL missing for file ${sanitizedName}`);
-  //       }
+//       if (!presignedUrl) {
+//         throw new Error(`Presigned URL missing for file ${sanitizedName}`);
+//       }
 
-  //       addUpload(uploadId, "Uploading " + sanitizedName);
+//       addUpload(uploadId, "Uploading " + sanitizedName);
 
-  //       return axios
-  //         .put(presignedUrl, file, {
-  //           headers: {
-  //             "Content-Type": file.type,
-  //           },
-  //           onUploadProgress: (progressEvent) => {
-  //             const totalLength = progressEvent.lengthComputable
-  //               ? progressEvent.total
-  //               : file.size;
+//       return axios
+//         .put(presignedUrl, file, {
+//           headers: {
+//             "Content-Type": file.type,
+//           },
+//           onUploadProgress: (progressEvent) => {
+//             const totalLength = progressEvent.lengthComputable
+//               ? progressEvent.total
+//               : file.size;
 
-  //             if (totalLength) {
-  //               const progress = Math.round(
-  //                 (progressEvent.loaded * 100) / totalLength
-  //               );
-  //               updateUploadProgress(uploadId, progress);
-  //             }
-  //           },
-  //         })
-  //         .then(() => {
-  //           removeUpload(uploadId);
-  //         });
-  //     });
+//             if (totalLength) {
+//               const progress = Math.round(
+//                 (progressEvent.loaded * 100) / totalLength
+//               );
+//               updateUploadProgress(uploadId, progress);
+//             }
+//           },
+//         })
+//         .then(() => {
+//           removeUpload(uploadId);
+//         });
+//     });
 
-  //     await Promise.all(uploadPromises);
+//     await Promise.all(uploadPromises);
 
-  //     showToast("success", "Files uploaded successfully!");
-  //     setCurrentPage(1);
-  //     setPubPri("private");
-  //     getFileData(1);
-  //   } catch (error) {
-  //     console.error("Upload Error:", error);
-  //     showToast("error", "Error uploading files");
-  //   }
+//     showToast("success", "Files uploaded successfully!");
+//     setCurrentPage(1);
+//     setPubPri("private");
+//     getFileData(1);
+//   } catch (error) {
+//     console.error("Upload Error:", error);
+//     showToast("error", "Error uploading files");
+//   }
 
-  //   setFiles([]);
-  // };
+//   setFiles([]);
+// };
 
   //File information shower
-
-
-
+  
+  
+  
   const getFileInfo = async (name, file) => {
     try {
       const res = await axios.get(`${apiUrl}file-info`, {
@@ -3957,167 +3957,167 @@ const Favourites = () => {
   // }; 
 
   // f7
-  //     const handleNext = () => {
-  //   setErrorMessage2("");
-  //   setIsProgressVisible(true);
-  //   setCurrentImageIndex((prevIndex) => {
-  //     let newIndex = (prevIndex + 1) % filedata.length;
-  //     let fileType = filedata[newIndex].fileType;
+//     const handleNext = () => {
+//   setErrorMessage2("");
+//   setIsProgressVisible(true);
+//   setCurrentImageIndex((prevIndex) => {
+//     let newIndex = (prevIndex + 1) % filedata.length;
+//     let fileType = filedata[newIndex].fileType;
 
-  //     // Define audio extensions to skip
-  //     const audioTypes = ['mp3', 'm4a', 'MP3', 'wav', 'WAV', 'ogg', 'OGG', 'aac', 'AAC'];
+//     // Define audio extensions to skip
+//     const audioTypes = ['mp3', 'm4a', 'MP3', 'wav', 'WAV', 'ogg', 'OGG', 'aac', 'AAC'];
 
-  //     // Loop to find the next item that is NOT an audio file
-  //     while ((!fileType || audioTypes.includes(fileType)) && filedata.length > 0) {
-  //       newIndex = (newIndex + 1) % filedata.length;
-  //       fileType = filedata[newIndex].fileType;
+//     // Loop to find the next item that is NOT an audio file
+//     while ((!fileType || audioTypes.includes(fileType)) && filedata.length > 0) {
+//       newIndex = (newIndex + 1) % filedata.length;
+//       fileType = filedata[newIndex].fileType;
+      
+//       // Prevent infinite loop if all files are audio
+//       if (newIndex === prevIndex) {
+//         setErrorMessage2("No non-audio files available");
+//         setIsProgressVisible(false);
+//         return prevIndex;
+//       }
+//     }
 
-  //       // Prevent infinite loop if all files are audio
-  //       if (newIndex === prevIndex) {
-  //         setErrorMessage2("No non-audio files available");
-  //         setIsProgressVisible(false);
-  //         return prevIndex;
-  //       }
-  //     }
+//     if (
+//       fileType === "jpeg" ||
+//       fileType === "jpg" ||
+//       fileType === "png" ||
+//       fileType === "gif" ||
+//       fileType === "hevc" ||
+//       fileType === "heif" ||
+//       fileType === "heic" ||
+//       fileType === "JPEG" ||
+//       fileType === "JPG" ||
+//       fileType === "PNG" ||
+//       fileType === "GIF" ||
+//       fileType === "HEVC" ||
+//       fileType === "HEIF" ||
+//       fileType === "svg" ||
+//       fileType === "SVG" ||
+//       fileType === "webp" ||
+//       fileType === "WEBP"
+//     ) {
+//       setVideoSrc("");
+//       setAudioSrc("");
+//       setPdfSrc("");
+//       getImageInfo(filedata[newIndex].fileName);
+//       setModalFile(filedata[newIndex].fileName);
+//     } else if (
+//       fileType === "pdf" ||
+//       fileType === "PDF" ||
+//       fileType === "txt" ||
+//       fileType === "TXT"
+//     ) {
+//       setImageSrc("");
+//       setVideoSrc("");
+//       setAudioSrc("");
+//       getPdfInfo(filedata[newIndex].fileName);
+//       setModalFile(filedata[newIndex].fileName);
+//     } else if (
+//       fileType === "mkv" ||
+//       fileType === "mp4" ||
+//       fileType === "mov" ||
+//       fileType === "mpeg" ||
+//       fileType === "webm" ||
+//       fileType === "MOV"
+//     ) {
+//       setImageSrc("");
+//       setAudioSrc("");
+//       setPdfSrc("");
+//       setIsProgressVisible(false);
+//       setVideoSrc(filedata[newIndex].fileName);
+//       setModalFile(filedata[newIndex].fileName);
+//     } else {
+//       setImageSrc("");
+//       setAudioSrc("");
+//       setPdfSrc("");
+//       setVideoSrc("");
+//       setIsProgressVisible(false);
+//       setErrorMessage2("Unsupported file format");
+//       setModalFile(filedata[newIndex].fileName);
+//     }
 
-  //     if (
-  //       fileType === "jpeg" ||
-  //       fileType === "jpg" ||
-  //       fileType === "png" ||
-  //       fileType === "gif" ||
-  //       fileType === "hevc" ||
-  //       fileType === "heif" ||
-  //       fileType === "heic" ||
-  //       fileType === "JPEG" ||
-  //       fileType === "JPG" ||
-  //       fileType === "PNG" ||
-  //       fileType === "GIF" ||
-  //       fileType === "HEVC" ||
-  //       fileType === "HEIF" ||
-  //       fileType === "svg" ||
-  //       fileType === "SVG" ||
-  //       fileType === "webp" ||
-  //       fileType === "WEBP"
-  //     ) {
-  //       setVideoSrc("");
-  //       setAudioSrc("");
-  //       setPdfSrc("");
-  //       getImageInfo(filedata[newIndex].fileName);
-  //       setModalFile(filedata[newIndex].fileName);
-  //     } else if (
-  //       fileType === "pdf" ||
-  //       fileType === "PDF" ||
-  //       fileType === "txt" ||
-  //       fileType === "TXT"
-  //     ) {
-  //       setImageSrc("");
-  //       setVideoSrc("");
-  //       setAudioSrc("");
-  //       getPdfInfo(filedata[newIndex].fileName);
-  //       setModalFile(filedata[newIndex].fileName);
-  //     } else if (
-  //       fileType === "mkv" ||
-  //       fileType === "mp4" ||
-  //       fileType === "mov" ||
-  //       fileType === "mpeg" ||
-  //       fileType === "webm" ||
-  //       fileType === "MOV"
-  //     ) {
-  //       setImageSrc("");
-  //       setAudioSrc("");
-  //       setPdfSrc("");
-  //       setIsProgressVisible(false);
-  //       setVideoSrc(filedata[newIndex].fileName);
-  //       setModalFile(filedata[newIndex].fileName);
-  //     } else {
-  //       setImageSrc("");
-  //       setAudioSrc("");
-  //       setPdfSrc("");
-  //       setVideoSrc("");
-  //       setIsProgressVisible(false);
-  //       setErrorMessage2("Unsupported file format");
-  //       setModalFile(filedata[newIndex].fileName);
-  //     }
+//     setZoomLevel(1);
+//     return newIndex;
+//   });
+// };
 
-  //     setZoomLevel(1);
-  //     return newIndex;
-  //   });
-  // };
+const handleNext = () => {
+  console.log("✅handleNext is clicked");
+  setErrorMessage2("");
+  setIsProgressVisible(true);
 
-  const handleNext = () => {
-    console.log("✅handleNext is clicked");
-    setErrorMessage2("");
-    setIsProgressVisible(true);
+  setCurrentImageIndex((prevIndex) => {
+    let newIndex = (prevIndex + 1) % filedata.length;
+    let fileType = filedata[newIndex].fileType;
 
-    setCurrentImageIndex((prevIndex) => {
-      let newIndex = (prevIndex + 1) % filedata.length;
-      let fileType = filedata[newIndex].fileType;
+    const audioTypes = ['mp3', 'm4a', 'MP3', 'wav', 'WAV', 'ogg', 'OGG', 'aac', 'AAC'];
 
-      const audioTypes = ['mp3', 'm4a', 'MP3', 'wav', 'WAV', 'ogg', 'OGG', 'aac', 'AAC'];
+    while ((!fileType || audioTypes.includes(fileType)) && filedata.length > 0) {
+      newIndex = (newIndex + 1) % filedata.length;
+      fileType = filedata[newIndex].fileType;
 
-      while ((!fileType || audioTypes.includes(fileType)) && filedata.length > 0) {
-        newIndex = (newIndex + 1) % filedata.length;
-        fileType = filedata[newIndex].fileType;
-
-        if (newIndex === prevIndex) {
-          setErrorMessage2("No non-audio files available");
-          setIsProgressVisible(false);
-          handleImageClose();
-          return prevIndex;
-        }
+      if (newIndex === prevIndex) {
+        setErrorMessage2("No non-audio files available");
+        setIsProgressVisible(false);
+        handleImageClose();
+        return prevIndex;
       }
+    }
 
-      const ft = (fileType || "").toLowerCase();
+    const ft = (fileType || "").toLowerCase();
       setPreviewFile(filedata[newIndex]);
 
-      // Image types
-      const imageTypes = ["jpeg", "jpg", "png", "gif", "hevc", "heif", "heic", "svg", "webp", "avif"];
-      // Pdf / text
+    // Image types
+    const imageTypes = ["jpeg", "jpg", "png", "gif", "hevc", "heif", "heic", "svg", "webp", "avif"];
+    // Pdf / text
       const pdfTypes = ["pdf", "txt"];
-      // Video types
+    // Video types
       const videoTypes = ["mkv", "mp4", "mov", "mpeg", "webm"];
-      // Document / ppt / excel types
+    // Document / ppt / excel types
       const docTypes = ["doc", "docx", "ppt", "pptx", "pptm", "pps", "ppsx", "xls", "xlsx", "xlsm", "csv", "ods"];
 
-      // Clear previous srcs
-      setIsProgressVisible(false);
+    // Clear previous srcs
+    setIsProgressVisible(false);
       setCodeFilePath("");
 
-      console.log("✅ FileType(ft)", ft)
+    console.log("✅ FileType(ft)", ft)
 
-      // Handle types
-      if (imageTypes.includes(ft.toLowerCase())) {
-        setVideoSrc("");
-        setAudioSrc("");
-        setPdfSrc("");
-        setDocSrc("");
-        getImageInfo(filedata[newIndex].fileName);
-        setModalFile(filedata[newIndex].fileName);
-      } else if (pdfTypes.includes(ft)) {
-        setImageSrc("");
-        setVideoSrc("");
-        setAudioSrc("");
-        setDocSrc("");
-        getPdfInfo(filedata[newIndex].fileName);
-        setModalFile(filedata[newIndex].fileName);
-      } else if (videoTypes.includes(ft)) {
-        setImageSrc("");
-        setAudioSrc("");
-        setPdfSrc("");
-        setDocSrc("");
-        setIsProgressVisible(false);
-        setVideoSrc(filedata[newIndex].fileName);
-        setModalFile(filedata[newIndex].fileName);
-      } else if (docTypes.includes(ft)) {
-        // documents / ppt / excel
-        setImageSrc("");
-        setVideoSrc("");
-        setAudioSrc("");
-        setPdfSrc("");
-        // set docSrc via fetch
-        console.log("✅DOCSSSS")
-        getDocInfo(filedata[newIndex].fileName);
-        setModalFile(filedata[newIndex].fileName);
+    // Handle types
+    if (imageTypes.includes(ft.toLowerCase())) {
+      setVideoSrc("");
+      setAudioSrc("");
+      setPdfSrc("");
+      setDocSrc("");
+      getImageInfo(filedata[newIndex].fileName);
+      setModalFile(filedata[newIndex].fileName);
+    } else if (pdfTypes.includes(ft)) {
+      setImageSrc("");
+      setVideoSrc("");
+      setAudioSrc("");
+      setDocSrc("");
+      getPdfInfo(filedata[newIndex].fileName);
+      setModalFile(filedata[newIndex].fileName);
+    } else if (videoTypes.includes(ft)) {
+      setImageSrc("");
+      setAudioSrc("");
+      setPdfSrc("");
+      setDocSrc("");
+      setIsProgressVisible(false);
+      setVideoSrc(filedata[newIndex].fileName);
+      setModalFile(filedata[newIndex].fileName);
+    } else if (docTypes.includes(ft)) {
+      // documents / ppt / excel
+      setImageSrc("");
+      setVideoSrc("");
+      setAudioSrc("");
+      setPdfSrc("");
+      // set docSrc via fetch
+      console.log("✅DOCSSSS")
+      getDocInfo(filedata[newIndex].fileName);
+      setModalFile(filedata[newIndex].fileName);
       } else if (isCodeFileExtension(ft)) {
         setImageSrc("");
         setVideoSrc("");
@@ -4126,20 +4126,20 @@ const Favourites = () => {
         setDocSrc("");
         setCodeFilePath(filedata[newIndex].fileName);
         setModalFile(filedata[newIndex].fileName);
-      } else {
-        setImageSrc("");
-        setAudioSrc("");
-        setPdfSrc("");
-        setVideoSrc("");
-        setDocSrc("");
-        setIsProgressVisible(false);
-        setErrorMessage2("Unsupported file format");
-        setModalFile(filedata[newIndex].fileName);
-      }
+    } else {
+      setImageSrc("");
+      setAudioSrc("");
+      setPdfSrc("");
+      setVideoSrc("");
+      setDocSrc("");
+      setIsProgressVisible(false);
+      setErrorMessage2("Unsupported file format");
+      setModalFile(filedata[newIndex].fileName);
+    }
 
-      return newIndex;
-    });
-  };
+    return newIndex;
+  });
+};
 
   // const handlePrev = () => {
   //   setErrorMessage2("");
@@ -4231,73 +4231,73 @@ const Favourites = () => {
   //   });
   // };
 
-  const handlePrev = () => {
-    setErrorMessage2("");
-    setIsProgressVisible(true);
-    setCurrentImageIndex((prevIndex) => {
-      let newIndex = (prevIndex - 1 + filedata.length) % filedata.length;
-      let fileType = filedata[newIndex].fileType;
+    const handlePrev = () => {
+  setErrorMessage2("");
+  setIsProgressVisible(true);
+  setCurrentImageIndex((prevIndex) => {
+    let newIndex = (prevIndex - 1 + filedata.length) % filedata.length;
+    let fileType = filedata[newIndex].fileType;
 
-      // Define audio extensions to skip
-      const audioTypes = ['mp3', 'm4a', 'MP3', 'wav', 'WAV', 'ogg', 'OGG', 'aac', 'AAC'];
+    // Define audio extensions to skip
+    const audioTypes = ['mp3', 'm4a', 'MP3', 'wav', 'WAV', 'ogg', 'OGG', 'aac', 'AAC'];
 
-      // Loop to find the next item that is NOT an audio file
-      while ((!fileType || audioTypes.includes(fileType)) && filedata.length > 0) {
-        newIndex = (newIndex - 1 + filedata.length) % filedata.length;
-        fileType = filedata[newIndex].fileType;
-
-        // Prevent infinite loop if all files are audio
-        if (newIndex === prevIndex) {
-          setErrorMessage2("No non-audio files available");
-          setIsProgressVisible(false);
-          return prevIndex;
-        }
+    // Loop to find the next item that is NOT an audio file
+    while ((!fileType || audioTypes.includes(fileType)) && filedata.length > 0) {
+      newIndex = (newIndex - 1 + filedata.length) % filedata.length;
+      fileType = filedata[newIndex].fileType;
+      
+      // Prevent infinite loop if all files are audio
+      if (newIndex === prevIndex) {
+        setErrorMessage2("No non-audio files available");
+        setIsProgressVisible(false);
+        return prevIndex;
       }
+    }
 
-      const ft = (fileType || "").toLowerCase();
+    const ft = (fileType || "").toLowerCase();
       setPreviewFile(filedata[newIndex]);
 
-      const imageTypes = ["jpeg", "jpg", "png", "gif", "heic", "hevc", "heif", "svg", "webp"];
-      const pdfTypes = ["pdf", "txt"];
-      const videoTypes = ["mkv", "mp4", "mov", "mpeg", "webm"];
-      const docTypes = ["doc", "docx", "ppt", "pptx", "pptm", "pps", "ppsx", "xls", "xlsx", "xlsm", "csv", "ods"];
+    const imageTypes = ["jpeg", "jpg", "png", "gif", "heic", "hevc", "heif", "svg", "webp"];
+    const pdfTypes = ["pdf", "txt"];
+    const videoTypes = ["mkv", "mp4", "mov", "mpeg", "webm"];
+    const docTypes = ["doc", "docx", "ppt", "pptx", "pptm", "pps", "ppsx", "xls", "xlsx", "xlsm", "csv", "ods"];
 
-      // Clear previous srcs
-      setIsProgressVisible(false);
+    // Clear previous srcs
+    setIsProgressVisible(false);
       setCodeFilePath("");
 
-      // Handle types
-      if (imageTypes.includes(ft)) {
-        setVideoSrc("");
-        setAudioSrc("");
-        setPdfSrc("");
-        setDocSrc("");
-        getImageInfo(filedata[newIndex].fileName);
-        setModalFile(filedata[newIndex].fileName);
-      } else if (pdfTypes.includes(ft)) {
-        setImageSrc("");
-        setVideoSrc("");
-        setAudioSrc("");
-        setDocSrc("");
-        getPdfInfo(filedata[newIndex].fileName);
-        setModalFile(filedata[newIndex].fileName);
-      } else if (videoTypes.includes(ft)) {
-        setImageSrc("");
-        setAudioSrc("");
-        setPdfSrc("");
-        setDocSrc("");
-        setIsProgressVisible(false);
-        setVideoSrc(filedata[newIndex].fileName);
-        setModalFile(filedata[newIndex].fileName);
-      } else if (docTypes.includes(ft)) {
-        // documents / ppt / excel
-        setImageSrc("");
-        setVideoSrc("");
-        setAudioSrc("");
-        setPdfSrc("");
-        // set docSrc via fetch
-        getDocInfo(filedata[newIndex].fileName);
-        setModalFile(filedata[newIndex].fileName);
+    // Handle types
+    if (imageTypes.includes(ft)) {
+      setVideoSrc("");
+      setAudioSrc("");
+      setPdfSrc("");
+      setDocSrc("");
+      getImageInfo(filedata[newIndex].fileName);
+      setModalFile(filedata[newIndex].fileName);
+    } else if (pdfTypes.includes(ft)) {
+      setImageSrc("");
+      setVideoSrc("");
+      setAudioSrc("");
+      setDocSrc("");
+      getPdfInfo(filedata[newIndex].fileName);
+      setModalFile(filedata[newIndex].fileName);
+    } else if (videoTypes.includes(ft)) {
+      setImageSrc("");
+      setAudioSrc("");
+      setPdfSrc("");
+      setDocSrc("");
+      setIsProgressVisible(false);
+      setVideoSrc(filedata[newIndex].fileName);
+      setModalFile(filedata[newIndex].fileName);
+    } else if (docTypes.includes(ft)) {
+      // documents / ppt / excel
+      setImageSrc("");
+      setVideoSrc("");
+      setAudioSrc("");
+      setPdfSrc("");
+      // set docSrc via fetch
+      getDocInfo(filedata[newIndex].fileName);
+      setModalFile(filedata[newIndex].fileName);
       } else if (isCodeFileExtension(ft)) {
         setImageSrc("");
         setVideoSrc("");
@@ -4306,38 +4306,38 @@ const Favourites = () => {
         setDocSrc("");
         setCodeFilePath(filedata[newIndex].fileName);
         setModalFile(filedata[newIndex].fileName);
-      } else {
-        setImageSrc("");
-        setAudioSrc("");
-        setPdfSrc("");
-        setVideoSrc("");
-        setDocSrc("");
-        setIsProgressVisible(false);
-        setErrorMessage2("Unsupported file format");
-        setModalFile(filedata[newIndex].fileName);
-      }
+    } else {
+      setImageSrc("");
+      setAudioSrc("");
+      setPdfSrc("");
+      setVideoSrc("");
+      setDocSrc("");
+      setIsProgressVisible(false);
+      setErrorMessage2("Unsupported file format");
+      setModalFile(filedata[newIndex].fileName);
+    }
 
-      return newIndex;
-    });
-  };
+    return newIndex;
+  });
+};
 
   const deleteFromModal = async (filename) => {
     const loaderStartedAt = Date.now();
     setLoader_Recycle(true);
     const deletedIndex = currentImageIndex;
 
-    const dataToSend = {
-      keys: [filename],
-    };
+  const dataToSend = {
+    keys: [filename],
+  };
 
-    try {
+  try {
       await axios.delete(`${apiUrl}delete-file`, {
-        data: dataToSend,
-        headers: {
-          Authorization: `Bearer ${token}`,
-          "Content-Type": "application/x-www-form-urlencoded",
-        },
-      });
+      data: dataToSend,
+      headers: {
+        Authorization: `Bearer ${token}`,
+        "Content-Type": "application/x-www-form-urlencoded",
+      },
+    });
 
       const allFiles = await getFileData();
       await getRootFolderSize?.();
@@ -4369,10 +4369,10 @@ const Favourites = () => {
       }
 
       afterMinLoaderDisplay(loaderStartedAt, () => {
-        setLoader_Recycle(false);
-        showToast("success", "File deleted successfully");
+      setLoader_Recycle(false);
+      showToast("success", "File deleted successfully");
       });
-    } catch (error) {
+  } catch (error) {
       showToast("error", "There's an error while deleting file!");
       afterMinLoaderDisplay(loaderStartedAt, () => setLoader_Recycle(false));
     }
@@ -4691,7 +4691,7 @@ const Favourites = () => {
           "error",
           getApiErrorMessage(
             error,
-            `Failed to move file "${movingFile}". Please try again.`
+          `Failed to move file "${movingFile}". Please try again.`
           )
         );
         throw error;
@@ -4737,31 +4737,31 @@ const Favourites = () => {
     try {
       if (!arr || arr.length === 0) return;
 
-      const sharedFolders = arr.filter(
-        (folder) => folder.isShared === true || folder.isShared === "true"
-      );
+        const sharedFolders = arr.filter(
+          (folder) => folder.isShared === true || folder.isShared === "true"
+        );
 
-      if (sharedFolders.length > 0) {
-        const sharedNames = sharedFolders
-          .map((f) => f.fileName || f.name)
-          .join(", ");
-        showToast("error", `Cannot move shared folder(s): ${sharedNames}`);
-        return;
-      }
+        if (sharedFolders.length > 0) {
+          const sharedNames = sharedFolders
+            .map((f) => f.fileName || f.name)
+            .join(", ");
+          showToast("error", `Cannot move shared folder(s): ${sharedNames}`);
+          return;
+        }
 
       await axios.post(
-        `${apiUrl}move-folder`,
-        {
-          sourceFolders: arr.map((f) => f.filePath || f.path),
-          destinationFolder: folname,
-        },
-        {
+          `${apiUrl}move-folder`,
+          {
+            sourceFolders: arr.map((f) => f.filePath || f.path),
+            destinationFolder: folname,
+          },
+          {
           ...LONG_RUNNING_AWS_REQUEST_OPTIONS,
 
-          headers: {
-            Authorization: `Bearer ${token}`,
-            "Content-Type": "application/json",
-          },
+            headers: {
+              Authorization: `Bearer ${token}`,
+              "Content-Type": "application/json",
+            },
         }
       );
 
@@ -4778,7 +4778,7 @@ const Favourites = () => {
   };
 
   const handleDragMoveConfirm = async () => {
-    setDragPop(false);
+        setDragPop(false);
     const dragKeys = getFileSelectionKeys();
     const dragKeys2 = getFolderSelectionKeys();
     const dragLabel =
@@ -4932,15 +4932,15 @@ const Favourites = () => {
         <RenameModal
           isOpen={renamePop}
           onClose={handleClosePopover}
-          value={inputValue}
-          onChange={handleInputChange}
+              value={inputValue}
+              onChange={handleInputChange}
           onSubmit={() =>
-            handleFileRename(
-              checkLastHash(newFileName),
-              inputValue + extension,
-              wholeFile
-            )
-          }
+                  handleFileRename(
+                    checkLastHash(newFileName),
+                    inputValue + extension,
+                    wholeFile
+                  )
+                }
           isSubmitting={isRenaming}
           currentName={newFileName}
           extensionSuffix={extension}
@@ -5077,7 +5077,7 @@ const Favourites = () => {
               <div className="files-app-header__titles">
                 <h1 className="files-app-header__title">Favourites</h1>
                 <div className="files-app-header__end">
-                  <button
+              <button
                     type="button"
                     className="files-app-header__support"
                     title="Support"
@@ -5086,15 +5086,15 @@ const Favourites = () => {
                   >
                     <FiLifeBuoy aria-hidden="true" />
                     Support
-                  </button>
+              </button>
                   <div className="files-app-header__welcome files-nav-welcome">
                     <span className="files-nav-welcome__greet">Welcome back</span>
                     <span className="files-nav-welcome__name">
                       {userProfile.name || userData?.userData?.name || userData?.name || name}
                     </span>
-                  </div>
-                </div>
+            </div>
               </div>
+            </div>
 
               <button
                 type="button"
@@ -5122,8 +5122,8 @@ const Favourites = () => {
               <div className="filerbar_row" ref={filterBarRef}>
                 <div className="show_entries_row">
                   <FileSearchBar
-                    value={query}
-                    onChange={handleSearchChange}
+                      value={query}
+                      onChange={handleSearchChange}
                     onClear={clearSearch}
                     isPremium={isPremium}
                     onPremiumGate={() => setShowUpgradeModal(true)}
@@ -5136,24 +5136,24 @@ const Favourites = () => {
                     <div className="files-toolbar__view">
                       <div
                         className={`switcher-container ${view === "list" ? "list-active" : "grid-active"
-                          }`}
-                      >
-                        <img
-                          src={view === "list" ? IconListW : IconList}
-                          alt="List View"
+                    }`}
+                  >
+                    <img
+                      src={view === "list" ? IconListW : IconList}
+                      alt="List View"
                           className={`list-view-img ${view === "list" ? "active" : ""
-                            }`}
-                          onClick={() => toggleView("list")}
-                        />
-                        {/* <div className="switcher-divider"></div> */}
-                        <img
-                          src={view === "grid" ? IconHomeW : IconHome}
-                          alt="Grid View"
+                      }`}
+                      onClick={() => toggleView("list")}
+                    />
+                    {/* <div className="switcher-divider"></div> */}
+                    <img
+                      src={view === "grid" ? IconHomeW : IconHome}
+                      alt="Grid View"
                           className={`grid-view-img ${view === "grid" ? "active" : ""
-                            }`}
-                          onClick={() => toggleView("grid")}
-                        />
-                      </div>
+                      }`}
+                      onClick={() => toggleView("grid")}
+                    />
+                  </div>
                     </div>
                     )}
 
@@ -5161,24 +5161,24 @@ const Favourites = () => {
                       <div className="files-toolbar__sort">
                         <SortByDropdown
                           value={selectedFilter}
-                          onSelect={handleFilterSelect}
+                        onSelect={handleFilterSelect}
                           isPremium={isPremium}
                           onUpgradeRequired={() => setShowUpgradeModal(true)}
                           sortIcon={SortHome}
                           crownIcon={svgCrown}
                         />
-                      </div>
+                    </div>
 
-                      <div
+                    <div
                         className={`files-toolbar__filetype${selectedFileTypes.length > 0 ? " is-active" : ""
                           }${showFTPopup ? " is-open" : ""}`}
                         ref={fileTypeDropdownRef}
-                      >
-                        <Dropdown
+                    >
+                      <Dropdown
                           noCaret
-                          onSelect={handleFTypeSelect}
-                          title={
-                            <span className="sort-filter-span">
+                        onSelect={handleFTypeSelect}
+                        title={
+                          <span className="sort-filter-span">
                               <SlidersHorizontal
                                 className="sort-filter-lucide"
                                 size={15}
@@ -5213,9 +5213,9 @@ const Favourites = () => {
                                 strokeWidth={2.4}
                                 aria-hidden
                               />
-                            </span>
-                          }
-                          className="filter_dropdown"
+                          </span>
+                        }
+                        className="filter_dropdown"
                           onClick={() => {
                             if (!isPremium) {
                               setShowUpgradeModal(true);
@@ -5224,7 +5224,7 @@ const Favourites = () => {
                             setShowFTPopup((open) => !open);
                           }}
                         >
-                        </Dropdown>
+                      </Dropdown>
 
                         {showFTPopup &&
                           ftPopupStyle &&
@@ -5236,7 +5236,7 @@ const Favourites = () => {
                             >
                               <div className="ft-filter-popup-header">
                                 <div className="ft-filter-popup-title">
-                                  File Type Filter
+                            File Type Filter
                                 </div>
                                 <div className="ft-filter-popup-subtitle">
                                   Choose formats to filter
@@ -5308,39 +5308,39 @@ const Favourites = () => {
                                     selectedFileTypes.includes(fileType);
                                   return (
                                     <label
-                                      key={fileType}
+                                key={fileType}
                                       className={`ft-filter-type-item${isSelected ? " is-selected" : ""
                                         }`}
-                                    >
-                                      <input
-                                        type="checkbox"
+                              >
+                                <input
+                                  type="checkbox"
                                         checked={isSelected}
-                                        onChange={() =>
-                                          handleFTCheckboxChange(fileType)
-                                        }
+                                  onChange={() =>
+                                    handleFTCheckboxChange(fileType)
+                                  }
                                       />
                                       <span>{fileType.toUpperCase()}</span>
-                                    </label>
+                                </label>
                                   );
                                 })}
                               </div>
 
                               <div className="ft-filter-popup-footer">
-                                <button
+                            <button
                                   type="button"
                                   className="ft-filter-btn-cancel"
                                   onClick={closeOnlyPopup}
-                                >
+                            >
                                   Done
-                                </button>
-                                <button
+                            </button>
+                            <button
                                   type="button"
                                   className="ft-filter-btn-apply"
                                   onClick={clearFileTypeFilter}
-                                >
+                            >
                                   Clear
-                                </button>
-                              </div>
+                            </button>
+                          </div>
                             </div>,
                             document.body
                           )}
@@ -5377,8 +5377,8 @@ const Favourites = () => {
                 variant="files"
                 onDownload={() => {
                   if (!hasFileSelection()) {
-                    showToast("error", "No files or folders selected!");
-                  } else {
+                          showToast("error", "No files or folders selected!");
+                        } else {
                     setShowDownloadModal(true);
                   }
                 }}
@@ -5401,13 +5401,13 @@ const Favourites = () => {
                         rows={11}
                         columns={5}
                         active
-                        style={{
+                          style={{
                           paddingLeft: 20,
                           paddingRight: 20,
                           paddingTop: 12,
                         }}
                       />
-                    </div>
+                </div>
                   ) : filedata.length === 0 ? (
                     <div style={{ margin: "20px" }}>
                       <EmptyFilesState
@@ -5427,49 +5427,49 @@ const Favourites = () => {
                               <PageSelectAllCheckbox pageItems={filedata} />
                             </th>
 
-                            <th
+                         <th
                               className="files-col-name"
-                              style={{
+  style={{
                                 width: "40%",
-                                fontWeight: 600,
-                                color: "#181818",
-                              }}
-                            >
-                              <div
-                                style={{
-                                  display: "flex",
-                                  justifyContent: "space-between",
-                                  alignItems: "center",
-                                  width: "100%"
-                                }}
-                              >
-                                <span className="column-name-new" style={{ display: "flex", alignItems: "center" }}>
-                                  File Name
-                                  <img
-                                    src={SortIcon}
-                                    alt=""
-                                    style={{ cursor: "pointer", marginLeft: 6 }}
-                                    onClick={() =>
-                                      handleFilterSelect(
-                                        selectedFilter === "By Name(A-Z)"
-                                          ? "name-filter2"
-                                          : "name-filter1"
-                                      )
-                                    }
-                                  />
-                                </span>
-                                <span
-                                  className="column-name-new"
-                                  style={{
-                                    display: "flex",
-                                    alignItems: "center",
+    fontWeight: 600,
+    color: "#181818",
+  }}
+>
+  <div
+    style={{
+      display: "flex",
+      justifyContent: "space-between",
+      alignItems: "center",
+      width: "100%"
+    }}
+  >
+    <span className="column-name-new" style={{ display: "flex", alignItems: "center" }}>
+      File Name
+      <img
+        src={SortIcon}
+        alt=""
+        style={{ cursor: "pointer", marginLeft: 6 }}
+        onClick={() =>
+          handleFilterSelect(
+            selectedFilter === "By Name(A-Z)"
+              ? "name-filter2"
+              : "name-filter1"
+          )
+        }
+      />
+    </span>
+    <span
+      className="column-name-new" 
+      style={{ 
+        display: "flex", 
+        alignItems: "center",
                                     paddingRight: "10px"
-                                  }}
-                                >
-                                  Path
-                                </span>
-                              </div>
-                            </th>
+      }}
+    >
+      Path
+    </span>
+  </div>
+</th>
 
                             <th
                               className="files-col-size"
@@ -5556,123 +5556,123 @@ const Favourites = () => {
                             showAudioPlayer
                           );
                           return (
-                            <tbody>
-                              <tr
+                              <tbody>
+                                <tr
                                 className={`hover_cell ${activeRow === 1 ? "active-row" : ""}
                                   ${nowPlaying ? "is-now-playing" : ""}`}
-                                draggable={true}
-                                onDragStart={(e) => handleDragStart(e, file)}
-                                onDragOver={
-                                  file.isFolder ? handleDragOver : null
-                                }
-                                onDragEnter={
-                                  file.isFolder ? handleDragEnter : null
-                                }
-                                onDragEnd={handleDragEnd}
-                                onDrop={
-                                  file.isFolder
-                                    ? (e) => handleDrop(e, file)
-                                    : null
-                                }
-                              >
-                                <td>
+                                  draggable={true}
+                                  onDragStart={(e) => handleDragStart(e, file)}
+                                  onDragOver={
+                                    file.isFolder ? handleDragOver : null
+                                  }
+                                  onDragEnter={
+                                    file.isFolder ? handleDragEnter : null
+                                  }
+                                  onDragEnd={handleDragEnd}
+                                  onDrop={
+                                    file.isFolder
+                                      ? (e) => handleDrop(e, file)
+                                      : null
+                                  }
+                                >
+                                  <td>
                                   <RowSelectCheckbox
                                     fileName={file.fileName}
                                     isFolder={!!file.isFolder}
                                     disabled={file.fileName === "blackbox" || file.isShared}
-                                  />
-                                </td>
-                                <td
-                                  style={{
-                                    display: "flex",
-                                    alignItems: "center",
-                                    gap: "10px",
+                                    />
+                                  </td>
+                                  <td
+                                    style={{
+                                      display: "flex",
+                                      alignItems: "center",
+                                      gap: "10px",
                                     cursor: "pointer"
-                                  }}
-                                  onClick={() => {
+                                    }}
+                                    onClick={() => {
                                     if (trySelectInsteadOfOpen(file)) return;
 
-                                    setErrorMessage2("");
+  setErrorMessage2("");
                                     setPreviewFile(file);
 
-                                    const isFolder =
-                                      file.fileType === "Folder" ||
-                                      file.isFolder === true;
+  const isFolder =
+    file.fileType === "Folder" ||
+    file.isFolder === true;
 
-                                    if (isFolder) {
-                                      chkFileorFolder(file, file.fileSize);
-                                      return;
-                                    }
+  if (isFolder) {
+    chkFileorFolder(file, file.fileSize);
+    return;
+  }
 
-                                    const fileTypeLower = file.fileType?.toLowerCase();
+  const fileTypeLower = file.fileType?.toLowerCase();
 
                                     if (isCodeFileExtension(fileTypeLower)) {
                                       openCodeInPreviewModal(file);
-                                      return;
-                                    }
+    return;
+  }
 
                                     setCodeFilePath("");
 
-                                    const imageTypes = ["jpeg", "jpg", "png", "gif", "hevc", "heif", "heic", "svg", "webp"];
-                                    const pdfTypes = ["pdf", "txt"];
-                                    const videoTypes = ["mkv", "mp4", "mov", "mpeg", "webm"];
-                                    const audioTypes = ["mp3", "wav", "m4a", "ogg", "aac"];
-                                    const docTypes = ["doc", "docx", "ppt", "pptx", "pptm", "pps", "ppsx", "xls", "xlsx", "xlsm", "csv", "ods"];
+  const imageTypes = ["jpeg", "jpg", "png", "gif", "hevc", "heif", "heic", "svg", "webp"];
+  const pdfTypes = ["pdf", "txt"];
+  const videoTypes = ["mkv", "mp4", "mov", "mpeg", "webm"];
+  const audioTypes = ["mp3", "wav", "m4a", "ogg", "aac"];
+  const docTypes = ["doc", "docx", "ppt", "pptx", "pptm", "pps", "ppsx", "xls", "xlsx", "xlsm", "csv", "ods"];
 
-                                    if (videoTypes.includes(fileTypeLower)) {
-                                      setModalFile(file.fileName);
-                                      handleImageShow();
-                                      setVideoSrc(file.fileName);
-                                      const index = filedata.findIndex(f => f.fileName === file.fileName);
-                                      if (index !== -1) setCurrentImageIndex(index);
-                                      return;
-                                    }
+  if (videoTypes.includes(fileTypeLower)) {
+    setModalFile(file.fileName);
+    handleImageShow();
+    setVideoSrc(file.fileName);
+    const index = filedata.findIndex(f => f.fileName === file.fileName);
+    if (index !== -1) setCurrentImageIndex(index);
+    return;
+  }
 
-                                    if (imageTypes.includes(fileTypeLower)) {
-                                      setModalFile(file.fileName);
-                                      handleImageShow();
-                                      getImageInfo(file.fileName);
-                                      const index = filedata.findIndex(f => f.fileName === file.fileName);
-                                      if (index !== -1) setCurrentImageIndex(index);
-                                      return;
-                                    }
+  if (imageTypes.includes(fileTypeLower)) {
+    setModalFile(file.fileName);
+    handleImageShow();
+    getImageInfo(file.fileName);
+    const index = filedata.findIndex(f => f.fileName === file.fileName);
+    if (index !== -1) setCurrentImageIndex(index);
+    return;
+  }
 
-                                    if (audioTypes.includes(fileTypeLower)) {
+  if (audioTypes.includes(fileTypeLower)) {
                                       playAudioFile(
                                         getFilteredFullFileList(allEntries, sortedData, selectedFileTypes),
                                         file.fileName
                                       );
-                                      return;
-                                    }
+    return;
+  }
 
-                                    if (pdfTypes.includes(fileTypeLower)) {
-                                      setModalFile(file.fileName);
-                                      handleImageShow();
-                                      getPdfInfo(file.fileName);
-                                      const index = filedata.findIndex(f => f.fileName === file.fileName);
-                                      if (index !== -1) setCurrentImageIndex(index);
-                                      return;
-                                    }
+  if (pdfTypes.includes(fileTypeLower)) {
+    setModalFile(file.fileName);
+    handleImageShow();
+    getPdfInfo(file.fileName);
+    const index = filedata.findIndex(f => f.fileName === file.fileName);
+    if (index !== -1) setCurrentImageIndex(index);
+    return;
+  }
 
-                                    if (docTypes.includes(fileTypeLower)) {
-                                      setModalFile(file.fileName);
-                                      handleImageShow();
-                                      getDocInfo(file.fileName);
-                                      const index = filedata.findIndex(f => f.fileName === file.fileName);
-                                      if (index !== -1) setCurrentImageIndex(index);
-                                      return;
-                                    }
+  if (docTypes.includes(fileTypeLower)) {
+    setModalFile(file.fileName);
+    handleImageShow();
+    getDocInfo(file.fileName);
+    const index = filedata.findIndex(f => f.fileName === file.fileName);
+    if (index !== -1) setCurrentImageIndex(index);
+    return;
+  }
 
-                                    handleImageShow();
-                                    setErrorMessage2("File format not supported!");
-                                    const index = filedata.findIndex(f => f.fileName === file.fileName);
-                                    if (index !== -1) setCurrentImageIndex(index);
-                                  }}
-                                >
-                                  <span
-                                    className="filename_link"
-                                    style={{ cursor: "pointer" }}
+  handleImageShow();
+  setErrorMessage2("File format not supported!");
+  const index = filedata.findIndex(f => f.fileName === file.fileName);
+  if (index !== -1) setCurrentImageIndex(index);
+}}
                                   >
+                                    <span
+                                      className="filename_link"
+                                      style={{ cursor: "pointer" }}
+                                    >
                                     {nowPlaying ? (
                                       <NowPlayingIndicator />
                                     ) : (
@@ -5681,196 +5681,196 @@ const Favourites = () => {
                                         height={32}
                                         alt="file icon"
                                         onError={(e) => {
-                                          e.target.onerror = null;
+                                            e.target.onerror = null;
                                           e.target.src = "/images/icons/doc.svg";
                                         }}
                                       />
                                     )}
-                                  </span>
-                                  <div className="file-item">
+                                    </span>
+                                    <div className="file-item">
                                     <TruncatedTooltip
                                       label={getTextAfterLastSlash(
-                                        file.fileName
-                                      )}
+                                          file.fileName
+                                        )}
                                       textClassName="file-name filename_link"
-                                      style={{ cursor: "pointer" }}
-                                      onClick={() => {
+                                        style={{ cursor: "pointer" }}
+                                        onClick={() => {
                                         if (trySelectInsteadOfOpen(file)) return;
 
-                                        setErrorMessage2("");
+  setErrorMessage2("");
                                         setPreviewFile(file);
 
-                                        const isFolder =
-                                          file.fileType === "Folder" ||
-                                          file.isFolder === true;
+  const isFolder =
+    file.fileType === "Folder" ||
+    file.isFolder === true;
 
-                                        if (isFolder) {
-                                          chkFileorFolder(file, file.fileSize);
-                                          return;
-                                        }
+  if (isFolder) {
+    chkFileorFolder(file, file.fileSize);
+    return;
+  }
 
-                                        const fileTypeLower = file.fileType?.toLowerCase();
+  const fileTypeLower = file.fileType?.toLowerCase();
 
                                         if (isCodeFileExtension(fileTypeLower)) {
                                           openCodeInPreviewModal(file);
-                                          return;
-                                        }
+    return;
+  }
 
                                         setCodeFilePath("");
 
-                                        const imageTypes = ["jpeg", "jpg", "png", "gif", "hevc", "heif", "heic", "svg", "webp"];
-                                        const pdfTypes = ["pdf", "txt"];
-                                        const videoTypes = ["mkv", "mp4", "mov", "mpeg", "webm"];
-                                        const audioTypes = ["mp3", "wav", "m4a", "ogg", "aac"];
-                                        const docTypes = ["doc", "docx", "ppt", "pptx", "pptm", "pps", "ppsx", "xls", "xlsx", "xlsm", "csv", "ods"];
+  const imageTypes = ["jpeg", "jpg", "png", "gif", "hevc", "heif", "heic", "svg", "webp"];
+  const pdfTypes = ["pdf", "txt"];
+  const videoTypes = ["mkv", "mp4", "mov", "mpeg", "webm"];
+  const audioTypes = ["mp3", "wav", "m4a", "ogg", "aac"];
+  const docTypes = ["doc", "docx", "ppt", "pptx", "pptm", "pps", "ppsx", "xls", "xlsx", "xlsm", "csv", "ods"];
 
-                                        if (videoTypes.includes(fileTypeLower)) {
-                                          setModalFile(file.fileName);
-                                          handleImageShow();
-                                          setVideoSrc(file.fileName);
-                                          const index = filedata.findIndex(f => f.fileName === file.fileName);
-                                          if (index !== -1) setCurrentImageIndex(index);
-                                          return;
-                                        }
+  if (videoTypes.includes(fileTypeLower)) {
+    setModalFile(file.fileName);
+    handleImageShow();
+    setVideoSrc(file.fileName);
+    const index = filedata.findIndex(f => f.fileName === file.fileName);
+    if (index !== -1) setCurrentImageIndex(index);
+    return;
+  }
 
-                                        if (imageTypes.includes(fileTypeLower)) {
-                                          setModalFile(file.fileName);
-                                          handleImageShow();
-                                          getImageInfo(file.fileName);
-                                          const index = filedata.findIndex(f => f.fileName === file.fileName);
-                                          if (index !== -1) setCurrentImageIndex(index);
-                                          return;
-                                        }
+  if (imageTypes.includes(fileTypeLower)) {
+    setModalFile(file.fileName);
+    handleImageShow();
+    getImageInfo(file.fileName);
+    const index = filedata.findIndex(f => f.fileName === file.fileName);
+    if (index !== -1) setCurrentImageIndex(index);
+    return;
+  }
 
-                                        if (audioTypes.includes(fileTypeLower)) {
+  if (audioTypes.includes(fileTypeLower)) {
                                           playAudioFile(
                                             getFilteredFullFileList(allEntries, sortedData, selectedFileTypes),
                                             file.fileName
                                           );
-                                          return;
-                                        }
+    return;
+  }
 
-                                        if (pdfTypes.includes(fileTypeLower)) {
-                                          setModalFile(file.fileName);
-                                          handleImageShow();
-                                          getPdfInfo(file.fileName);
-                                          const index = filedata.findIndex(f => f.fileName === file.fileName);
-                                          if (index !== -1) setCurrentImageIndex(index);
-                                          return;
-                                        }
+  if (pdfTypes.includes(fileTypeLower)) {
+    setModalFile(file.fileName);
+    handleImageShow();
+    getPdfInfo(file.fileName);
+    const index = filedata.findIndex(f => f.fileName === file.fileName);
+    if (index !== -1) setCurrentImageIndex(index);
+    return;
+  }
 
-                                        if (docTypes.includes(fileTypeLower)) {
-                                          setModalFile(file.fileName);
-                                          handleImageShow();
-                                          getDocInfo(file.fileName);
-                                          const index = filedata.findIndex(f => f.fileName === file.fileName);
-                                          if (index !== -1) setCurrentImageIndex(index);
-                                          return;
-                                        }
+  if (docTypes.includes(fileTypeLower)) {
+    setModalFile(file.fileName);
+    handleImageShow();
+    getDocInfo(file.fileName);
+    const index = filedata.findIndex(f => f.fileName === file.fileName);
+    if (index !== -1) setCurrentImageIndex(index);
+    return;
+  }
 
-                                        handleImageShow();
-                                        setErrorMessage2("File format not supported!");
-                                        const index = filedata.findIndex(f => f.fileName === file.fileName);
-                                        if (index !== -1) setCurrentImageIndex(index);
-                                      }}
+  handleImageShow();
+  setErrorMessage2("File format not supported!");
+  const index = filedata.findIndex(f => f.fileName === file.fileName);
+  if (index !== -1) setCurrentImageIndex(index);
+}}
 
-                                    >
+                                      >
                                       {getTextAfterLastSlash(file.fileName)}
                                     </TruncatedTooltip>
-                                    <span
-                                      className="file-path"
-                                      title={getTextBeforeLastSlash(
-                                        file.fileName
-                                      ).replace(/>/g, "/")}
-                                    >
-                                      {getTextBeforeLastSlash(
-                                        file.fileName
-                                      ).replace(/>/g, "/")}
+                                      <span
+                                        className="file-path"
+                                        title={getTextBeforeLastSlash(
+                                          file.fileName
+                                        ).replace(/>/g, "/")}
+                                      >
+                                        {getTextBeforeLastSlash(
+                                          file.fileName
+                                        ).replace(/>/g, "/")} 
+                                      </span>
+                                    </div>
+                                  </td>
+
+                                  <td
+                                    class="fileSizeTL"
+                                    data-sort={1673004}
+                                    style={{
+                                      textAlign: "center",
+                                      fontWeight: "500",
+                                    }}
+                                  >
+                                    <span style={{ fontWeight: "500" }}>
+                                      {file.fileSize}
                                     </span>
-                                  </div>
-                                </td>
+                                  </td>
+                                  <td
+                                    class="fileSizeTD"
+                                    data-sort="2023-12-16 07:32:38"
+                                    style={{ textAlign: "center" }}
+                                  >
+                                    <p>
+                                      {file.uploadDateTime.substring(
+                                        0,
+                                        file.uploadDateTime.indexOf(",")
+                                      )}
+                                    </p>
+                                    <span>
+                                      {file.uploadDateTime
+                                        .substring(
+                                          file.uploadDateTime.indexOf(",") + 1
+                                        )
+                                        .trim()}
+                                    </span>
+                                  </td>
 
-                                <td
-                                  class="fileSizeTL"
-                                  data-sort={1673004}
-                                  style={{
-                                    textAlign: "center",
-                                    fontWeight: "500",
-                                  }}
-                                >
-                                  <span style={{ fontWeight: "500" }}>
-                                    {file.fileSize}
-                                  </span>
-                                </td>
-                                <td
-                                  class="fileSizeTD"
-                                  data-sort="2023-12-16 07:32:38"
-                                  style={{ textAlign: "center" }}
-                                >
-                                  <p>
-                                    {file.uploadDateTime.substring(
-                                      0,
-                                      file.uploadDateTime.indexOf(",")
-                                    )}
-                                  </p>
-                                  <span>
-                                    {file.uploadDateTime
-                                      .substring(
-                                        file.uploadDateTime.indexOf(",") + 1
-                                      )
-                                      .trim()}
-                                  </span>
-                                </td>
-
-                                <td style={{ textAlign: "center" }}>
-                                  <div className="dropdown">
-                                    <button
-                                      type="button"
-                                      id="dropdownMenuButton"
-                                      aria-haspopup="true"
-                                      aria-expanded="false"
+                                  <td style={{ textAlign: "center" }}>
+                                    <div className="dropdown">
+                                      <button
+                                        type="button"
+                                        id="dropdownMenuButton"
+                                        aria-haspopup="true"
+                                        aria-expanded="false"
                                       className="dropdown-toggle"
                                       data-toggle="dropdown"
-                                    >
-                                      <svg
-                                        width="24"
-                                        height="24"
-                                        viewBox="0 0 24 24"
-                                        fill="none"
-                                        stroke="currentColor"
-                                        stroke-width="2"
-                                        stroke-linecap="round"
-                                        stroke-linejoin="round"
-                                        class="feather feather-more-vertical"
                                       >
-                                        <circle
-                                          cx="12"
-                                          cy="12"
-                                          r="1"
-                                        ></circle>
-                                        <circle cx="12" cy="5" r="1"></circle>
-                                        <circle
-                                          cx="12"
-                                          cy="19"
-                                          r="1"
-                                        ></circle>
-                                      </svg>
-                                    </button>
-                                    <div
-                                      className="dropdown-menu custom-dropdown-menu"
-                                    >
-                                      <a className="file-container">
-                                        <div className="file-icon">
-                                          <img
+                                        <svg
+                                          width="24"
+                                          height="24"
+                                          viewBox="0 0 24 24"
+                                          fill="none"
+                                          stroke="currentColor"
+                                          stroke-width="2"
+                                          stroke-linecap="round"
+                                          stroke-linejoin="round"
+                                          class="feather feather-more-vertical"
+                                        >
+                                          <circle
+                                            cx="12"
+                                            cy="12"
+                                            r="1"
+                                          ></circle>
+                                          <circle cx="12" cy="5" r="1"></circle>
+                                          <circle
+                                            cx="12"
+                                            cy="19"
+                                            r="1"
+                                          ></circle>
+                                        </svg>
+                                      </button>
+                                      <div
+                                        className="dropdown-menu custom-dropdown-menu"
+                                      >
+                                        <a className="file-container">
+                                          <div className="file-icon">
+                                            <img
                                             src={getFileIcon(file)}
-                                            onError={(e) => {
-                                              e.target.onerror = null;
+                                              onError={(e) => {
+                                                  e.target.onerror = null;
                                               e.target.src = "/images/icons/doc.svg";
-                                            }}
-                                            alt="file icon"
-                                          />
-                                        </div>
-                                        <div className="file-details">
+                                              }}
+                                              alt="file icon"
+                                            />
+                                          </div>
+                                          <div className="file-details">
                                           <div
                                             className="file-name"
                                             style={{
@@ -5883,161 +5883,161 @@ const Favourites = () => {
                                             title={getTextAfterLastSlash(file.fileName)}
                                           >
                                             {getTextAfterLastSlash(file.fileName)}
-                                          </div>
+                                            </div>
                                           <div className="file-size">{file.fileSize}</div>
-                                        </div>
-                                      </a>
-                                      {file.isFolder === false && (
-                                        <a
-                                          className="dropdown-item dropdown-item-custom"
-                                          href="#"
-                                          onClick={() => handleRemoveFromFavorites(file)}
-                                        >
-                                          <StarIcon
+                                          </div>
+                                        </a>
+                                        {file.isFolder === false && (
+                                         <a
+  className="dropdown-item dropdown-item-custom"
+  href="#"
+  onClick={() => handleRemoveFromFavorites(file)}
+>
+  <StarIcon 
                                             className="dropdown-icon-list"
                                             style={{ color: "#E5660F" }}
-                                          />
-                                          Remove from Favorites
-                                        </a>
-                                      )}
+  />
+  Remove from Favorites
+</a>
+                                        )}
 
-                                      {file.isFolder === false && (
-                                        <a
-                                          className="dropdown-item dropdown-item-custom"
-                                          href="#"
-                                          onClick={() => {
-                                            if (file.ACL === "private") {
-                                              setFileToShare(file);
-                                              setShowPrivateWarning(true);
-                                              return;
-                                            }
+                                          {file.isFolder === false && (
+  <a
+    className="dropdown-item dropdown-item-custom"
+    href="#"
+    onClick={() => {
+      if (file.ACL === "private") {
+        setFileToShare(file);
+        setShowPrivateWarning(true);
+        return;
+      }
 
+     
 
+      shareFile(file);
+      console.log("file name is: ", file);
+    }}
+    style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}
+  >
+    <span style={{ display: "flex", gap: "10px", alignItems: "center" }}>
+      <img
+        src={shareIcon}
+        alt="Share"
+        className="dropdown-icon-list"
+      />
+      Share
+    </span>
 
-                                            shareFile(file);
-                                            console.log("file name is: ", file);
-                                          }}
-                                          style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}
-                                        >
-                                          <span style={{ display: "flex", gap: "10px", alignItems: "center" }}>
+    {file.ACL === "private" ? (
+      // <span style={{ fontSize: "0.9em", color: "#d9534f" }}>Private</span>
+      <FaLock color="#656566" />
+                                          ) : null}
+  </a>
+)}
+
+                                        {file.isFolder === false && (
+                                          <a
+                                            className="dropdown-item dropdown-item-custom"
+                                            href="#"
+                                            onClick={() => {
+                                              setIsVisibility(true);
+                                              setVisiKey(file.fileName);
+                                              setPubPri(file.ACL);
+                                            }}
+                                          >
                                             <img
-                                              src={shareIcon}
+                                              src={eyeIcon}
                                               alt="Share"
                                               className="dropdown-icon-list"
                                             />
-                                            Share
-                                          </span>
-
-                                          {file.ACL === "private" ? (
-                                            // <span style={{ fontSize: "0.9em", color: "#d9534f" }}>Private</span>
-                                            <FaLock color="#656566" />
-                                          ) : null}
-                                        </a>
-                                      )}
-
-                                      {file.isFolder === false && (
-                                        <a
-                                          className="dropdown-item dropdown-item-custom"
-                                          href="#"
-                                          onClick={() => {
-                                            setIsVisibility(true);
-                                            setVisiKey(file.fileName);
-                                            setPubPri(file.ACL);
-                                          }}
-                                        >
-                                          <img
-                                            src={eyeIcon}
-                                            alt="Share"
-                                            className="dropdown-icon-list"
-                                          />
-                                          Change Visibility
-                                        </a>
-                                      )}
+                                            Change Visibility
+                                          </a>
+                                        )}
 
                                       {SHOW_ZIP_UNZIP_ACTIONS && (file.fileName.includes(".zip") ? (
-                                        <a
+                                          <a
                                           className={`dropdown-item dropdown-item-custom ${file?.isShared
-                                              ? "disabled blur-effect"
-                                              : ""
+                                                ? "disabled blur-effect"
+                                                : ""
                                             }`}
-                                          href="#"
-                                          onClick={() =>
-                                            !file?.isShared && UnzipFile(file)
-                                          }
-                                          style={
-                                            file?.isShared
-                                              ? {
-                                                pointerEvents: "none",
-                                                opacity: 0.5,
-                                              }
-                                              : {}
-                                          }
-                                        >
-                                          <img
-                                            src={UnZipIcon}
-                                            alt="Unzip"
-                                            className="dropdown-icon-list"
-                                          />
-                                          Unzip
-                                        </a>
-                                      ) : (
-                                        <a
+                                            href="#"
+                                            onClick={() =>
+                                              !file?.isShared && UnzipFile(file)
+                                            }
+                                            style={
+                                              file?.isShared
+                                                ? {
+                                                    pointerEvents: "none",
+                                                    opacity: 0.5,
+                                                  }
+                                                : {}
+                                            }
+                                          >
+                                            <img
+                                              src={UnZipIcon}
+                                              alt="Unzip"
+                                              className="dropdown-icon-list"
+                                            />
+                                            Unzip
+                                          </a>
+                                        ) : (
+                                          <a
                                           className={`dropdown-item dropdown-item-custom ${file?.isShared
-                                              ? "disabled blur-effect"
-                                              : ""
+                                                ? "disabled blur-effect"
+                                                : ""
                                             }`}
-                                          href="#"
-                                          onClick={() =>
-                                            !file?.isShared && ZipFile(file)
-                                          }
-                                          style={
-                                            file?.isShared
-                                              ? {
-                                                pointerEvents: "none",
-                                                opacity: 0.5,
-                                              }
-                                              : {}
-                                          }
-                                        >
-                                          <img
-                                            src={ZipIcon}
-                                            alt="Zip"
-                                            className="dropdown-icon-list"
-                                          />
-                                          Zip
-                                        </a>
+                                            href="#"
+                                            onClick={() =>
+                                              !file?.isShared && ZipFile(file)
+                                            }
+                                            style={
+                                              file?.isShared
+                                                ? {
+                                                    pointerEvents: "none",
+                                                    opacity: 0.5,
+                                                  }
+                                                : {}
+                                            }
+                                          >
+                                            <img
+                                              src={ZipIcon}
+                                              alt="Zip"
+                                              className="dropdown-icon-list"
+                                            />
+                                            Zip
+                                          </a>
                                       ))}
 
-                                      {/* {file.isFolder === false && ( */}
-                                      <a
+                                        {/* {file.isFolder === false && ( */}
+                                        <a
                                         className={`dropdown-item dropdown-item-custom ${file?.isShared
-                                            ? "disabled blur-effect"
-                                            : ""
+                                              ? "disabled blur-effect"
+                                              : ""
                                           }`}
-                                        href="#"
-                                        onClick={() =>
-                                          !file?.isShared &&
-                                          downloadFile(file)
-                                        }
-                                        style={
-                                          file?.isShared
-                                            ? {
-                                              pointerEvents: "none",
-                                              opacity: 0.5,
-                                            }
-                                            : {}
-                                        }
-                                      >
-                                        <img
-                                          src={downloadIcon}
-                                          alt="Download"
-                                          className="dropdown-icon-list"
-                                        />
-                                        Download
-                                      </a>
+                                          href="#"
+                                          onClick={() =>
+                                            !file?.isShared &&
+                                            downloadFile(file)
+                                          }
+                                          style={
+                                            file?.isShared
+                                              ? {
+                                                  pointerEvents: "none",
+                                                  opacity: 0.5,
+                                                }
+                                              : {}
+                                          }
+                                        >
+                                          <img
+                                            src={downloadIcon}
+                                            alt="Download"
+                                            className="dropdown-icon-list"
+                                          />
+                                          Download
+                                        </a>
                                       {/* ))} */}
 
-                                      {/* <a
+                                        {/* <a
                                           className={`dropdown-item dropdown-item-custom ${
                                             file?.isShared
                                               ? "disabled blur-effect"
@@ -6065,115 +6065,115 @@ const Favourites = () => {
                                           Rename
                                         </a> */}
 
-
-                                      <a
-                                        className="dropdown-item dropdown-item-custom"
-                                        href="#"
-                                        onClick={() => {
-                                          if (file.isFolder) {
-                                            handleMFClick(file.fileName);
-                                          } else {
-                                            handleMClick(file.fileName);
-                                          }
-                                        }}
-                                        style={
-                                          file?.isShared
-                                            ? {
-                                              pointerEvents: "none",
-                                              opacity: 0.5,
-                                            }
-                                            : {}
-                                        }
-                                      >
-                                        <img
-                                          src={moveIcon2}
-                                          alt="Move"
-                                          className="dropdown-icon-list"
-                                        />
-                                        Move to
-                                      </a>
-                                      {file.isFolder === false && (
-                                        <a
-                                          className="dropdown-item dropdown-item-custom"
-                                          href="#"
-                                          onClick={() =>
-                                            handleCClick(file.fileName)
-                                          }
-                                        >
-                                          <img
-                                            src={copyIcon}
-                                            alt="Copy"
-                                            className="dropdown-icon-list"
-                                          />
-                                          Copy to
-                                        </a>
-                                      )}
-
-                                      {file.isFolder === false && (
+                                       
                                         <a
                                           className="dropdown-item dropdown-item-custom"
                                           href="#"
                                           onClick={() => {
-                                            setInfoShower(true);
-                                            getFileInfo(file.fileName, file);
-                                            console.log("file: ", file)
-                                            // getFileInfo(file);
+                                            if (file.isFolder) {
+                                              handleMFClick(file.fileName);
+                                            } else {
+                                              handleMClick(file.fileName);
+                                            }
                                           }}
+                                          style={
+                                            file?.isShared
+                                              ? {
+                                                  pointerEvents: "none",
+                                                  opacity: 0.5,
+                                                }
+                                              : {}
+                                          }
                                         >
                                           <img
-                                            src={InfoIcon}
-                                            alt="Copy"
+                                            src={moveIcon2}
+                                            alt="Move"
                                             className="dropdown-icon-list"
                                           />
-                                          Information
+                                          Move to
                                         </a>
-                                      )}
-
-                                      <a
-                                        className="dropdown-item dropdown-item-custom"
-                                        href="#"
-                                        onClick={() =>
-                                          handleOpenDeletePopover(file)
-                                        }
-                                        style={
-                                          file?.isShared
-                                            ? {
-                                              pointerEvents: "none",
-                                              opacity: 0.5,
+                                        {file.isFolder === false && (
+                                          <a
+                                            className="dropdown-item dropdown-item-custom"
+                                            href="#"
+                                            onClick={() =>
+                                              handleCClick(file.fileName)
                                             }
-                                            : {}
-                                        }
-                                      >
-                                        <img
-                                          src={deleteIcon2}
-                                          alt="Delete"
-                                          className="dropdown-icon-list"
-                                        />
-                                        Delete
-                                      </a>
+                                          >
+                                            <img
+                                              src={copyIcon}
+                                              alt="Copy"
+                                              className="dropdown-icon-list"
+                                            />
+                                            Copy to
+                                          </a>
+                                        )}
+                                       
+                                        {file.isFolder === false && (
+                                          <a
+                                            className="dropdown-item dropdown-item-custom"
+                                            href="#"
+                                            onClick={() => {
+                                              setInfoShower(true);
+                                            getFileInfo(file.fileName, file);
+                                            console.log("file: ", file)
+                                              // getFileInfo(file);
+                                            }}
+                                          >
+                                            <img
+                                              src={InfoIcon}
+                                              alt="Copy"
+                                              className="dropdown-icon-list"
+                                            />
+                                            Information
+                                          </a>
+                                        )}
+
+                                        <a
+                                          className="dropdown-item dropdown-item-custom"
+                                          href="#"
+                                          onClick={() =>
+                                            handleOpenDeletePopover(file)
+                                          }
+                                          style={
+                                            file?.isShared
+                                              ? {
+                                                  pointerEvents: "none",
+                                                  opacity: 0.5,
+                                                }
+                                              : {}
+                                          }
+                                        >
+                                          <img
+                                            src={deleteIcon2}
+                                            alt="Delete"
+                                            className="dropdown-icon-list"
+                                          />
+                                          Delete
+                                        </a>
+                                      </div>
                                     </div>
-                                  </div>
-                                </td>
-                              </tr>
-                            </tbody>
-                          );
+                                  </td>
+                                </tr>
+                              </tbody>
+                            );
                         })}
                       </table>
                     </div>
                   )
-                ) : (
-                  <>
-                    <div className="grid-view2">
-                      {placeholderLoading ? (
+                  ) : (
+                    <>
+                      <div className="grid-view2">
+                        {placeholderLoading ? (
                         <div className="file-grid-placeholder" id="cardPlaceHolder" style={{ width: "100%" }}>
-                          <Placeholder.Grid
-                            rows={2}
-                            columns={5}
-                            active
-                            style={{ paddingLeft: 20, paddingRight: 20, paddingTop: 12 }}
-                          />
-                        </div>
-                      ) : filedata.length === 0 ? (
+                                                    <Placeholder.Grid
+                                                      rows={2}
+                                                      columns={5}
+                                                      active
+                                                      style={{ paddingLeft: 20, paddingRight: 20, paddingTop: 12 }}
+                                                    />
+                                                  </div>
+                                                ) : filedata.length === 0 ? (
                         <EmptyFilesState
                           variant="favourites"
                           isFiltered={
@@ -6191,92 +6191,92 @@ const Favourites = () => {
                           return (
                           <div
                             className={`grid-item2 ${draggedItem?.fileName === file.fileName
-                                ? "dragging"
-                                : ""
+                                  ? "dragging"
+                                  : ""
                               }${nowPlaying ? " is-now-playing" : ""}`}
-                            key={index}
-                            style={{ cursor: "pointer" }}
-                            draggable={true}
-                            onDragStart={(e) => handleDragStart(e, file)}
-                            onDragOver={(e) => {
-                              e.preventDefault(); // Necessary to allow dropping
-                              if (file.isFolder)
-                                e.dataTransfer.dropEffect = "move";
-                            }}
-                            onDragEnter={(e) => {
-                              if (file.isFolder) e.preventDefault();
-                            }}
-                            onDragEnd={handleDragEnd}
-                            onDrop={(e) => {
-                              if (file.isFolder) handleDrop(e, file);
-                            }}
-                            onClick={(event) => {
-                              if (
-                                !event.target.closest(".dropdown-toggle") &&
-                                !event.target.closest(".checkbox-input") &&
-                                !event.target.closest(".custom-dropdown-menu")
-                              ) {
+                              key={index}
+                              style={{ cursor: "pointer" }}
+                              draggable={true}
+                              onDragStart={(e) => handleDragStart(e, file)}
+                              onDragOver={(e) => {
+                                e.preventDefault(); // Necessary to allow dropping
+                                if (file.isFolder)
+                                  e.dataTransfer.dropEffect = "move";
+                              }}
+                              onDragEnter={(e) => {
+                                if (file.isFolder) e.preventDefault();
+                              }}
+                              onDragEnd={handleDragEnd}
+                              onDrop={(e) => {
+                                if (file.isFolder) handleDrop(e, file);
+                              }}
+                              onClick={(event) => {
+                                if (
+                                  !event.target.closest(".dropdown-toggle") &&
+                                  !event.target.closest(".checkbox-input") &&
+                                  !event.target.closest(".custom-dropdown-menu")
+                                ) {
                                 if (trySelectInsteadOfOpen(file)) return;
 
-                                setErrorMessage2("");
+                                  setErrorMessage2("");
                                 setPreviewFile(file);
 
-                                const fileTypeLower =
-                                  file.fileType?.toLowerCase();
+                                  const fileTypeLower =
+                                    file.fileType?.toLowerCase();
 
                                 if (isCodeFileExtension(fileTypeLower)) {
                                   openCodeInPreviewModal(file);
-                                  return;
-                                }
+                                    return;
+                                  }
 
                                 setCodeFilePath("");
 
-                                if (
-                                  [
-                                    "mkv",
-                                    "mp4",
-                                    "mov",
-                                    "mpeg",
-                                    "webm",
-                                    "MOV",
-                                  ].includes(fileTypeLower)
-                                ) {
-                                  setModalFile(file.fileName);
-                                  handleImageShow();
-                                  const index = filedata.findIndex(
-                                    (f) => f.fileName === file.fileName
-                                  );
-                                  if (index !== -1)
-                                    setCurrentImageIndex(index);
-                                  setVideoSrc(file.fileName);
-                                } else if (
-                                  [
-                                    "jpeg",
-                                    "jpg",
-                                    "png",
-                                    "gif",
-                                    "hevc",
-                                    "heif",
-                                    "svg",
-                                    "webp",
-                                    "JPEG",
-                                    "JPG",
-                                    "PNG",
-                                    "GIF",
-                                    "HEVC",
-                                    "HEIF",
-                                    "SVG",
-                                    "WEBP",
-                                  ].includes(file.fileType)
-                                ) {
-                                  setModalFile(file.fileName);
-                                  handleImageShow();
-                                  const index = filedata.findIndex(
-                                    (f) => f.fileName === file.fileName
-                                  );
-                                  if (index !== -1)
-                                    setCurrentImageIndex(index);
-                                  getImageInfo(file.fileName);
+                                  if (
+                                    [
+                                      "mkv",
+                                      "mp4",
+                                      "mov",
+                                      "mpeg",
+                                      "webm",
+                                      "MOV",
+                                    ].includes(fileTypeLower)
+                                  ) {
+                                    setModalFile(file.fileName);
+                                    handleImageShow();
+                                    const index = filedata.findIndex(
+                                      (f) => f.fileName === file.fileName
+                                    );
+                                    if (index !== -1)
+                                      setCurrentImageIndex(index);
+                                    setVideoSrc(file.fileName);
+                                  } else if (
+                                    [
+                                      "jpeg",
+                                      "jpg",
+                                      "png",
+                                      "gif",
+                                      "hevc",
+                                      "heif",
+                                      "svg",
+                                      "webp",
+                                      "JPEG",
+                                      "JPG",
+                                      "PNG",
+                                      "GIF",
+                                      "HEVC",
+                                      "HEIF",
+                                      "SVG",
+                                      "WEBP",
+                                    ].includes(file.fileType)
+                                  ) {
+                                    setModalFile(file.fileName);
+                                    handleImageShow();
+                                    const index = filedata.findIndex(
+                                      (f) => f.fileName === file.fileName
+                                    );
+                                    if (index !== -1)
+                                      setCurrentImageIndex(index);
+                                    getImageInfo(file.fileName);
                                   // } else if (
                                   //   [
                                   //     "mp3",
@@ -6298,99 +6298,99 @@ const Favourites = () => {
                                   //     setCurrentImageIndex(index);
                                   //   getAudioInfo(file.fileName);
                                   // } 
-                                } else if (
-                                  [
-                                    "mp3",
-                                    "MP3",
-                                    "wav",
-                                    "m4a",
-                                    "WAV",
-                                    "ogg",
-                                    "OGG",
-                                    "aac",
-                                    "AAC",
-                                  ].includes(file.fileType)
-                                ) {
+                                   } else if (
+                                      [
+                                        "mp3",
+                                        "MP3",
+                                        "wav",
+                                        "m4a",
+                                        "WAV",
+                                        "ogg",
+                                        "OGG",
+                                        "aac",
+                                        "AAC",
+                                      ].includes(file.fileType)
+                                    ) {
                                   playAudioFile(
                                     getFilteredFullFileList(allEntries, sortedData, selectedFileTypes),
                                     file.fileName
                                   );
-                                }
-
-
-                                else if (
-                                  ["pdf", "PDF", "txt", "TXT"].includes(
-                                    file.fileType
-                                  )
-                                ) {
-                                  setModalFile(file.fileName);
-                                  handleImageShow();
-                                  const index = filedata.findIndex(
-                                    (f) => f.fileName === file.fileName
-                                  );
-                                  if (index !== -1)
-                                    setCurrentImageIndex(index);
-                                  getPdfInfo(file.fileName);
-                                } else {
-                                  if (file.isFolder === true) {
-                                    chkFileorFolder(file, file.fileSize);
-                                  } else {
+                                    }
+                                  
+                                  
+                                  else if (
+                                    ["pdf", "PDF", "txt", "TXT"].includes(
+                                      file.fileType
+                                    )
+                                  ) {
+                                    setModalFile(file.fileName);
                                     handleImageShow();
-                                    setErrorMessage2(
-                                      "File format not supported!"
-                                    );
                                     const index = filedata.findIndex(
                                       (f) => f.fileName === file.fileName
                                     );
                                     if (index !== -1)
                                       setCurrentImageIndex(index);
+                                    getPdfInfo(file.fileName);
+                                  } else {
+                                    if (file.isFolder === true) {
+                                      chkFileorFolder(file, file.fileSize);
+                                    } else {
+                                      handleImageShow();
+                                      setErrorMessage2(
+                                        "File format not supported!"
+                                      );
+                                      const index = filedata.findIndex(
+                                        (f) => f.fileName === file.fileName
+                                      );
+                                      if (index !== -1)
+                                        setCurrentImageIndex(index);
+                                    }
                                   }
                                 }
-                              }
-                            }}
-                          >
+                              }}
+                            >
                             <RowSelectCheckbox
                               fileName={file.fileName}
                               isFolder={!!file.isFolder}
                               disabled={file.fileName === "blackbox" || file.isShared}
-                              className="checkbox-input"
-                              style={{
+                                className="checkbox-input"
+                                 style={{
                                 position: "absolute", top: "8px", left: "8px"
                               }}
                               onClick={(event) => event.stopPropagation()}
-                            />
-                            {/* Three Dots Menu */}
+                              />
+                              {/* Three Dots Menu */}
 
-                            <div className="menu-icon2">
-                              <div className="dropdown">
-                                <button
-                                  type="button"
-                                  id="dropdownMenuButton"
-                                  aria-haspopup="true"
-                                  aria-expanded="false"
+                              <div className="menu-icon2">
+                                <div className="dropdown">
+                                  <button
+                                    type="button"
+                                    id="dropdownMenuButton"
+                                    aria-haspopup="true"
+                                    aria-expanded="false"
                                   className="dropdown-toggle"
                                   data-toggle="dropdown"
-                                >
-                                  <svg
-                                    width="24"
-                                    height="24"
-                                    viewBox="0 0 24 24"
-                                    fill="none"
-                                    stroke="currentColor"
-                                    stroke-width="2"
-                                    stroke-linecap="round"
-                                    stroke-linejoin="round"
-                                    class="feather feather-more-vertical"
                                   >
-                                    <circle cx="12" cy="12" r="1"></circle>
-                                    <circle cx="12" cy="5" r="1"></circle>
-                                    <circle cx="12" cy="19" r="1"></circle>
-                                  </svg>
-                                </button>
-                                <div
-                                  className="dropdown-menu custom-dropdown-menu"
-                                >
-                                  {/* {file.isFolder === false && (
+                                    <svg
+                                      width="24"
+                                      height="24"
+                                      viewBox="0 0 24 24"
+                                      fill="none"
+                                      stroke="currentColor"
+                                      stroke-width="2"
+                                      stroke-linecap="round"
+                                      stroke-linejoin="round"
+                                      class="feather feather-more-vertical"
+                                    >
+                                      <circle cx="12" cy="12" r="1"></circle>
+                                      <circle cx="12" cy="5" r="1"></circle>
+                                      <circle cx="12" cy="19" r="1"></circle>
+                                    </svg>
+                                  </button>
+                                  <div
+                                    className="dropdown-menu custom-dropdown-menu"
+                                  >
+                                    {/* {file.isFolder === false && (
                                     <a
                                       className="dropdown-item"
                                       href="#"
@@ -6404,19 +6404,19 @@ const Favourites = () => {
                                       Change Visibility
                                     </a>
                                   )} */}
-                                  <a className="file-container">
-                                    <div className="file-icon">
-                                      <img
+                                    <a className="file-container">
+                                      <div className="file-icon">
+                                        <img
                                         src={getFileIcon(file)}
-                                        onError={(e) => {
-                                          e.target.onerror = null;
+                                          onError={(e) => {
+                                              e.target.onerror = null;
                                           e.target.src = "/images/icons/doc.svg";
-                                        }}
-                                        height={32}
-                                        alt="file icon"
-                                      />
-                                    </div>
-                                    <div className="file-details">
+                                          }}
+                                          height={32}
+                                          alt="file icon"
+                                        />
+                                      </div>
+                                      <div className="file-details">
                                       <div
                                         className="file-name"
                                         style={{
@@ -6429,145 +6429,145 @@ const Favourites = () => {
                                         title={getTextAfterLastSlash(file.fileName)}
                                       >
                                         {getTextAfterLastSlash(file.fileName)}
-                                      </div>
+                                        </div>
                                       <div className="file-size">{file.fileSize}</div>
-                                    </div>
-                                  </a>
+                                      </div>
+                                    </a>
 
-                                  {file.isFolder === false && (
-                                    <a
-                                      className="dropdown-item dropdown-item-custom"
-                                      href="#"
-                                      onClick={() => handleRemoveFromFavorites(file)}
-                                    >
-                                      <StarIcon
+                                       {file.isFolder === false && (
+                                         <a
+                                            className="dropdown-item dropdown-item-custom"
+                                            href="#"
+                                            onClick={() => handleRemoveFromFavorites(file)}
+                                          >
+                                            <StarIcon 
                                         className="dropdown-icon-list"
                                         style={{ color: "#E5660F" }}
-                                      />
-                                      Remove from Favorites
-                                    </a>
-                                  )}
+                                            />
+                                            Remove from Favorites
+                                          </a>
+                                        )}
+                                        
+                                    {file.isFolder === false && (
+                                      <a
+                                        className="dropdown-item dropdown-item-custom"
+                                        href="#"
+                                        onClick={() => shareFile(file)}
+                                      >
+                                        <img
+                                          src={shareIcon}
+                                          alt="Share"
+                                          className="dropdown-icon-list"
+                                        />
+                                        Share
+                                      </a>
+                                    )}
 
-                                  {file.isFolder === false && (
-                                    <a
-                                      className="dropdown-item dropdown-item-custom"
-                                      href="#"
-                                      onClick={() => shareFile(file)}
-                                    >
-                                      <img
-                                        src={shareIcon}
-                                        alt="Share"
-                                        className="dropdown-icon-list"
-                                      />
-                                      Share
-                                    </a>
-                                  )}
+                                    {file.isFolder === false && (
+                                      <a
+                                        className="dropdown-item dropdown-item-custom"
+                                        href="#"
+                                        onClick={() => {
+                                          setIsVisibility(true);
+                                          setVisiKey(file.fileName);
+                                          setPubPri(file.ACL);
+                                        }}
+                                      >
+                                        <img
+                                          src={eyeIcon}
+                                          alt="Share"
+                                          className="dropdown-icon-list"
+                                        />
+                                        Change Visibility
+                                      </a>
+                                    )}
 
-                                  {file.isFolder === false && (
-                                    <a
-                                      className="dropdown-item dropdown-item-custom"
-                                      href="#"
-                                      onClick={() => {
-                                        setIsVisibility(true);
-                                        setVisiKey(file.fileName);
-                                        setPubPri(file.ACL);
-                                      }}
-                                    >
-                                      <img
-                                        src={eyeIcon}
-                                        alt="Share"
-                                        className="dropdown-icon-list"
-                                      />
-                                      Change Visibility
-                                    </a>
-                                  )}
-
-
-
-
-
-
+                                
+                                
+                                
+                                
+                                
                                   {SHOW_ZIP_UNZIP_ACTIONS && (file.fileName.includes(".zip") ? (
-                                    <a
+                                      <a
                                       className={`dropdown-item dropdown-item-custom ${file?.isShared
-                                          ? "disabled blur-effect"
-                                          : ""
+                                            ? "disabled blur-effect"
+                                            : ""
                                         }`}
-                                      href="#"
-                                      onClick={() =>
-                                        !file?.isShared && UnzipFile(file)
-                                      }
-                                      style={
-                                        file?.isShared
-                                          ? {
-                                            pointerEvents: "none",
-                                            opacity: 0.5,
-                                          }
-                                          : {}
-                                      }
-                                    >
-                                      <img
-                                        src={UnZipIcon}
-                                        alt="Unzip"
-                                        className="dropdown-icon-list"
-                                      />
-                                      Unzip
-                                    </a>
-                                  ) : (
-                                    <a
-                                      className={`dropdown-item dropdown-item-custom ${file?.isShared
-                                          ? "disabled blur-effect"
-                                          : ""
-                                        }`}
-                                      href="#"
-                                      onClick={() =>
-                                        !file?.isShared && ZipFile(file)
-                                      }
-                                      style={
-                                        file?.isShared
-                                          ? {
-                                            pointerEvents: "none",
-                                            opacity: 0.5,
-                                          }
-                                          : {}
-                                      }
-                                    >
-                                      <img
-                                        src={ZipIcon}
-                                        alt="Zip"
-                                        className="dropdown-icon-list"
-                                      />
-                                      Zip
-                                    </a>
-                                  ))}
-                                  {/* {file.isFolder === false && ( */}
-                                  <a
-                                    className={`dropdown-item dropdown-item-custom ${file?.isShared
-                                        ? "disabled blur-effect"
-                                        : ""
-                                      }`}
-                                    href="#"
-                                    onClick={() =>
-                                      !file?.isShared && downloadFile(file)
-                                    }
-                                    style={
-                                      file?.isShared
-                                        ? {
-                                          pointerEvents: "none",
-                                          opacity: 0.5,
+                                        href="#"
+                                        onClick={() =>
+                                          !file?.isShared && UnzipFile(file)
                                         }
-                                        : {}
-                                    }
-                                  >
-                                    <img
-                                      src={downloadIcon}
-                                      alt="Download"
-                                      className="dropdown-icon-list"
-                                    />
-                                    Download
-                                  </a>
+                                        style={
+                                          file?.isShared
+                                            ? {
+                                                pointerEvents: "none",
+                                                opacity: 0.5,
+                                              }
+                                            : {}
+                                        }
+                                      >
+                                        <img
+                                          src={UnZipIcon}
+                                          alt="Unzip"
+                                          className="dropdown-icon-list"
+                                        />
+                                        Unzip
+                                      </a>
+                                    ) : (
+                                      <a
+                                      className={`dropdown-item dropdown-item-custom ${file?.isShared
+                                            ? "disabled blur-effect"
+                                            : ""
+                                        }`}
+                                        href="#"
+                                        onClick={() =>
+                                          !file?.isShared && ZipFile(file)
+                                        }
+                                        style={
+                                          file?.isShared
+                                            ? {
+                                                pointerEvents: "none",
+                                                opacity: 0.5,
+                                              }
+                                            : {}
+                                        }
+                                      >
+                                        <img
+                                          src={ZipIcon}
+                                          alt="Zip"
+                                          className="dropdown-icon-list"
+                                        />
+                                        Zip
+                                      </a>
+                                  ))}
+                                    {/* {file.isFolder === false && ( */}
+                                    <a
+                                    className={`dropdown-item dropdown-item-custom ${file?.isShared
+                                          ? "disabled blur-effect"
+                                          : ""
+                                      }`}
+                                      href="#"
+                                      onClick={() =>
+                                        !file?.isShared && downloadFile(file)
+                                      }
+                                      style={
+                                        file?.isShared
+                                          ? {
+                                              pointerEvents: "none",
+                                              opacity: 0.5,
+                                            }
+                                          : {}
+                                      }
+                                    >
+                                      <img
+                                        src={downloadIcon}
+                                        alt="Download"
+                                        className="dropdown-icon-list"
+                                      />
+                                      Download
+                                    </a>
                                   {/* ))} */}
-                                  {/* <a
+                                    {/* <a
                                       className={`dropdown-item dropdown-item-custom ${
                                         file?.isShared
                                           ? "disabled blur-effect"
@@ -6594,7 +6594,7 @@ const Favourites = () => {
                                       />
                                       Rename
                                     </a> */}
-                                  {/* {file.isFolder === false && (
+                                    {/* {file.isFolder === false && (
                                     <a
                                       className="dropdown-item dropdown-item-custom"
                                       href="#"
@@ -6608,49 +6608,49 @@ const Favourites = () => {
                                       Add to Favorites
                                     </a>
                                   )} */}
-                                  <a
-                                    className="dropdown-item dropdown-item-custom"
-                                    href="#"
-                                    onClick={() => {
-                                      if (file.isFolder) {
-                                        handleMFClick(file.fileName);
-                                      } else {
-                                        handleMClick(file.fileName);
-                                      }
-                                    }}
-                                    style={
-                                      file?.isShared
-                                        ? {
-                                          pointerEvents: "none",
-                                          opacity: 0.5,
-                                        }
-                                        : {}
-                                    }
-                                  >
-                                    <img
-                                      src={moveIcon2}
-                                      alt="Move"
-                                      className="dropdown-icon-list"
-                                    />
-                                    Move to
-                                  </a>
-                                  {file.isFolder === false && (
                                     <a
                                       className="dropdown-item dropdown-item-custom"
                                       href="#"
-                                      onClick={() =>
-                                        handleCClick(file.fileName)
+                                      onClick={() => {
+                                        if (file.isFolder) {
+                                          handleMFClick(file.fileName);
+                                        } else {
+                                          handleMClick(file.fileName);
+                                        }
+                                      }}
+                                      style={
+                                        file?.isShared
+                                          ? {
+                                              pointerEvents: "none",
+                                              opacity: 0.5,
+                                            }
+                                          : {}
                                       }
                                     >
                                       <img
-                                        src={copyIcon}
-                                        alt="Copy"
+                                        src={moveIcon2}
+                                        alt="Move"
                                         className="dropdown-icon-list"
                                       />
-                                      Copy to
+                                      Move to
                                     </a>
-                                  )}
-                                  {/* {file.isFolder === false && (
+                                    {file.isFolder === false && (
+                                      <a
+                                        className="dropdown-item dropdown-item-custom"
+                                        href="#"
+                                        onClick={() =>
+                                          handleCClick(file.fileName)
+                                        }
+                                      >
+                                        <img
+                                          src={copyIcon}
+                                          alt="Copy"
+                                          className="dropdown-icon-list"
+                                        />
+                                        Copy to
+                                      </a>
+                                    )}
+                                    {/* {file.isFolder === false && (
                                     <a
                                       className="dropdown-item dropdown-item-custom"
                                       href="#"
@@ -6664,7 +6664,7 @@ const Favourites = () => {
                                       Generate Short Link
                                     </a>
                                   )} */}
-                                  {/* {file.isFolder === false && (
+                                    {/* {file.isFolder === false && (
                                     <a
                                       className="dropdown-item"
                                       href="#"
@@ -6678,50 +6678,50 @@ const Favourites = () => {
                                       Information
                                     </a>
                                   )} */}
-                                  {file.isFolder === false && (
+                                    {file.isFolder === false && (
+                                          <a
+                                            className="dropdown-item dropdown-item-custom"
+                                            href="#"
+                                            onClick={() => {
+                                              setInfoShower(true);
+                                              // getFileInfo(file.fileName);
+                                        getFileInfo(file.fileName, file);
+                                            }}
+                                          >
+                                            <img
+                                              src={InfoIcon}
+                                              alt="Copy"
+                                              className="dropdown-icon-list"
+                                            />
+                                            Information
+                                          </a>
+                                        )}
+
                                     <a
                                       className="dropdown-item dropdown-item-custom"
                                       href="#"
-                                      onClick={() => {
-                                        setInfoShower(true);
-                                        // getFileInfo(file.fileName);
-                                        getFileInfo(file.fileName, file);
-                                      }}
+                                      onClick={() =>
+                                        handleOpenDeletePopover(file)
+                                      }
+                                      style={
+                                        file?.isShared
+                                          ? {
+                                              pointerEvents: "none",
+                                              opacity: 0.5,
+                                            }
+                                          : {}
+                                      }
                                     >
                                       <img
-                                        src={InfoIcon}
-                                        alt="Copy"
+                                        src={deleteIcon2}
+                                        alt="Delete"
                                         className="dropdown-icon-list"
                                       />
-                                      Information
+                                      Delete
                                     </a>
-                                  )}
-
-                                  <a
-                                    className="dropdown-item dropdown-item-custom"
-                                    href="#"
-                                    onClick={() =>
-                                      handleOpenDeletePopover(file)
-                                    }
-                                    style={
-                                      file?.isShared
-                                        ? {
-                                          pointerEvents: "none",
-                                          opacity: 0.5,
-                                        }
-                                        : {}
-                                    }
-                                  >
-                                    <img
-                                      src={deleteIcon2}
-                                      alt="Delete"
-                                      className="dropdown-icon-list"
-                                    />
-                                    Delete
-                                  </a>
+                                  </div>
                                 </div>
                               </div>
-                            </div>
 
                             {/* File Icon / public image preview (visible cards only) */}
                             <CardFilePreview
@@ -6731,62 +6731,62 @@ const Favourites = () => {
                             />
 
                             <div style={{ padding: "18px" }}>
-                              {/* File Name */}
-                              <div
+  {/* File Name */}
+  <div
                                 className={`file-name2${
                                   nowPlaying ? " files-grid-card-name--playing" : ""
                                 }`}
-                                style={{
-                                  cursor: "pointer",
+    style={{
+      cursor: "pointer",
                                   whiteSpace: nowPlaying ? "normal" : "nowrap",
-                                  overflow: "hidden",
-                                  textOverflow: "ellipsis",
-                                  maxWidth: "100%",
-                                }}
-                                title={file.fileName}
-                              >
+      overflow: "hidden",
+      textOverflow: "ellipsis",
+      maxWidth: "100%",
+    }}
+    title={file.fileName}
+  >
                                 {nowPlaying ? <NowPlayingIndicator /> : null}
                                 <span className="file-name2__text">
-                                  {getTextAfterLastSlash(file.fileName)}
+    {getTextAfterLastSlash(file.fileName)}
                                 </span>
-                              </div>
+  </div>
 
-                              {/* File Path */}
-                              <div
-                                className="file-path2"
-                                style={{
-                                  fontSize: "12px",
-                                  color: "#9a9a9a",
-                                  whiteSpace: "nowrap",
-                                  overflow: "hidden",
-                                  textOverflow: "ellipsis",
-                                  maxWidth: "100%",
-                                }}
-                                title={getFilePathOnly(file.fileName)}
-                              >
-                                {getFilePathOnly(file.fileName)}
-                              </div>
+ {/* File Path */}
+<div
+  className="file-path2"
+  style={{
+    fontSize: "12px",
+    color: "#9a9a9a",
+    whiteSpace: "nowrap",
+    overflow: "hidden",
+    textOverflow: "ellipsis",
+    maxWidth: "100%",
+  }}
+  title={getFilePathOnly(file.fileName)}
+>
+  {getFilePathOnly(file.fileName)}
+</div>
 
-                              {/* Date & Items */}
-                              <div className="file-info2" style={{ textAlign: "left" }}>
-                                <span className="file-date2">
-                                  {file.uploadDateTime.substring(
-                                    0,
-                                    file.uploadDateTime.indexOf(",")
-                                  )}
-                                </span>
-                                <span className="file-items2">• {file.fileSize}</span>
-                              </div>
+  {/* Date & Items */}
+  <div className="file-info2" style={{ textAlign: "left" }}>
+    <span className="file-date2">
+      {file.uploadDateTime.substring(
+        0,
+        file.uploadDateTime.indexOf(",")
+      )}
+    </span>
+    <span className="file-items2">• {file.fileSize}</span>
+  </div>
+</div>
+
                             </div>
-
-                          </div>
                           );
                         })
-                      )}
-                    </div>
-                  </>
-                )}
-              </div>
+                        )}
+                      </div>
+                    </>
+                  )}
+                </div>
 
 
               {isWhisperClicked && (
@@ -6867,42 +6867,42 @@ const Favourites = () => {
         {/* main-panel ends */}
       </div>
 
-      {/*All files Shower - except audio */}
-      <CustomFileModal
-        show={showImage}
-        onClose={handleImageClose}
-        isFullscreen={isFullscreen}
-        videoSrc={videoSrc}
-        pdfSrc={pdfSrc}
-        imageSrc={imageSrc}
-        audioSrc={audioSrc}
-        errorMessage2={errorMessage2}
-        isProgressVisible={isProgressVisible}
-        apiUrl={apiUrl}
-        token={token}
-        toggleFullscreen={toggleFullscreen}
-        handlePrev={handlePrev}
-        handleNext={handleNext}
-        folderOptions={folderOptions}
-        selectedFolder={selectedFolder}
-        handleChange={handleChange}
-        fullscreeen={fullscreeen}
-        deleteFromModal={deleteFromModal}
-        modalFile={modalFile}
-        deleteIcon={deleteIcon}
-        fileName={modalFile}
-        triggerUpdate={triggerUpdate}
-        setTriggerUpdate={setTriggerUpdate}
-        isPublic={modalFile?.isPublic}
-        docSrc={docSrc}
+{/*All files Shower - except audio */}
+            <CustomFileModal
+              show={showImage}
+              onClose={handleImageClose}
+              isFullscreen={isFullscreen}
+              videoSrc={videoSrc}
+              pdfSrc={pdfSrc}
+              imageSrc={imageSrc}
+              audioSrc={audioSrc}
+              errorMessage2={errorMessage2}
+              isProgressVisible={isProgressVisible}
+              apiUrl={apiUrl}
+              token={token}
+              toggleFullscreen={toggleFullscreen}
+              handlePrev={handlePrev}
+              handleNext={handleNext}
+              folderOptions={folderOptions}
+              selectedFolder={selectedFolder}
+              handleChange={handleChange}
+              fullscreeen={fullscreeen}
+              deleteFromModal={deleteFromModal}
+              modalFile={modalFile}
+              deleteIcon={deleteIcon}
+              fileName={modalFile}
+              triggerUpdate={triggerUpdate}
+              setTriggerUpdate={setTriggerUpdate}
+              isPublic={modalFile?.isPublic}
+              docSrc={docSrc}
         codeFilePath={codeFilePath}
         previewFile={previewFile}
         setModalFile={setModalFile}
         // onRenameSuccess={() => getFolderFiles(selectedFolder)}
-        onRenameSuccess={() => getFileData()}
+              onRenameSuccess={() => getFileData()}
         onMoveSuccess={onMoveSuccessFromModal}
-
-      />
+        
+            />
 
       <Modal
         open={openFileUploadModal}
@@ -7173,7 +7173,7 @@ const Favourites = () => {
           setNewFolderName(e.target.value);
           if (folderFieldError) setFolderFieldError("");
         }}
-        onSubmit={createJustFolder}
+              onSubmit={createJustFolder}
         error={folderFieldError}
         isSubmitting={isCreatingFolder}
       />
@@ -7239,140 +7239,140 @@ const Favourites = () => {
       )}
 
       {showPrivateWarning && fileToShare && (
-        <div
-          style={{
-            position: "fixed",
-            inset: 0,
-            backgroundColor: "rgba(0, 0, 0, 0.55)",      // slightly darker overlay for contrast
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "center",
+  <div
+    style={{
+      position: "fixed",
+      inset: 0,
+      backgroundColor: "rgba(0, 0, 0, 0.55)",      // slightly darker overlay for contrast
+      display: "flex",
+      alignItems: "center",
+      justifyContent: "center",
             zIndex: 2100,
-          }}
+    }}
+    onClick={() => setShowPrivateWarning(false)}
+  >
+    <div
+      style={{
+        backgroundColor: "#ffffff",
+        borderRadius: "12px",
+        width: "90%",
+        maxWidth: "420px",
+        padding: "28px 24px",                      // a bit more comfortable padding
+        boxShadow: "0 12px 32px rgba(0,0,0,0.22)",
+        border: "1px solid #f3f4f6",               // subtle border for polish
+      }}
+      onClick={(e) => e.stopPropagation()}
+    >
+      <h3
+        style={{
+          margin: "0 0 20px 0",
+          fontSize: "1.5rem",
+          fontWeight: 600,
+          textAlign: "center",
+          color: "#1f2937",                        // dark gray / near-black
+        }}
+      >
+        Private File
+      </h3>
+
+      <div style={{ textAlign: "center", marginBottom: "24px" }}>
+        <div style={{ fontSize: "3.5rem", marginBottom: "12px" }}>🔒</div>
+      </div>
+
+      <p
+        style={{
+          textAlign: "center",
+          margin: "0 0 12px 0",
+          fontSize: "1.1rem",
+          fontWeight: 500,
+          color: "#1f2937",
+        }}
+      >
+        This file is <strong>private</strong> and cannot be shared.
+      </p>
+
+      <p
+        style={{
+          textAlign: "center",
+          color: "#4b5563",                        // cooler gray
+          margin: "0 0 24px 0",
+          fontSize: "1rem",
+          lineHeight: 1.5,
+        }}
+      >
+        To generate a shareable link, please change its visibility to <strong>public</strong>.
+      </p>
+
+      <p
+        style={{
+          textAlign: "center",
+          fontSize: "0.95rem",
+          color: "#6b7280",
+          marginBottom: "28px",
+          wordBreak: "break-all",
+        }}
+      >
+        File: <strong>{fileToShare.fileName}</strong>
+      </p>
+
+      <div style={{ display: "flex", gap: "16px", justifyContent: "center" }}>
+        <button
           onClick={() => setShowPrivateWarning(false)}
+          style={{
+            padding: "12px 28px",
+            border: "1px solid #d1d5db",
+            borderRadius: "8px",
+            backgroundColor: "white",
+            color: "#374151",
+            cursor: "pointer",
+            fontSize: "1rem",
+            fontWeight: 500,
+            transition: "all 0.2s ease",
+          }}
+          onMouseEnter={(e) => {
+            e.currentTarget.style.backgroundColor = "#f3f4f6";
+          }}
+          onMouseLeave={(e) => {
+            e.currentTarget.style.backgroundColor = "white";
+          }}
         >
-          <div
-            style={{
-              backgroundColor: "#ffffff",
-              borderRadius: "12px",
-              width: "90%",
-              maxWidth: "420px",
-              padding: "28px 24px",                      // a bit more comfortable padding
-              boxShadow: "0 12px 32px rgba(0,0,0,0.22)",
-              border: "1px solid #f3f4f6",               // subtle border for polish
-            }}
-            onClick={(e) => e.stopPropagation()}
-          >
-            <h3
-              style={{
-                margin: "0 0 20px 0",
-                fontSize: "1.5rem",
-                fontWeight: 600,
-                textAlign: "center",
-                color: "#1f2937",                        // dark gray / near-black
-              }}
-            >
-              Private File
-            </h3>
+          Cancel
+        </button>
 
-            <div style={{ textAlign: "center", marginBottom: "24px" }}>
-              <div style={{ fontSize: "3.5rem", marginBottom: "12px" }}>🔒</div>
-            </div>
-
-            <p
-              style={{
-                textAlign: "center",
-                margin: "0 0 12px 0",
-                fontSize: "1.1rem",
-                fontWeight: 500,
-                color: "#1f2937",
-              }}
-            >
-              This file is <strong>private</strong> and cannot be shared.
-            </p>
-
-            <p
-              style={{
-                textAlign: "center",
-                color: "#4b5563",                        // cooler gray
-                margin: "0 0 24px 0",
-                fontSize: "1rem",
-                lineHeight: 1.5,
-              }}
-            >
-              To generate a shareable link, please change its visibility to <strong>public</strong>.
-            </p>
-
-            <p
-              style={{
-                textAlign: "center",
-                fontSize: "0.95rem",
-                color: "#6b7280",
-                marginBottom: "28px",
-                wordBreak: "break-all",
-              }}
-            >
-              File: <strong>{fileToShare.fileName}</strong>
-            </p>
-
-            <div style={{ display: "flex", gap: "16px", justifyContent: "center" }}>
-              <button
-                onClick={() => setShowPrivateWarning(false)}
-                style={{
-                  padding: "12px 28px",
-                  border: "1px solid #d1d5db",
-                  borderRadius: "8px",
-                  backgroundColor: "white",
-                  color: "#374151",
-                  cursor: "pointer",
-                  fontSize: "1rem",
-                  fontWeight: 500,
-                  transition: "all 0.2s ease",
-                }}
-                onMouseEnter={(e) => {
-                  e.currentTarget.style.backgroundColor = "#f3f4f6";
-                }}
-                onMouseLeave={(e) => {
-                  e.currentTarget.style.backgroundColor = "white";
-                }}
-              >
-                Cancel
-              </button>
-
-              <button
-                onClick={() => {
-                  setShowPrivateWarning(false);
-                  setIsVisibility(true);
-                  setVisiKey(fileToShare.fileName);
-                  setPubPri(fileToShare.ACL);
-                }}
-                style={{
-                  padding: "12px 28px",
-                  border: "none",
-                  borderRadius: "8px",
+        <button
+          onClick={() => {
+            setShowPrivateWarning(false);
+            setIsVisibility(true);
+            setVisiKey(fileToShare.fileName);
+            setPubPri(fileToShare.ACL);
+          }}
+          style={{
+            padding: "12px 28px",
+            border: "none",
+            borderRadius: "8px",
                   background: "var(--h1-gradient)",                    // vivid orange (Tailwind amber-500)
-                  color: "white",
-                  cursor: "pointer",
-                  fontSize: "1rem",
-                  fontWeight: 600,
-                  boxShadow: "0 2px 8px rgba(249, 115, 22, 0.3)",
-                  transition: "all 0.2s ease",
-                }}
-                onMouseEnter={(e) => {
+            color: "white",
+            cursor: "pointer",
+            fontSize: "1rem",
+            fontWeight: 600,
+            boxShadow: "0 2px 8px rgba(249, 115, 22, 0.3)",
+            transition: "all 0.2s ease",
+          }}
+          onMouseEnter={(e) => {
                   e.currentTarget.style.background = "var(--h1-gradient)"; // darker orange on hover
-                  e.currentTarget.style.boxShadow = "0 4px 12px rgba(234, 88, 12, 0.4)";
-                }}
-                onMouseLeave={(e) => {
+            e.currentTarget.style.boxShadow = "0 4px 12px rgba(234, 88, 12, 0.4)";
+          }}
+          onMouseLeave={(e) => {
                   e.currentTarget.style.background = "var(--h1-gradient)";
-                  e.currentTarget.style.boxShadow = "0 2px 8px rgba(249, 115, 22, 0.3)";
-                }}
-              >
-                Change Visibility
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
+            e.currentTarget.style.boxShadow = "0 2px 8px rgba(249, 115, 22, 0.3)";
+          }}
+        >
+          Change Visibility
+        </button>
+      </div>
+    </div>
+  </div>
+)}
 
       <DownloadModal
         isOpen={isDownloadModalOpen}
