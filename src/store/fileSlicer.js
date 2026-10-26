@@ -22,6 +22,10 @@ const initialState = {
   currentTrackIndex: 0,
   isShuffleEnabled: false,
   repeatMode: "off", // off | once | on
+  // Frozen when playback starts — must not follow folder navigation
+  // (leaving a Shared Folder clears isSharedValue and would kill the stream).
+  audioShared: false,
+  audioSharedName: "",
   loading: false, 
 
 
@@ -236,6 +240,8 @@ const fileSlicer = createSlice({
       state.audioQueue = [];
       state.originalAudioQueue = [];
       state.currentTrackIndex = 0;
+      state.audioShared = false;
+      state.audioSharedName = "";
     },
     playNextTrack: (state) => {
       const total = state.audioQueue.length;
@@ -307,6 +313,14 @@ const fileSlicer = createSlice({
       const baseQueue = action.payload.queue || [];
       const startIndex = action.payload.index || 0;
       const startFile = baseQueue[startIndex];
+      const shared = Boolean(action.payload.shared);
+      const sharedName = shared
+        ? String(action.payload.sharedName || "").trim()
+        : "";
+
+      // Lock shared play context for current + next/prev for this session
+      state.audioShared = shared;
+      state.audioSharedName = sharedName;
 
       state.originalAudioQueue = [...baseQueue];
 

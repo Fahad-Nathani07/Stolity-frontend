@@ -94,9 +94,9 @@ const {
   repeatMode,
   audioQueue,
   currentTrackIndex,
+  audioShared,
+  audioSharedName,
 } = useSelector((state) => state.getdata);
-  const isSharedValue = useSelector((state) => state.getdata.isSharedValue);
-  const filenameRedux = useSelector((state) => state.getdata.fileName);
   const [spanExpanded, setSpanExpanded] = useState(false);
 
 
@@ -252,8 +252,8 @@ const {
           {isLoggedIn && showAudioPlayer && currentAudioFile && (
             <AudioPlayerModal
               audioSrc={buildAudioStreamUrl(apiUrl, token, currentAudioFile, {
-                shared: isSharedValue,
-                sharedName: filenameRedux,
+                shared: audioShared,
+                sharedName: audioSharedName,
               })}
               nextAudioSrc={
                 audioQueue.length > 1
@@ -261,7 +261,7 @@ const {
                       apiUrl,
                       token,
                       audioQueue[(currentTrackIndex + 1) % audioQueue.length],
-                      { shared: isSharedValue, sharedName: filenameRedux }
+                      { shared: audioShared, sharedName: audioSharedName }
                     )
                   : null
               }
